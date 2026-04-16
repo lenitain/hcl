@@ -37,7 +37,7 @@ pub fn Body::new() -> Body {
 ///|
 /// Create a Body from items
 pub fn Body::from_items(items : Array[BodyItem]) -> Body {
-  { items: items }
+  { items, }
 }
 
 ///|
@@ -62,7 +62,7 @@ pub fn Body::is_empty(self : Body) -> Bool {
 /// Add an attribute to the body (returns new body)
 pub fn Body::add_attr(self : Body, key : String, value : HCLValue) -> Body {
   let new_items = self.items.copy()
-  new_items.push(Attribute({ key: key, value: value }))
+  new_items.push(Attribute({ key, value }))
   { items: new_items }
 }
 
@@ -114,7 +114,7 @@ pub fn Body::find_block(self : Body, type_name : String) -> Block? {
 ///|
 /// Create a new attribute
 pub fn Attr::new(key : String, value : HCLValue) -> Attr {
-  { key: key, value: value }
+  { key, value }
 }
 
 ///|
@@ -131,14 +131,18 @@ pub fn Attr::get_value(self : Attr) -> HCLValue {
 
 ///|
 /// Create a new block
-pub fn Block::new(type_name : String, labels : Array[String], body : Body) -> Block {
-  { type_name: type_name, labels: labels, body: body }
+pub fn Block::new(
+  type_name : String,
+  labels : Array[String],
+  body : Body,
+) -> Block {
+  { type_name, labels, body }
 }
 
 ///|
 /// Create a block without labels
 pub fn Block::simple(type_name : String, body : Body) -> Block {
-  { type_name: type_name, labels: [], body: body }
+  { type_name, labels: [], body }
 }
 
 ///|

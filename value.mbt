@@ -146,15 +146,14 @@ pub fn HCLValue::to_json_string(self : HCLValue) -> String {
     Int64(i) => i.to_string()
     Float(f) => f.to_string()
     String(s) => escape_string(s)
-    Array(arr) => {
+    Array(arr) =>
       if arr.is_empty() {
         "[]"
       } else {
         let items = arr.map(fn(v) { v.to_json_string() })
         "[" + items.join(", ") + "]"
       }
-    }
-    Object(obj) => {
+    Object(obj) =>
       if obj.is_empty() {
         "{}"
       } else {
@@ -164,7 +163,6 @@ pub fn HCLValue::to_json_string(self : HCLValue) -> String {
         }
         "{" + items.join(", ") + "}"
       }
-    }
   }
 }
 

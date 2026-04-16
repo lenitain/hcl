@@ -35,7 +35,7 @@ pub fn to_hcl_body(body : Body) -> String {
 /// Format HCL value to string
 fn format_hcl_value(value : HCLValue, indent : Int) -> String {
   let prefix = repeat_string("  ", indent)
-  
+
   match value {
     Null => "null"
     Bool(b) => if b { "true" } else { "false" }
@@ -43,25 +43,35 @@ fn format_hcl_value(value : HCLValue, indent : Int) -> String {
     Int64(i) => i.to_string()
     Float(f) => f.to_string()
     String(s) => escape_hcl_string(s)
-    Array(arr) => {
+    Array(arr) =>
       if arr.is_empty() {
         "[]"
       } else {
         let items = arr.map(fn(v) { format_hcl_value(v, indent + 1) })
-        "[\n" + prefix + "  " + items.join(",\n" + prefix + "  ") + "\n" + prefix + "]"
+        "[\n" +
+        prefix +
+        "  " +
+        items.join(",\n" + prefix + "  ") +
+        "\n" +
+        prefix +
+        "]"
       }
-    }
-    Object(obj) => {
+    Object(obj) =>
       if obj.is_empty() {
         "{}"
       } else {
         let items = []
         for k, v in obj {
-          items.push(prefix + "  " + escape_hcl_string(k) + " = " + format_hcl_value(v, indent + 1))
+          items.push(
+            prefix +
+            "  " +
+            escape_hcl_string(k) +
+            " = " +
+            format_hcl_value(v, indent + 1),
+          )
         }
         "{\n" + items.join("\n") + "\n" + prefix + "}"
       }
-    }
   }
 }
 
@@ -71,17 +81,22 @@ pub fn format_body(body : Body) -> String {
   let lines = []
   for item in body.get_items() {
     match item {
-      Attribute(attr) => {
-        lines.push(attr.get_key() + " = " + format_hcl_value(attr.get_value(), 0))
-      }
+      Attribute(attr) =>
+        lines.push(
+          attr.get_key() + " = " + format_hcl_value(attr.get_value(), 0),
+        )
       Block(block) => {
         let labels = block.get_labels()
         let block_header = if labels.is_empty() {
           block.get_type_name()
         } else {
-          block.get_type_name() + " " + labels.map(fn(l) { escape_hcl_string(l) }).join(" ")
+          block.get_type_name() +
+          " " +
+          labels.map(fn(l) { escape_hcl_string(l) }).join(" ")
         }
-        lines.push(block_header + " {\n" + format_body(block.get_body()) + "\n}")
+        lines.push(
+          block_header + " {\n" + format_body(block.get_body()) + "\n}",
+        )
       }
     }
   }

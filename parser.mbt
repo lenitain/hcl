@@ -11,12 +11,11 @@ pub struct Parser {
 pub fn Parser::new(input : String) -> HCLResult[Parser] {
   let lexer = Lexer::new(input)
   match lexer.next_token() {
-    Ok((current, lexer)) => {
+    Ok((current, lexer)) =>
       match lexer.next_token() {
-        Ok((peek, lexer)) => Ok({ lexer: lexer, current: current, peek: peek })
+        Ok((peek, lexer)) => Ok({ lexer, current, peek })
         Err(e) => Err(e)
       }
-    }
     Err(e) => Err(e)
   }
 }
@@ -25,12 +24,11 @@ pub fn Parser::new(input : String) -> HCLResult[Parser] {
 /// Create a new parser from lexer
 pub fn Parser::from_lexer(lexer : Lexer) -> HCLResult[Parser] {
   match lexer.next_token() {
-    Ok((current, lexer)) => {
+    Ok((current, lexer)) =>
       match lexer.next_token() {
-        Ok((peek, lexer)) => Ok({ lexer: lexer, current: current, peek: peek })
+        Ok((peek, lexer)) => Ok({ lexer, current, peek })
         Err(e) => Err(e)
       }
-    }
     Err(e) => Err(e)
   }
 }
@@ -39,13 +37,8 @@ pub fn Parser::from_lexer(lexer : Lexer) -> HCLResult[Parser] {
 /// Advance to next token
 fn Parser::advance(self : Parser) -> HCLResult[Parser] {
   match self.lexer.next_token() {
-    Ok((new_peek, new_lexer)) => {
-      Ok({
-        lexer: new_lexer,
-        current: self.peek,
-        peek: new_peek
-      })
-    }
+    Ok((new_peek, new_lexer)) =>
+      Ok({ lexer: new_lexer, current: self.peek, peek: new_peek })
     Err(e) => Err(e)
   }
 }
@@ -63,12 +56,17 @@ fn Parser::expect(self : Parser, expected : Token) -> HCLResult[Parser] {
     self.advance()
   } else {
     let (line, col, offset) = self.lexer.location()
-    Err(HCLError::parse_error(
-      "Expected " + token_to_string(expected) + ", got " + token_to_string(self.current),
-      line,
-      col,
-      offset
-    ))
+    Err(
+      HCLError::parse_error(
+        "Expected " +
+        token_to_string(expected) +
+        ", got " +
+        token_to_string(self.current),
+        line,
+        col,
+        offset,
+      ),
+    )
   }
 }
 
@@ -92,10 +90,10 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
     Ok(start_parser) => {
       let items = []
       let mut parser = start_parser
-      
+
       while !parser.check(EOF) {
         match parser.current {
-          Ident(name) => {
+          Ident(name) =>
             if parser.check(Equals) || parser.peek == Equals {
               // Attribute
               match parser.parse_attr() {
@@ -115,22 +113,22 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
                 Err(e) => return Err(e)
               }
             }
-          }
-          Newline => {
+          Newline =>
             match parser.advance() {
               Ok(p) => parser = p
               Err(e) => return Err(e)
             }
-          }
           EOF => break
           _ => {
             let (line, col, offset) = parser.lexer.location()
-            return Err(HCLError::parse_error(
-              "Unexpected token: " + token_to_string(parser.current),
-              line,
-              col,
-              offset
-            ))
+            return Err(
+              HCLError::parse_error(
+                "Unexpected token: " + token_to_string(parser.current),
+                line,
+                col,
+                offset,
+              ),
+            )
           }
         }
         match parser.skip_newlines() {
@@ -138,7 +136,7 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
           Err(e) => return Err(e)
         }
       }
-      
+
       Ok(Body::from_items(items))
     }
     Err(e) => Err(e)
@@ -152,27 +150,22 @@ fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
     Ident(n) => n
     _ => {
       let (line, col, offset) = self.lexer.location()
-      return Err(HCLError::parse_error(
-        "Expected identifier",
-        line,
-        col,
-        offset
-      ))
+      return Err(
+        HCLError::parse_error("Expected identifier", line, col, offset),
+      )
     }
   }
-  
+
   match self.advance() {
-    Ok(parser) => {
+    Ok(parser) =>
       match parser.expect(Equals) {
-        Ok(parser) => {
+        Ok(parser) =>
           match parser.parse_value() {
             Ok((value, parser)) => Ok((Attr::new(name, value), parser))
             Err(e) => Err(e)
           }
-        }
         Err(e) => Err(e)
       }
-    }
     Err(e) => Err(e)
   }
 }
@@ -184,21 +177,18 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
     Ident(n) => n
     _ => {
       let (line, col, offset) = self.lexer.location()
-      return Err(HCLError::parse_error(
-        "Expected block type name",
-        line,
-        col,
-        offset
-      ))
+      return Err(
+        HCLError::parse_error("Expected block type name", line, col, offset),
+      )
     }
   }
-  
+
   let labels = []
   let mut result = match self.advance() {
     Ok(p) => p
     Err(e) => return Err(e)
   }
-  
+
   // Parse labels (optional)
   while !result.check(LBrace) && !result.check(EOF) {
     match result.current {
@@ -218,29 +208,28 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
       }
       _ => {
         let (line, col, offset) = result.lexer.location()
-        return Err(HCLError::parse_error(
-          "Expected block label or '{'",
-          line,
-          col,
-          offset
-        ))
+        return Err(
+          HCLError::parse_error(
+            "Expected block label or '{'", line, col, offset,
+          ),
+        )
       }
     }
   }
-  
+
   match result.expect(LBrace) {
     Ok(start_parser) => {
       let items = []
       let mut parser = start_parser
-      
+
       match parser.skip_newlines() {
         Ok(p) => parser = p
         Err(e) => return Err(e)
       }
-      
+
       while !parser.check(RBrace) && !parser.check(EOF) {
         match parser.current {
-          Ident(name) => {
+          Ident(name) =>
             if parser.check(Equals) || parser.peek == Equals {
               // Attribute
               match parser.parse_attr() {
@@ -260,21 +249,21 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
                 Err(e) => return Err(e)
               }
             }
-          }
-          Newline => {
+          Newline =>
             match parser.advance() {
               Ok(p) => parser = p
               Err(e) => return Err(e)
             }
-          }
           _ => {
             let (line, col, offset) = parser.lexer.location()
-            return Err(HCLError::parse_error(
-              "Unexpected token: " + token_to_string(parser.current),
-              line,
-              col,
-              offset
-            ))
+            return Err(
+              HCLError::parse_error(
+                "Unexpected token: " + token_to_string(parser.current),
+                line,
+                col,
+                offset,
+              ),
+            )
           }
         }
         match parser.skip_newlines() {
@@ -282,9 +271,10 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
           Err(e) => return Err(e)
         }
       }
-      
+
       match parser.expect(RBrace) {
-        Ok(final_parser) => Ok((Block::new(type_name, labels, { items: items }), final_parser))
+        Ok(final_parser) =>
+          Ok((Block::new(type_name, labels, { items, }), final_parser))
         Err(e) => Err(e)
       }
     }
@@ -296,17 +286,16 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
 /// Parse a value
 fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.current {
-    StringLit(s) => {
+    StringLit(s) =>
       match self.advance() {
         Ok(p) => Ok((String(s), p))
         Err(e) => Err(e)
       }
-    }
     NumberLit(n) => {
       // Parse as integer (simple implementation)
       let value = 0
       let is_negative = false
-      
+
       // Simple integer parsing
       for c in n {
         if c == '-' {
@@ -321,7 +310,7 @@ fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
       }
-      
+
       // Parse integer value
       let mut result = 0
       for c in n {
@@ -329,36 +318,36 @@ fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           result = result * 10 + (c.to_int() - '0'.to_int())
         }
       }
-      
+
       match self.advance() {
         Ok(p) => Ok((Int(result), p))
         Err(e) => Err(e)
       }
     }
-    BoolLit(b) => {
+    BoolLit(b) =>
       match self.advance() {
         Ok(p) => Ok((Bool(b), p))
         Err(e) => Err(e)
       }
-    }
-    NullLit => {
+    NullLit =>
       match self.advance() {
         Ok(p) => Ok((Null, p))
         Err(e) => Err(e)
       }
-    }
     LBracket => self.parse_array()
     LBrace => self.parse_object()
     LParen => self.parse_paren_expr()
     Minus => self.parse_negative()
     _ => {
       let (line, col, offset) = self.lexer.location()
-      Err(HCLError::parse_error(
-        "Unexpected token: " + token_to_string(self.current),
-        line,
-        col,
-        offset
-      ))
+      Err(
+        HCLError::parse_error(
+          "Unexpected token: " + token_to_string(self.current),
+          line,
+          col,
+          offset,
+        ),
+      )
     }
   }
 }
@@ -370,12 +359,12 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
     Ok(start_parser) => {
       let items = []
       let mut parser = start_parser
-      
+
       match parser.skip_newlines() {
         Ok(p) => parser = p
         Err(e) => return Err(e)
       }
-      
+
       while !parser.check(RBracket) && !parser.check(EOF) {
         match parser.parse_value() {
           Ok((value, new_parser)) => {
@@ -384,12 +373,12 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
           Err(e) => return Err(e)
         }
-        
+
         match parser.skip_newlines() {
           Ok(p) => parser = p
           Err(e) => return Err(e)
         }
-        
+
         if parser.check(Comma) {
           match parser.advance() {
             Ok(p) => parser = p
@@ -401,15 +390,12 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         } else if !parser.check(RBracket) {
           let (line, col, offset) = parser.lexer.location()
-          return Err(HCLError::parse_error(
-            "Expected ',' or ']'",
-            line,
-            col,
-            offset
-          ))
+          return Err(
+            HCLError::parse_error("Expected ',' or ']'", line, col, offset),
+          )
         }
       }
-      
+
       match parser.expect(RBracket) {
         Ok(parser) => Ok((Array(items), parser))
         Err(e) => Err(e)
@@ -426,12 +412,12 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
     Ok(start_parser) => {
       let obj = {}
       let mut parser = start_parser
-      
+
       match parser.skip_newlines() {
         Ok(p) => parser = p
         Err(e) => return Err(e)
       }
-      
+
       while !parser.check(RBrace) && !parser.check(EOF) {
         // Parse key
         let key = match parser.current {
@@ -439,20 +425,17 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           Ident(s) => s
           _ => {
             let (line, col, offset) = parser.lexer.location()
-            return Err(HCLError::parse_error(
-              "Expected object key",
-              line,
-              col,
-              offset
-            ))
+            return Err(
+              HCLError::parse_error("Expected object key", line, col, offset),
+            )
           }
         }
-        
+
         match parser.advance() {
           Ok(p) => parser = p
           Err(e) => return Err(e)
         }
-        
+
         // Check for assignment operator
         if parser.check(Equals) {
           match parser.advance() {
@@ -466,14 +449,11 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         } else {
           let (line, col, offset) = parser.lexer.location()
-          return Err(HCLError::parse_error(
-            "Expected '=' or ':'",
-            line,
-            col,
-            offset
-          ))
+          return Err(
+            HCLError::parse_error("Expected '=' or ':'", line, col, offset),
+          )
         }
-        
+
         // Parse value
         match parser.parse_value() {
           Ok((value, new_parser)) => {
@@ -482,12 +462,12 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
           Err(e) => return Err(e)
         }
-        
+
         match parser.skip_newlines() {
           Ok(p) => parser = p
           Err(e) => return Err(e)
         }
-        
+
         if parser.check(Comma) {
           match parser.advance() {
             Ok(p) => parser = p
@@ -499,15 +479,12 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         } else if !parser.check(RBrace) {
           let (line, col, offset) = parser.lexer.location()
-          return Err(HCLError::parse_error(
-            "Expected ',' or '}'",
-            line,
-            col,
-            offset
-          ))
+          return Err(
+            HCLError::parse_error("Expected ',' or '}'", line, col, offset),
+          )
         }
       }
-      
+
       match parser.expect(RBrace) {
         Ok(parser) => Ok((Object(obj), parser))
         Err(e) => Err(e)
@@ -521,17 +498,15 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 /// Parse parenthesized expression
 fn Parser::parse_paren_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LParen) {
-    Ok(parser) => {
+    Ok(parser) =>
       match parser.parse_value() {
-        Ok((value, parser)) => {
+        Ok((value, parser)) =>
           match parser.expect(RParen) {
             Ok(parser) => Ok((value, parser))
             Err(e) => Err(e)
           }
-        }
         Err(e) => Err(e)
       }
-    }
     Err(e) => Err(e)
   }
 }
@@ -540,26 +515,23 @@ fn Parser::parse_paren_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 /// Parse negative number
 fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(Minus) {
-    Ok(parser) => {
+    Ok(parser) =>
       match parser.parse_value() {
-        Ok((value, parser)) => {
+        Ok((value, parser)) =>
           match value {
             Int(i) => Ok((Int(-i), parser))
             Float(f) => Ok((Float(-f), parser))
             _ => {
               let (line, col, offset) = parser.lexer.location()
-              Err(HCLError::parse_error(
-                "Expected number after '-'",
-                line,
-                col,
-                offset
-              ))
+              Err(
+                HCLError::parse_error(
+                  "Expected number after '-'", line, col, offset,
+                ),
+              )
             }
           }
-        }
         Err(e) => Err(e)
       }
-    }
     Err(e) => Err(e)
   }
 }

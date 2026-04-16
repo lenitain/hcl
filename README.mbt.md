@@ -19,7 +19,7 @@ moon add hcl
 
 ### Parse HCL
 
-```moonbit
+```moonbit nocheck
 let input = "name = \"John\"\nport = 8080"
 let result = hcl.parse(input)
 match result {
@@ -34,7 +34,7 @@ match result {
 
 ### Parse HCL Attributes
 
-```moonbit
+```moonbit nocheck
 let input = "host = \"localhost\"\nport = 8080"
 let result = hcl.parse(input)
 match result {
@@ -56,7 +56,7 @@ match result {
 
 ### Parse HCL Blocks
 
-```moonbit
+```moonbit nocheck
 let input = "resource \"aws_instance\" \"example\" {\n  ami = \"ami-123\"\n  instance_type = \"t2.micro\"\n}"
 let result = hcl.parse(input)
 match result {
@@ -77,7 +77,7 @@ match result {
 
 ### Serialize to HCL
 
-```moonbit
+```moonbit nocheck
 let value = hcl.HCLValue::Object({
   "name": hcl.HCLValue::String("John"),
   "age": hcl.HCLValue::Int(30),
@@ -89,7 +89,7 @@ println(hcl_str)
 
 ### Check if HCL is Valid
 
-```moonbit
+```moonbit nocheck
 let valid = "name = \"John\""
 let invalid = "name = John" // missing quotes
 

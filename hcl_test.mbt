@@ -1,6 +1,5 @@
 ///|
 /// HCL Parser Tests
-
 test "parse simple attribute" {
   let input = "name = \"John\""
   let result = parse(input)
@@ -20,18 +19,18 @@ test "parse simple attribute" {
   }
 }
 
+///|
 test "parse multiple attributes" {
   let input = "name = \"John\"\nage = 30"
   let result = parse(input)
   assert_true(result is Ok(_))
   match result {
-    Ok(body) => {
-      assert_eq(body.len(), 2)
-    }
+    Ok(body) => assert_eq(body.len(), 2)
     Err(_) => panic()
   }
 }
 
+///|
 test "parse block" {
   let input = "resource \"aws_instance\" \"example\" {\n  ami = \"ami-123\"\n}"
   let result = parse(input)
@@ -52,6 +51,7 @@ test "parse block" {
   }
 }
 
+///|
 test "parse nested blocks" {
   let input = "resource \"aws_instance\" \"example\" {\n  ami = \"ami-123\"\n  tags {\n    Name = \"example\"\n  }\n}"
   let result = parse(input)
@@ -71,6 +71,7 @@ test "parse nested blocks" {
   }
 }
 
+///|
 test "parse array" {
   let input = "items = [1, 2, 3]"
   let result = parse(input)
@@ -93,30 +94,29 @@ test "parse array" {
   }
 }
 
+///|
 test "parse object" {
   let input = "config = { host = \"localhost\", port = 8080 }"
   let result = parse(input)
   assert_true(result is Ok(_))
   match result {
-    Ok(body) => {
-      assert_eq(body.len(), 1)
-    }
+    Ok(body) => assert_eq(body.len(), 1)
     Err(_) => panic()
   }
 }
 
+///|
 test "parse boolean values" {
   let input = "enabled = true\ndisabled = false"
   let result = parse(input)
   assert_true(result is Ok(_))
   match result {
-    Ok(body) => {
-      assert_eq(body.len(), 2)
-    }
+    Ok(body) => assert_eq(body.len(), 2)
     Err(_) => panic()
   }
 }
 
+///|
 test "parse null value" {
   let input = "value = null"
   let result = parse(input)
@@ -125,9 +125,7 @@ test "parse null value" {
     Ok(body) => {
       assert_eq(body.len(), 1)
       match body.get_items()[0] {
-        Attribute(attr) => {
-          assert_true(attr.get_value() == Null)
-        }
+        Attribute(attr) => assert_true(attr.get_value() == Null)
         _ => panic()
       }
     }
@@ -135,26 +133,24 @@ test "parse null value" {
   }
 }
 
+///|
 test "parse with comments" {
   let input = "// This is a comment\nname = \"John\"\n/* Block comment */\nage = 30"
   let result = parse(input)
   assert_true(result is Ok(_))
   match result {
-    Ok(body) => {
-      assert_eq(body.len(), 2)
-    }
+    Ok(body) => assert_eq(body.len(), 2)
     Err(_) => panic()
   }
 }
 
+///|
 test "parse with newlines" {
   let input = "\n\nname = \"John\"\n\nage = 30\n\n"
   let result = parse(input)
   assert_true(result is Ok(_))
   match result {
-    Ok(body) => {
-      assert_eq(body.len(), 2)
-    }
+    Ok(body) => assert_eq(body.len(), 2)
     Err(_) => panic()
   }
 }

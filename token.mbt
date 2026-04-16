@@ -73,9 +73,22 @@ pub(all) enum Token {
 /// Check if token is an operator
 pub fn Token::is_operator(self : Token) -> Bool {
   match self {
-    Plus | Minus | Star | Slash | Percent |
-    Bang | Lt | Gt | LtEq | GtEq | EqEq | BangEq |
-    AndAnd | OrOr | Question | Colon => true
+    Plus
+    | Minus
+    | Star
+    | Slash
+    | Percent
+    | Bang
+    | Lt
+    | Gt
+    | LtEq
+    | GtEq
+    | EqEq
+    | BangEq
+    | AndAnd
+    | OrOr
+    | Question
+    | Colon => true
     _ => false
   }
 }
