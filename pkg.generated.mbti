@@ -16,6 +16,8 @@ pub fn eval_expr_simple(HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
+pub fn evaluate_template(String, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
+
 pub fn format_body(Body) -> String
 
 pub fn from_hcl_body(String) -> Result[Body, HCLError]
@@ -29,6 +31,8 @@ pub fn from_hcl_string(String) -> Result[String, HCLError]
 pub fn from_hcl_value(String) -> Result[HCLValue, HCLError]
 
 pub fn parse(String) -> Result[Body, HCLError]
+
+pub fn parse_template(String) -> Result[Template, HCLError]
 
 pub fn to_hcl_body(Body) -> String
 
@@ -149,6 +153,23 @@ pub struct Parser {
 pub fn Parser::from_lexer(Lexer) -> Result[Self, HCLError]
 pub fn Parser::new(String) -> Result[Self, HCLError]
 pub fn Parser::parse_body(Self) -> Result[Body, HCLError]
+
+pub struct Template {
+  parts : Array[TemplatePart]
+}
+pub fn Template::evaluate(Self, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
+pub fn Template::from_heredoc(String, String, Bool) -> Result[Self, HCLError]
+pub fn Template::from_string(String) -> Result[Self, HCLError]
+pub fn Template::new() -> Self
+
+pub(all) enum TemplatePart {
+  Text(String)
+  Interpolation(HCLValue)
+  ConditionalStart(HCLValue)
+  ConditionalEnd
+  ForStart(String, HCLValue)
+  ForEnd
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Token {
   Ident(String)

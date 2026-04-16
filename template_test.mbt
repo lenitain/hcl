@@ -1,0 +1,275 @@
+///|
+/// Tests for HCL template system
+test "parse simple text template" {
+  let input = "Hello, World!"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {}
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Hello, World!")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with interpolation" {
+  let input = "Hello, ${name}!"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "name": HCLValue::String("Alice") }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Hello, Alice!")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with multiple interpolations" {
+  let input = "${greeting}, ${name}!"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "greeting": HCLValue::String("Hi"),
+        "name": HCLValue::String("Bob"),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Hi, Bob!")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with number interpolation" {
+  let input = "Count: ${count}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "count": HCLValue::Int(42) }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Count: 42")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with boolean interpolation" {
+  let input = "Active: ${active}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "active": HCLValue::Bool(true) }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Active: true")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with conditional true" {
+  let input = "%{if show}Visible%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "show": HCLValue::Bool(true) }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Visible")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with conditional false" {
+  let input = "%{if show}Visible%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "show": HCLValue::Bool(false) }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with for loop" {
+  let input = "%{for item in items}${item} %{endfor}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "items": HCLValue::Array([
+          HCLValue::String("a"),
+          HCLValue::String("b"),
+          HCLValue::String("c"),
+        ]),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "a b c ")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse template with complex structure" {
+  let input = "Name: ${name}, Age: ${age}, Active: %{if active}yes%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "name": HCLValue::String("John"),
+        "age": HCLValue::Int(30),
+        "active": HCLValue::Bool(true),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Name: John, Age: 30, Active: yes")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "evaluate template directly" {
+  let input = "Hello, ${name}!"
+  let vars = { "name": HCLValue::String("World") }
+  let funcs = {}
+  match evaluate_template(input, vars, funcs) {
+    Ok(result) => assert_eq(result, "Hello, World!")
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template with undefined variable" {
+  let input = "Hello, ${undefined_var}!"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {}
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(_) => panic()
+        Err(_) => () // Expected error
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template with nested conditionals" {
+  let input = "%{if outer}%{if inner}nested%{endif}%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "outer": HCLValue::Bool(true),
+        "inner": HCLValue::Bool(true),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "nested")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template with for loop and interpolation" {
+  let input = "Items: %{for item in items}${item}, %{endfor}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "items": HCLValue::Array([HCLValue::String("x"), HCLValue::String("y")]),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Items: x, y, ")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc simple" {
+  let input = "This is a multi-line\nstring content\n"
+  match Template::from_heredoc(input, "EOF", false) {
+    Ok(template) => {
+      let vars = {}
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) =>
+          assert_eq(result, "This is a multi-line\nstring content\n")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc with interpolation" {
+  let input = "Hello ${name}!\nWelcome to ${place}.\n"
+  match Template::from_heredoc(input, "EOF", false) {
+    Ok(template) => {
+      let vars = {
+        "name": HCLValue::String("Alice"),
+        "place": HCLValue::String("Wonderland"),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) =>
+          assert_eq(result, "Hello Alice!\nWelcome to Wonderland.\n")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc with strip" {
+  let input = "  This has leading spaces\n  And more spaces\n"
+  match Template::from_heredoc(input, "EOF", true) {
+    Ok(template) => {
+      let vars = {}
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) =>
+          assert_eq(result, "This has leading spaces\nAnd more spaces\n")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
