@@ -284,6 +284,9 @@ fn Lexer::read_ident_or_keyword(self : Lexer) -> HCLResult[(Token, Lexer)] {
     "true" => Ok((BoolLit(true), lexer))
     "false" => Ok((BoolLit(false), lexer))
     "null" => Ok((NullLit, lexer))
+    "for" => Ok((For, lexer))
+    "in" => Ok((In, lexer))
+    "if" => Ok((If, lexer))
     _ => Ok((Ident(ident), lexer))
   }
 }
@@ -309,6 +312,8 @@ pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
     c if c == '='.to_int().to_uint16() =>
       if lexer.peek_next() == Some('='.to_int().to_uint16()) {
         Ok((EqEq, lexer.advance().advance()))
+      } else if lexer.peek_next() == Some('>'.to_int().to_uint16()) {
+        Ok((FatArrow, lexer.advance().advance()))
       } else {
         Ok((Equals, lexer.advance()))
       }

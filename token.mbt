@@ -61,12 +61,20 @@ pub(all) enum Token {
   Question
   /// Colon `:`
   Colon
+  /// Fat arrow `=>`
+  FatArrow
   /// Heredoc start `<<` or `<<-`
   Heredoc(Bool)
   /// Newline
   Newline
   /// End of file
   EOF
+  /// For keyword
+  For
+  /// In keyword
+  In
+  /// If keyword
+  If
 } derive(Debug, Eq)
 
 ///|

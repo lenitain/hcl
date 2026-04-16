@@ -202,9 +202,13 @@ pub(all) enum Token {
   OrOr
   Question
   Colon
+  FatArrow
   Heredoc(Bool)
   Newline
   EOF
+  For
+  In
+  If
 } derive(Eq, @debug.Debug)
 pub fn Token::is_delimiter(Self) -> Bool
 pub fn Token::is_literal(Self) -> Bool

@@ -361,6 +361,166 @@ pub fn eval_expr(
             (Err(e), _) => Err(e)
           }
         }
+        Some(String("binary_expr")) => {
+          // Binary expression: left op right
+          let op = obj.get("op").unwrap()
+          let left = obj.get("left").unwrap()
+          let right = obj.get("right").unwrap()
+
+          match
+            (
+              eval_expr(left, variables, functions),
+              eval_expr(right, variables, functions),
+            ) {
+            (Ok(left_val), Ok(right_val)) =>
+              match op {
+                String(op_str) => eval_binary(left_val, op_str, right_val)
+                _ => Err(HCLError::type_error("Operator must be string"))
+              }
+            (Err(e), _) => Err(e)
+            (_, Err(e)) => Err(e)
+          }
+        }
+        Some(String("for_expr")) => {
+          // List comprehension: [for x in list: expr]
+          let loop_var_name = obj.get("var").unwrap()
+          let collection = obj.get("collection").unwrap()
+          let value_expr = obj.get("value_expr").unwrap()
+          let filter = obj.get("filter").unwrap()
+
+          match eval_expr(collection, variables, functions) {
+            Ok(Array(arr)) => {
+              let result = []
+              for item in arr {
+                // Check filter if present
+                let should_include = match filter {
+                  Null => true
+                  filter_expr => {
+                    // Create new context with loop variable
+                    let loop_vars = variables.copy()
+                    match loop_var_name {
+                      String(var_name) => loop_vars[var_name] = item
+                      _ =>
+                        return Err(
+                          HCLError::type_error("Loop variable must be string"),
+                        )
+                    }
+                    match eval_expr(filter_expr, loop_vars, functions) {
+                      Ok(Bool(b)) => b
+                      Ok(_) =>
+                        return Err(
+                          HCLError::type_error("Filter must return boolean"),
+                        )
+                      Err(e) => return Err(e)
+                    }
+                  }
+                }
+
+                if should_include {
+                  // Create new context with loop variable
+                  let loop_vars = variables.copy()
+                  match loop_var_name {
+                    String(var_name) => loop_vars[var_name] = item
+                    _ =>
+                      return Err(
+                        HCLError::type_error("Loop variable must be string"),
+                      )
+                  }
+                  match eval_expr(value_expr, loop_vars, functions) {
+                    Ok(value) => result.push(value)
+                    Err(e) => return Err(e)
+                  }
+                }
+              }
+              Ok(Array(result))
+            }
+            Ok(_) => Err(HCLError::type_error("For collection must be array"))
+            Err(e) => Err(e)
+          }
+        }
+        Some(String("for_object_expr")) => {
+          // Object comprehension: {for k, v in obj: k => v}
+          let loop_key_var = obj.get("key_var").unwrap()
+          let loop_value_var = obj.get("value_var").unwrap()
+          let collection = obj.get("collection").unwrap()
+          let key_expr = obj.get("key_expr").unwrap()
+          let value_expr = obj.get("value_expr").unwrap()
+          let filter = obj.get("filter").unwrap()
+
+          match eval_expr(collection, variables, functions) {
+            Ok(Object(source_obj)) => {
+              let result = {}
+              for k, v in source_obj {
+                // Check filter if present
+                let should_include = match filter {
+                  Null => true
+                  filter_expr => {
+                    // Create new context with loop variables
+                    let loop_vars = variables.copy()
+                    match loop_key_var {
+                      String(key_var_name) =>
+                        loop_vars[key_var_name] = String(k)
+                      _ =>
+                        return Err(
+                          HCLError::type_error("Key variable must be string"),
+                        )
+                    }
+                    match loop_value_var {
+                      String(value_var_name) => loop_vars[value_var_name] = v
+                      _ =>
+                        return Err(
+                          HCLError::type_error("Value variable must be string"),
+                        )
+                    }
+                    match eval_expr(filter_expr, loop_vars, functions) {
+                      Ok(Bool(b)) => b
+                      Ok(_) =>
+                        return Err(
+                          HCLError::type_error("Filter must return boolean"),
+                        )
+                      Err(e) => return Err(e)
+                    }
+                  }
+                }
+
+                if should_include {
+                  // Create new context with loop variables
+                  let loop_vars = variables.copy()
+                  match loop_key_var {
+                    String(key_var_name) => loop_vars[key_var_name] = String(k)
+                    _ =>
+                      return Err(
+                        HCLError::type_error("Key variable must be string"),
+                      )
+                  }
+                  match loop_value_var {
+                    String(value_var_name) => loop_vars[value_var_name] = v
+                    _ =>
+                      return Err(
+                        HCLError::type_error("Value variable must be string"),
+                      )
+                  }
+
+                  match eval_expr(key_expr, loop_vars, functions) {
+                    Ok(String(new_key)) =>
+                      match eval_expr(value_expr, loop_vars, functions) {
+                        Ok(new_value) => result[new_key] = new_value
+                        Err(e) => return Err(e)
+                      }
+                    Ok(_) =>
+                      return Err(
+                        HCLError::type_error("Object key must be string"),
+                      )
+                    Err(e) => return Err(e)
+                  }
+                }
+              }
+              Ok(Object(result))
+            }
+            Ok(_) => Err(HCLError::type_error("For collection must be object"))
+            Err(e) => Err(e)
+          }
+        }
         // Regular object - evaluate each value
         _ => {
           let result = {}

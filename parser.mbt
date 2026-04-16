@@ -283,12 +283,94 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
 }
 
 ///|
-/// Parse a value (including expressions)
+/// Parse a value (including expressions with binary operators)
 fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.parse_primary() {
-    Ok((expr, parser)) => parser.parse_conditional_expr(expr)
+    Ok((expr, parser)) => parser.parse_binary_expr(expr, 0)
     Err(e) => Err(e)
   }
+}
+
+///|
+/// Parse binary expression with operator precedence (Pratt parser)
+fn Parser::parse_binary_expr(
+  self : Parser,
+  left : HCLValue,
+  min_prec : Int,
+) -> HCLResult[(HCLValue, Parser)] {
+  let mut result = left
+  let mut parser = self
+  let mut continue_loop = true
+
+  while continue_loop {
+    let prec = parser.current.precedence()
+    if prec == 0 || prec < min_prec {
+      continue_loop = false
+      continue
+    }
+
+    let op_token = parser.current
+    let op_str = match op_token {
+      Plus => "+"
+      Minus => "-"
+      Star => "*"
+      Slash => "/"
+      Percent => "%"
+      EqEq => "=="
+      BangEq => "!="
+      Lt => "<"
+      Gt => ">"
+      LtEq => "<="
+      GtEq => ">="
+      AndAnd => "&&"
+      OrOr => "||"
+      _ => {
+        continue_loop = false
+        continue
+      }
+    }
+
+    match parser.advance() {
+      Ok(p) => parser = p
+      Err(e) => return Err(e)
+    }
+
+    match parser.parse_primary() {
+      Ok((right, p)) => {
+        parser = p
+        let next_prec = parser.current.precedence()
+        if next_prec > prec {
+          match parser.parse_binary_expr(right, prec + 1) {
+            Ok((new_right, p)) => {
+              parser = p
+              // Create binary operation as object
+              let bin_obj = {
+                "type": String("binary_expr"),
+                "op": String(op_str),
+                "left": result,
+                "right": new_right,
+              }
+              result = Object(bin_obj)
+            }
+            Err(e) => return Err(e)
+          }
+        } else {
+          // Create binary operation as object
+          let bin_obj = {
+            "type": String("binary_expr"),
+            "op": String(op_str),
+            "left": result,
+            "right": right,
+          }
+          result = Object(bin_obj)
+        }
+      }
+      Err(e) => return Err(e)
+    }
+  }
+
+  // Check for conditional expression
+  parser.parse_conditional_expr(result)
 }
 
 ///|
@@ -552,11 +634,10 @@ fn Parser::parse_property_access(
 }
 
 ///|
-/// Parse an array
+/// Parse an array or for expression
 fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LBracket) {
     Ok(start_parser) => {
-      let items = []
       let mut parser = start_parser
 
       match parser.skip_newlines() {
@@ -564,6 +645,13 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         Err(e) => return Err(e)
       }
 
+      // Check for for expression
+      if parser.check(For) {
+        return parser.parse_for_expr()
+      }
+
+      // Regular array
+      let items = []
       while !parser.check(RBracket) && !parser.check(EOF) {
         match parser.parse_value() {
           Ok((value, new_parser)) => {
@@ -605,11 +693,325 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 }
 
 ///|
-/// Parse an object
+/// Parse for expression [for x in list: expr] or {for k, v in obj: k => v}
+fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+  match self.expect(For) {
+    Ok(parser) => {
+      // Parse loop variable(s)
+      let vars = []
+      let mut p = parser
+
+      // Parse first variable
+      match p.current {
+        Ident(name) => {
+          vars.push(name)
+          match p.advance() {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+        }
+        _ => {
+          let (line, col, offset) = p.lexer.location()
+          return Err(
+            HCLError::parse_error(
+              "Expected identifier after 'for'", line, col, offset,
+            ),
+          )
+        }
+      }
+
+      // Check for comma (object for expression has two variables)
+      if p.check(Comma) {
+        match p.advance() {
+          Ok(new_p) => p = new_p
+          Err(e) => return Err(e)
+        }
+        match p.current {
+          Ident(name) => {
+            vars.push(name)
+            match p.advance() {
+              Ok(new_p) => p = new_p
+              Err(e) => return Err(e)
+            }
+          }
+          _ => {
+            let (line, col, offset) = p.lexer.location()
+            return Err(
+              HCLError::parse_error(
+                "Expected identifier after ','", line, col, offset,
+              ),
+            )
+          }
+        }
+      }
+
+      // Parse 'in'
+      match p.expect(In) {
+        Ok(new_p) => p = new_p
+        Err(e) => return Err(e)
+      }
+
+      // Parse collection expression
+      match p.parse_value() {
+        Ok((collection, new_p)) => {
+          p = new_p
+
+          // Parse colon
+          match p.expect(Colon) {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+
+          // Parse value expression
+          match p.parse_value() {
+            Ok((value_expr, new_p)) => {
+              p = new_p
+
+              // Check for conditional filter
+              let filter = if p.check(If) {
+                match p.advance() {
+                  Ok(new_p) => {
+                    p = new_p
+                    match p.parse_value() {
+                      Ok((filter_expr, new_p)) => {
+                        p = new_p
+                        Some(filter_expr)
+                      }
+                      Err(e) => return Err(e)
+                    }
+                  }
+                  Err(e) => return Err(e)
+                }
+              } else {
+                None
+              }
+
+              // Determine if this is list or object comprehension
+              if vars.length() == 1 {
+                // List comprehension: [for x in list: expr]
+                let for_obj = {
+                  "type": String("for_expr"),
+                  "var": String(vars[0]),
+                  "collection": collection,
+                  "value_expr": value_expr,
+                  "filter": match filter {
+                    Some(f) => f
+                    None => Null
+                  },
+                }
+                match p.expect(RBracket) {
+                  Ok(final_p) => Ok((Object(for_obj), final_p))
+                  Err(e) => Err(e)
+                }
+              } else {
+                // Object comprehension: {for k, v in obj: k => v}
+                // We need to check for RBrace instead of RBracket
+                let for_obj = {
+                  "type": String("for_object_expr"),
+                  "key_var": String(vars[0]),
+                  "value_var": String(vars[1]),
+                  "collection": collection,
+                  "key_expr": value_expr,
+                  "value_expr": Null,
+                  "filter": match filter {
+                    Some(f) => f
+                    None => Null
+                  },
+                }
+
+                // For object comprehension, we expect key => value syntax
+                // But we already parsed the first expression as value_expr
+                // Need to re-parse the key_expr
+                // Actually, object comprehension syntax is: {for k, v in obj: k => v}
+                // So after colon, we expect key_expr => value_expr
+                // Let me re-think this...
+
+                // For now, let's handle it as a simple case
+                // The value_expr is actually the key_expr, and we need to parse => and value_expr
+                match p.expect(FatArrow) {
+                  Ok(new_p) => {
+                    p = new_p
+                    match p.parse_value() {
+                      Ok((obj_value_expr, new_p)) => {
+                        p = new_p
+                        let for_obj = {
+                          "type": String("for_object_expr"),
+                          "key_var": String(vars[0]),
+                          "value_var": String(vars[1]),
+                          "collection": collection,
+                          "key_expr": value_expr,
+                          "value_expr": obj_value_expr,
+                          "filter": match filter {
+                            Some(f) => f
+                            None => Null
+                          },
+                        }
+                        match p.expect(RBrace) {
+                          Ok(final_p) => Ok((Object(for_obj), final_p))
+                          Err(e) => Err(e)
+                        }
+                      }
+                      Err(e) => Err(e)
+                    }
+                  }
+                  Err(e) => Err(e)
+                }
+              }
+            }
+            Err(e) => Err(e)
+          }
+        }
+        Err(e) => Err(e)
+      }
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse for expression for object comprehension {for k, v in obj: k => v}
+fn Parser::parse_for_expr_for_object(
+  self : Parser,
+) -> HCLResult[(HCLValue, Parser)] {
+  match self.expect(For) {
+    Ok(parser) => {
+      // Parse loop variables (key, value)
+      let vars = []
+      let mut p = parser
+
+      // Parse first variable (key)
+      match p.current {
+        Ident(name) => {
+          vars.push(name)
+          match p.advance() {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+        }
+        _ => {
+          let (line, col, offset) = p.lexer.location()
+          return Err(
+            HCLError::parse_error(
+              "Expected identifier after 'for'", line, col, offset,
+            ),
+          )
+        }
+      }
+
+      // Parse comma
+      match p.expect(Comma) {
+        Ok(new_p) => p = new_p
+        Err(e) => return Err(e)
+      }
+
+      // Parse second variable (value)
+      match p.current {
+        Ident(name) => {
+          vars.push(name)
+          match p.advance() {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+        }
+        _ => {
+          let (line, col, offset) = p.lexer.location()
+          return Err(
+            HCLError::parse_error(
+              "Expected identifier after ','", line, col, offset,
+            ),
+          )
+        }
+      }
+
+      // Parse 'in'
+      match p.expect(In) {
+        Ok(new_p) => p = new_p
+        Err(e) => return Err(e)
+      }
+
+      // Parse collection expression
+      match p.parse_value() {
+        Ok((collection, new_p)) => {
+          p = new_p
+
+          // Parse colon
+          match p.expect(Colon) {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+
+          // Parse key expression
+          match p.parse_value() {
+            Ok((key_expr, new_p)) => {
+              p = new_p
+
+              // Parse =>
+              match p.expect(FatArrow) {
+                Ok(new_p) => p = new_p
+                Err(e) => return Err(e)
+              }
+
+              // Parse value expression
+              match p.parse_value() {
+                Ok((value_expr, new_p)) => {
+                  p = new_p
+
+                  // Check for conditional filter
+                  let filter = if p.check(If) {
+                    match p.advance() {
+                      Ok(new_p) => {
+                        p = new_p
+                        match p.parse_value() {
+                          Ok((filter_expr, new_p)) => {
+                            p = new_p
+                            Some(filter_expr)
+                          }
+                          Err(e) => return Err(e)
+                        }
+                      }
+                      Err(e) => return Err(e)
+                    }
+                  } else {
+                    None
+                  }
+
+                  // Create object for expression
+                  let for_obj = {
+                    "type": String("for_object_expr"),
+                    "key_var": String(vars[0]),
+                    "value_var": String(vars[1]),
+                    "collection": collection,
+                    "key_expr": key_expr,
+                    "value_expr": value_expr,
+                    "filter": match filter {
+                      Some(f) => f
+                      None => Null
+                    },
+                  }
+
+                  match p.expect(RBrace) {
+                    Ok(final_p) => Ok((Object(for_obj), final_p))
+                    Err(e) => Err(e)
+                  }
+                }
+                Err(e) => Err(e)
+              }
+            }
+            Err(e) => Err(e)
+          }
+        }
+        Err(e) => Err(e)
+      }
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse an object or object for expression
 fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LBrace) {
     Ok(start_parser) => {
-      let obj = {}
       let mut parser = start_parser
 
       match parser.skip_newlines() {
@@ -617,6 +1019,19 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         Err(e) => return Err(e)
       }
 
+      // Check for object for expression
+      if parser.check(For) {
+        // Parse for expression for object comprehension
+        // This should be handled by parse_for_expr but we need to handle closing brace
+        // Let's parse the for expression and expect RBrace at the end
+        match parser.parse_for_expr_for_object() {
+          Ok(result) => return Ok(result)
+          Err(e) => return Err(e)
+        }
+      }
+
+      // Regular object
+      let obj = {}
       while !parser.check(RBrace) && !parser.check(EOF) {
         // Parse key
         let key = match parser.current {
@@ -778,8 +1193,12 @@ fn token_to_string(token : Token) -> String {
     OrOr => "||"
     Question => "?"
     Colon => ":"
+    FatArrow => "=>"
     Heredoc(strip) => if strip { "<<-" } else { "<<" }
     Newline => "newline"
     EOF => "end of file"
+    For => "for"
+    In => "in"
+    If => "if"
   }
 }
