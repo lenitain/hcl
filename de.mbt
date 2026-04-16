@@ -9,7 +9,7 @@ pub fn from_hcl_int(input : String) -> Result[Int, HCLError] {
       let value = body_to_value(body)
       match value {
         Int(i) => Ok(i)
-        _ => Err(HCLError::type_error("Int", value_to_type_name(value)))
+        _ => Err(HCLError::type_mismatch("Int", value_to_type_name(value)))
       }
     }
     Err(e) => Err(e)
@@ -24,7 +24,7 @@ pub fn from_hcl_string(input : String) -> Result[String, HCLError] {
       let value = body_to_value(body)
       match value {
         String(s) => Ok(s)
-        _ => Err(HCLError::type_error("String", value_to_type_name(value)))
+        _ => Err(HCLError::type_mismatch("String", value_to_type_name(value)))
       }
     }
     Err(e) => Err(e)
@@ -39,7 +39,7 @@ pub fn from_hcl_bool(input : String) -> Result[Bool, HCLError] {
       let value = body_to_value(body)
       match value {
         Bool(b) => Ok(b)
-        _ => Err(HCLError::type_error("Bool", value_to_type_name(value)))
+        _ => Err(HCLError::type_mismatch("Bool", value_to_type_name(value)))
       }
     }
     Err(e) => Err(e)
@@ -67,9 +67,7 @@ fn body_to_value(body : Body) -> HCLValue {
   let obj = {}
   for item in body.get_items() {
     match item {
-      Attribute(attr) => {
-        obj[attr.get_key()] = attr.get_value()
-      }
+      Attribute(attr) => obj[attr.get_key()] = attr.get_value()
       Block(block) => {
         let block_obj = body_to_value(block.get_body())
         obj[block.get_type_name()] = block_obj

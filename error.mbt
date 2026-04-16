@@ -11,17 +11,36 @@ pub(all) enum HCLError {
   InvalidValue(String)
   /// IO error
   IOError(String)
+  /// Division by zero error
+  DivisionByZero
+  /// Undefined variable error
+  UndefinedVariable(String)
+  /// Undefined function error
+  UndefinedFunction(String)
+  /// Undefined property error
+  UndefinedProperty(String)
 } derive(Debug, Eq)
 
 ///|
 /// Create a parse error
-pub fn HCLError::parse_error(msg : String, line : Int, column : Int, offset : Int) -> HCLError {
+pub fn HCLError::parse_error(
+  msg : String,
+  line : Int,
+  column : Int,
+  offset : Int,
+) -> HCLError {
   ParseError(msg, line, column, offset)
 }
 
 ///|
 /// Create a type error
-pub fn HCLError::type_error(expected : String, got : String) -> HCLError {
+pub fn HCLError::type_error(msg : String) -> HCLError {
+  TypeError("type error", msg)
+}
+
+///|
+/// Create a type mismatch error
+pub fn HCLError::type_mismatch(expected : String, got : String) -> HCLError {
   TypeError(expected, got)
 }
 
@@ -44,19 +63,49 @@ pub fn HCLError::io_error(msg : String) -> HCLError {
 }
 
 ///|
+/// Create a division by zero error
+pub fn HCLError::division_by_zero() -> HCLError {
+  DivisionByZero
+}
+
+///|
+/// Create an undefined variable error
+pub fn HCLError::undefined_variable(name : String) -> HCLError {
+  UndefinedVariable(name)
+}
+
+///|
+/// Create an undefined function error
+pub fn HCLError::undefined_function(name : String) -> HCLError {
+  UndefinedFunction(name)
+}
+
+///|
+/// Create an undefined property error
+pub fn HCLError::undefined_property(name : String) -> HCLError {
+  UndefinedProperty(name)
+}
+
+///|
 /// Get error message
 pub fn HCLError::message(self : HCLError) -> String {
   match self {
     ParseError(msg, line, column, _) =>
-      "Parse error at line " + line.to_string() + ", column " + column.to_string() + ": " + msg
+      "Parse error at line " +
+      line.to_string() +
+      ", column " +
+      column.to_string() +
+      ": " +
+      msg
     TypeError(expected, got) =>
       "Type error: expected " + expected + ", got " + got
-    MissingField(field) =>
-      "Missing field: " + field
-    InvalidValue(msg) =>
-      "Invalid value: " + msg
-    IOError(msg) =>
-      "IO error: " + msg
+    MissingField(field) => "Missing field: " + field
+    InvalidValue(msg) => "Invalid value: " + msg
+    IOError(msg) => "IO error: " + msg
+    DivisionByZero => "Division by zero"
+    UndefinedVariable(name) => "Undefined variable: " + name
+    UndefinedFunction(name) => "Undefined function: " + name
+    UndefinedProperty(name) => "Undefined property: " + name
   }
 }
 
