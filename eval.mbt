@@ -236,3 +236,150 @@ fn eval_not(operand : HCLValue) -> HCLResult[HCLValue] {
     _ => Err(HCLError::type_error("Invalid type for logical not"))
   }
 }
+
+///|
+/// Evaluate conditional expression (cond ? true : false)
+pub fn eval_conditional(
+  condition : HCLValue,
+  true_expr : HCLValue,
+  false_expr : HCLValue,
+) -> HCLResult[HCLValue] {
+  match condition {
+    Bool(b) => if b { Ok(true_expr) } else { Ok(false_expr) }
+    _ => Err(HCLError::type_error("Condition must be boolean"))
+  }
+}
+
+///|
+/// Evaluate expression (handles all expression types)
+pub fn eval_expr(
+  expr : HCLValue,
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[HCLValue] {
+  match expr {
+    // Basic values - return as-is
+    Null | Bool(_) | Int(_) | Int64(_) | Float(_) | String(_) => Ok(expr)
+
+    // Array - evaluate each element
+    Array(arr) => {
+      let result = []
+      for item in arr {
+        match eval_expr(item, variables, functions) {
+          Ok(value) => result.push(value)
+          Err(e) => return Err(e)
+        }
+      }
+      Ok(Array(result))
+    }
+
+    // Object - check if it's a special expression type
+    Object(obj) =>
+      match obj.get("type") {
+        Some(String("conditional")) => {
+          let condition = obj.get("condition").unwrap()
+          let true_expr = obj.get("true_expr").unwrap()
+          let false_expr = obj.get("false_expr").unwrap()
+
+          match eval_expr(condition, variables, functions) {
+            Ok(cond_value) =>
+              eval_conditional(cond_value, true_expr, false_expr)
+            Err(e) => Err(e)
+          }
+        }
+        Some(String("variable")) => {
+          let name = obj.get("name").unwrap()
+          match name {
+            String(var_name) =>
+              match variables.get(var_name) {
+                Some(value) => Ok(value)
+                None => Err(HCLError::undefined_variable(var_name))
+              }
+            _ => Err(HCLError::type_error("Variable name must be string"))
+          }
+        }
+        Some(String("function_call")) => {
+          let name = obj.get("name").unwrap()
+          let args = obj.get("args").unwrap()
+
+          match (name, args) {
+            (String(func_name), Array(func_args)) => {
+              // Evaluate arguments
+              let evaluated_args = []
+              for arg in func_args {
+                match eval_expr(arg, variables, functions) {
+                  Ok(value) => evaluated_args.push(value)
+                  Err(e) => return Err(e)
+                }
+              }
+
+              // Look up function
+              match functions.get(func_name) {
+                Some(func) => func(evaluated_args)
+                None => Err(HCLError::undefined_function(func_name))
+              }
+            }
+            _ => Err(HCLError::type_error("Invalid function call structure"))
+          }
+        }
+        Some(String("property_access")) => {
+          let obj_value = obj.get("object").unwrap()
+          let property = obj.get("property").unwrap()
+
+          match (eval_expr(obj_value, variables, functions), property) {
+            (Ok(Object(target_obj)), String(prop_name)) =>
+              match target_obj.get(prop_name) {
+                Some(value) => Ok(value)
+                None => Err(HCLError::undefined_property(prop_name))
+              }
+            (Ok(_), _) =>
+              Err(HCLError::type_error("Property access on non-object"))
+            (Err(e), _) => Err(e)
+          }
+        }
+        Some(String("index_access")) => {
+          let obj_value = obj.get("object").unwrap()
+          let index = obj.get("index").unwrap()
+
+          match
+            (
+              eval_expr(obj_value, variables, functions),
+              eval_expr(index, variables, functions),
+            ) {
+            (Ok(Array(arr)), Ok(Int(i))) =>
+              if i >= 0 && i < arr.length() {
+                Ok(arr[i])
+              } else {
+                Err(HCLError::invalid_value("Array index out of bounds"))
+              }
+            (Ok(Object(target_obj)), Ok(String(key))) =>
+              match target_obj.get(key) {
+                Some(value) => Ok(value)
+                None => Err(HCLError::undefined_property(key))
+              }
+            (Ok(_), _) => Err(HCLError::type_error("Invalid index access"))
+            (Err(e), _) => Err(e)
+          }
+        }
+        // Regular object - evaluate each value
+        _ => {
+          let result = {}
+          for k, v in obj {
+            match eval_expr(v, variables, functions) {
+              Ok(value) => result[k] = value
+              Err(e) => return Err(e)
+            }
+          }
+          Ok(Object(result))
+        }
+      }
+  }
+}
+
+///|
+/// Evaluate expression with default empty context
+pub fn eval_expr_simple(expr : HCLValue) -> HCLResult[HCLValue] {
+  let empty_vars = {}
+  let empty_funcs = {}
+  eval_expr(expr, empty_vars, empty_funcs)
+}

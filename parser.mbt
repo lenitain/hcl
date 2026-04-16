@@ -283,8 +283,54 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
 }
 
 ///|
-/// Parse a value
+/// Parse a value (including expressions)
 fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+  match self.parse_primary() {
+    Ok((expr, parser)) => parser.parse_conditional_expr(expr)
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse conditional expression (cond ? true : false)
+fn Parser::parse_conditional_expr(
+  self : Parser,
+  condition : HCLValue,
+) -> HCLResult[(HCLValue, Parser)] {
+  if self.check(Question) {
+    match self.advance() {
+      Ok(parser) =>
+        match parser.parse_value() {
+          Ok((true_expr, parser)) =>
+            match parser.expect(Colon) {
+              Ok(parser) =>
+                match parser.parse_value() {
+                  Ok((false_expr, parser)) => {
+                    // Create a conditional expression as an object
+                    let cond_obj = {
+                      "type": String("conditional"),
+                      "condition": condition,
+                      "true_expr": true_expr,
+                      "false_expr": false_expr,
+                    }
+                    Ok((Object(cond_obj), parser))
+                  }
+                  Err(e) => Err(e)
+                }
+              Err(e) => Err(e)
+            }
+          Err(e) => Err(e)
+        }
+      Err(e) => Err(e)
+    }
+  } else {
+    Ok((condition, self))
+  }
+}
+
+///|
+/// Parse primary value
+fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.current {
     StringLit(s) =>
       match self.advance() {
@@ -338,6 +384,7 @@ fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
     LBrace => self.parse_object()
     LParen => self.parse_paren_expr()
     Minus => self.parse_negative()
+    Ident(name) => self.parse_ident_expr(name)
     _ => {
       let (line, col, offset) = self.lexer.location()
       Err(
@@ -349,6 +396,158 @@ fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         ),
       )
     }
+  }
+}
+
+///|
+/// Parse identifier expression (variable, function call, or property access)
+fn Parser::parse_ident_expr(
+  self : Parser,
+  name : String,
+) -> HCLResult[(HCLValue, Parser)] {
+  match self.advance() {
+    Ok(parser) =>
+      // Check for function call
+      if parser.check(LParen) {
+        parser.parse_function_call(name)
+      } else {
+        // Variable reference
+        let var_obj = { "type": String("variable"), "name": String(name) }
+        // Check for property access
+        parser.parse_property_access(Object(var_obj))
+      }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse function call
+fn Parser::parse_function_call(
+  self : Parser,
+  name : String,
+) -> HCLResult[(HCLValue, Parser)] {
+  match self.expect(LParen) {
+    Ok(parser) => {
+      let args = []
+      let mut p = parser
+
+      // Skip newlines
+      match p.skip_newlines() {
+        Ok(new_p) => p = new_p
+        Err(e) => return Err(e)
+      }
+
+      // Parse arguments
+      while !p.check(RParen) && !p.check(EOF) {
+        match p.parse_value() {
+          Ok((arg, new_p)) => {
+            args.push(arg)
+            p = new_p
+          }
+          Err(e) => return Err(e)
+        }
+
+        // Skip newlines
+        match p.skip_newlines() {
+          Ok(new_p) => p = new_p
+          Err(e) => return Err(e)
+        }
+
+        if p.check(Comma) {
+          match p.advance() {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+          // Skip newlines
+          match p.skip_newlines() {
+            Ok(new_p) => p = new_p
+            Err(e) => return Err(e)
+          }
+        } else if !p.check(RParen) {
+          let (line, col, offset) = p.lexer.location()
+          return Err(
+            HCLError::parse_error("Expected ',' or ')'", line, col, offset),
+          )
+        }
+      }
+
+      match p.expect(RParen) {
+        Ok(final_p) => {
+          // Create function call as an object
+          let func_obj = {
+            "type": String("function_call"),
+            "name": String(name),
+            "args": Array(args),
+          }
+          // Check for property access on result
+          final_p.parse_property_access(Object(func_obj))
+        }
+        Err(e) => Err(e)
+      }
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse property access (obj.key or obj["key"])
+fn Parser::parse_property_access(
+  self : Parser,
+  obj : HCLValue,
+) -> HCLResult[(HCLValue, Parser)] {
+  if self.check(Dot) {
+    // Property access with dot notation
+    match self.advance() {
+      Ok(parser) => {
+        let property = match parser.current {
+          Ident(name) => name
+          _ => {
+            let (line, col, offset) = parser.lexer.location()
+            return Err(
+              HCLError::parse_error("Expected property name", line, col, offset),
+            )
+          }
+        }
+
+        match parser.advance() {
+          Ok(p) => {
+            let access_obj = {
+              "type": String("property_access"),
+              "object": obj,
+              "property": String(property),
+            }
+            // Check for chained property access
+            p.parse_property_access(Object(access_obj))
+          }
+          Err(e) => Err(e)
+        }
+      }
+      Err(e) => Err(e)
+    }
+  } else if self.check(LBracket) {
+    // Property access with bracket notation
+    match self.advance() {
+      Ok(parser) =>
+        match parser.parse_value() {
+          Ok((key, parser)) =>
+            match parser.expect(RBracket) {
+              Ok(p) => {
+                let access_obj = {
+                  "type": String("index_access"),
+                  "object": obj,
+                  "index": key,
+                }
+                // Check for chained property access
+                p.parse_property_access(Object(access_obj))
+              }
+              Err(e) => Err(e)
+            }
+          Err(e) => Err(e)
+        }
+      Err(e) => Err(e)
+    }
+  } else {
+    Ok((obj, self))
   }
 }
 

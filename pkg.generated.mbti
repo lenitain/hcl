@@ -8,6 +8,12 @@ import {
 // Values
 pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
+pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]
+
+pub fn eval_expr(HCLValue, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[HCLValue, HCLError]
+
+pub fn eval_expr_simple(HCLValue) -> Result[HCLValue, HCLError]
+
 pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn format_body(Body) -> String
