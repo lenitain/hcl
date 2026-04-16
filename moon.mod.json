@@ -1,0 +1,9 @@
+{
+  "name": "hcl",
+  "version": "0.1.0",
+  "readme": "README.mbt.md",
+  "repository": "https://github.com/opencode/hcl",
+  "license": "MIT",
+  "keywords": ["hcl", "parser", "formatter", "terraform", "configuration"],
+  "description": "HCL parser, formatter, and serialization library for MoonBit"
+}
