@@ -78,6 +78,46 @@ fn body_to_value(body : Body) -> HCLValue {
 }
 
 ///|
+/// Deserialize HCL with schema validation
+pub fn from_hcl_with_schema(
+  input : String,
+  schema : TypeSchema,
+) -> HCLResult[HCLValue] {
+  match parse(input) {
+    Ok(body) => {
+      let value = body_to_value(body)
+      let errors = validate(value, schema)
+      if errors.is_empty() {
+        Ok(value)
+      } else {
+        Err(errors[0])
+      }
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Deserialize HCL with schema, return all errors
+pub fn from_hcl_with_schema_full(
+  input : String,
+  schema : TypeSchema,
+) -> Result[HCLValue, Array[HCLError]] {
+  match parse(input) {
+    Ok(body) => {
+      let value = body_to_value(body)
+      let errors = validate(value, schema)
+      if errors.is_empty() {
+        Ok(value)
+      } else {
+        Err(errors)
+      }
+    }
+    Err(e) => Err([e])
+  }
+}
+
+///|
 /// Get type name for error messages
 fn value_to_type_name(value : HCLValue) -> String {
   match value {
