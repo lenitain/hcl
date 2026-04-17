@@ -66,6 +66,18 @@ pub fn hcl_null() -> HCLValue
 
 pub fn hcl_object(Map[String, HCLValue]) -> HCLValue
 
+pub fn hcl_object_entries(Map[String, HCLValue]) -> Array[(String, HCLValue)]
+
+pub fn hcl_object_extend(Map[String, HCLValue], Map[String, HCLValue]) -> Unit
+
+pub fn hcl_object_from_pairs(Array[(String, HCLValue)]) -> Map[String, HCLValue]
+
+pub fn hcl_object_keys(Map[String, HCLValue]) -> Array[String]
+
+pub fn hcl_object_merge(Map[String, HCLValue], Map[String, HCLValue]) -> Map[String, HCLValue]
+
+pub fn hcl_object_values(Map[String, HCLValue]) -> Array[HCLValue]
+
 pub fn hcl_str(String) -> HCLValue
 
 pub fn hcl_to_json(String) -> Result[String, HCLError]
@@ -81,6 +93,8 @@ pub fn is_id_start(Char) -> Bool
 pub fn is_ident(String) -> Bool
 
 pub fn is_valid(HCLValue, TypeSchema) -> Bool
+
+pub fn new_hcl_object() -> Map[String, HCLValue]
 
 pub fn parse(String) -> Result[Body, HCLError]
 
@@ -109,6 +123,74 @@ pub fn validate(HCLValue, TypeSchema) -> Array[HCLError]
 pub fn validate_ex(HCLValue, Map[String, FieldSchemaEx]) -> Array[HCLError]
 
 pub fn validate_one(HCLValue, TypeSchema) -> Result[Unit, HCLError]
+
+pub fn[V : Visit] visit_attr_default(V, Attr) -> Unit
+
+pub fn[V : VisitMut] visit_attr_mut_default(V, Attr) -> Unit
+
+pub fn[V : Visit] visit_binary_op_default(V, BinaryOp) -> Unit
+
+pub fn[V : VisitMut] visit_binary_op_mut_default(V, BinaryOp) -> Unit
+
+pub fn[V : Visit] visit_block_default(V, Block) -> Unit
+
+pub fn[V : VisitMut] visit_block_mut_default(V, Block) -> Unit
+
+pub fn[V : Visit] visit_body_default(V, Body) -> Unit
+
+pub fn[V : Visit] visit_body_item_default(V, BodyItem) -> Unit
+
+pub fn[V : VisitMut] visit_body_item_mut_default(V, BodyItem) -> Unit
+
+pub fn[V : VisitMut] visit_body_mut_default(V, Body) -> Unit
+
+pub fn[V : Visit] visit_conditional_default(V, Conditional) -> Unit
+
+pub fn[V : VisitMut] visit_conditional_mut_default(V, Conditional) -> Unit
+
+pub fn[V : Visit] visit_expr_default(V, Expression) -> Unit
+
+pub fn[V : VisitMut] visit_expr_mut_default(V, Expression) -> Unit
+
+pub fn[V : Visit] visit_for_expr_default(V, ForExpr) -> Unit
+
+pub fn[V : VisitMut] visit_for_expr_mut_default(V, ForExpr) -> Unit
+
+pub fn[V : Visit] visit_func_call_default(V, FuncCall) -> Unit
+
+pub fn[V : VisitMut] visit_func_call_mut_default(V, FuncCall) -> Unit
+
+pub fn[V : Visit] visit_heredoc_default(V, Heredoc) -> Unit
+
+pub fn[V : VisitMut] visit_heredoc_mut_default(V, Heredoc) -> Unit
+
+pub fn[V : Visit] visit_object_key_default(V, ObjectKey) -> Unit
+
+pub fn[V : VisitMut] visit_object_key_mut_default(V, ObjectKey) -> Unit
+
+pub fn[V : Visit] visit_operation_default(V, Operation) -> Unit
+
+pub fn[V : VisitMut] visit_operation_mut_default(V, Operation) -> Unit
+
+pub fn[V : Visit] visit_template_expr_default(V, TemplateExpr) -> Unit
+
+pub fn[V : VisitMut] visit_template_expr_mut_default(V, TemplateExpr) -> Unit
+
+pub fn[V : Visit] visit_traversal_default(V, Traversal) -> Unit
+
+pub fn[V : VisitMut] visit_traversal_mut_default(V, Traversal) -> Unit
+
+pub fn[V : Visit] visit_traversal_operator_default(V, TraversalOperator) -> Unit
+
+pub fn[V : VisitMut] visit_traversal_operator_mut_default(V, TraversalOperator) -> Unit
+
+pub fn[V : Visit] visit_unary_op_default(V, UnaryOp) -> Unit
+
+pub fn[V : VisitMut] visit_unary_op_mut_default(V, UnaryOp) -> Unit
+
+pub fn[V : Visit] visit_value_default(V, HCLValue) -> Unit
+
+pub fn[V : VisitMut] visit_value_mut_default(V, HCLValue) -> Unit
 
 // Errors
 
@@ -358,6 +440,17 @@ pub fn HCLError::undefined_function(String) -> Self
 pub fn HCLError::undefined_property(String) -> Self
 pub fn HCLError::undefined_variable(String) -> Self
 pub fn HCLError::validation_error(String, String) -> Self
+
+pub struct HCLObjectBuilder {
+  obj : Map[String, HCLValue]
+}
+pub fn HCLObjectBuilder::build(Self) -> Map[String, HCLValue]
+pub fn HCLObjectBuilder::entry(Self, String, HCLValue) -> Self
+pub fn[T : ToHCL] HCLObjectBuilder::entry_hcl(Self, String, T) -> Self
+pub fn HCLObjectBuilder::entry_if(Self, String, HCLValue, Bool) -> Self
+pub fn[T : ToHCL] HCLObjectBuilder::entry_option(Self, String, T?) -> Self
+pub fn HCLObjectBuilder::extend(Self, Map[String, HCLValue]) -> Self
+pub fn HCLObjectBuilder::new() -> Self
 
 pub(all) enum HCLValue {
   Null(Decor)
@@ -610,6 +703,8 @@ pub(all) struct Variable {
 // Type aliases
 pub type ExprObject = Array[(ObjectKey, Expression)]
 
+pub type HCLObject = Map[String, HCLValue]
+
 pub type HCLResult[T] = Result[T, HCLError]
 
 pub type Validator = (HCLValue, String) -> Array[HCLError]
@@ -621,5 +716,45 @@ pub trait FromHCL {
 
 pub trait ToHCL {
   to_hcl(Self) -> HCLValue
+}
+
+pub(open) trait Visit {
+  visit_body(Self, Body) -> Unit
+  visit_body_item(Self, BodyItem) -> Unit
+  visit_attr(Self, Attr) -> Unit
+  visit_block(Self, Block) -> Unit
+  visit_value(Self, HCLValue) -> Unit
+  visit_expr(Self, Expression) -> Unit
+  visit_object_key(Self, ObjectKey) -> Unit
+  visit_traversal(Self, Traversal) -> Unit
+  visit_traversal_operator(Self, TraversalOperator) -> Unit
+  visit_func_call(Self, FuncCall) -> Unit
+  visit_conditional(Self, Conditional) -> Unit
+  visit_operation(Self, Operation) -> Unit
+  visit_binary_op(Self, BinaryOp) -> Unit
+  visit_unary_op(Self, UnaryOp) -> Unit
+  visit_for_expr(Self, ForExpr) -> Unit
+  visit_template_expr(Self, TemplateExpr) -> Unit
+  visit_heredoc(Self, Heredoc) -> Unit
+}
+
+pub(open) trait VisitMut {
+  visit_body_mut(Self, Body) -> Unit
+  visit_body_item_mut(Self, BodyItem) -> Unit
+  visit_attr_mut(Self, Attr) -> Unit
+  visit_block_mut(Self, Block) -> Unit
+  visit_value_mut(Self, HCLValue) -> Unit
+  visit_expr_mut(Self, Expression) -> Unit
+  visit_object_key_mut(Self, ObjectKey) -> Unit
+  visit_traversal_mut(Self, Traversal) -> Unit
+  visit_traversal_operator_mut(Self, TraversalOperator) -> Unit
+  visit_func_call_mut(Self, FuncCall) -> Unit
+  visit_conditional_mut(Self, Conditional) -> Unit
+  visit_operation_mut(Self, Operation) -> Unit
+  visit_binary_op_mut(Self, BinaryOp) -> Unit
+  visit_unary_op_mut(Self, UnaryOp) -> Unit
+  visit_for_expr_mut(Self, ForExpr) -> Unit
+  visit_template_expr_mut(Self, TemplateExpr) -> Unit
+  visit_heredoc_mut(Self, Heredoc) -> Unit
 }
 

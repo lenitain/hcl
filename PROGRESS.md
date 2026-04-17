@@ -3,18 +3,24 @@
 ## 当前状态：按照 hcl-rs 方案重构中
 
 ## 当前分支
-- 分支：`xt-zhu/feat/map-type-alias`
+- 分支：`xt-zhu/feat/hcl-edit-visit`
 - 状态：开发完成
-- 目标：实现 HCLObject 类型（有序 Map）
+- 目标：实现 visit/visit_mut AST 遍历
 
 ## 本次开发完成的功能
-- ✅ HCLObject 类型别名 (Map[String, HCLValue]) — 语义清晰，对应 hcl-rs 的 Map 类型
-- ✅ HCLObjectBuilder — 构建器模式，支持 entry/entry_hcl/entry_if/entry_option/extend
-- ✅ 工具函数 — new_hcl_object, hcl_object_from_pairs, hcl_object_keys/values/entries/merge/extend
-- ✅ 更新 value.mbt — Object 变体使用 HCLObject
-- ✅ 更新 ser.mbt — hcl_object 函数使用 HCLObject
-- ✅ 新增 22 个测试（510/510 通过）
-- ✅ MoonBit Map 已保持插入顺序（等价于 IndexMap），无需自定义数据结构
+- ✅ Visit trait — 不可变遍历接口，定义 17 个 visit 方法
+- ✅ VisitMut trait — 可变遍历接口，定义 17 个 visit_mut 方法
+- ✅ 默认遍历函数 — visit_*_default/visit_*_mut_default 辅助函数
+- ✅ visit.mbt — 不可变遍历实现（400+ 行）
+- ✅ visit_mut.mbt — 可变遍历实现（400+ 行）
+- ✅ visit_test.mbt — 3 个测试用例（全部通过）
+- ✅ 总测试：513/513 通过
+
+## 设计要点
+- 参考 hcl-rs 的 visit.rs/visit_mut.rs 设计
+- 适配 MoonBit trait 系统（不支持默认实现内调用其他 trait 方法）
+- 用户实现 Visit trait 时，只需覆盖需要自定义的方法
+- 其他方法使用 visit_*_default 辅助函数实现递归遍历
 
 ## 重构计划
 
@@ -57,7 +63,7 @@
 ### 第五阶段：高级功能
 | 任务 | 状态 | 依赖 |
 |------|------|------|
-| hcl-edit (visit/visit_mut) | ⏳ | Expression |
+| hcl-edit (visit/visit_mut) | ✅ 完成 | Expression |
 | Decorated\<Expression\> 包装 | ⏳ | Decor |
 | hcl2json CLI 批量处理 | ⏳ | - |
 | hcl2json glob 模式 | ⏳ | - |
@@ -319,6 +325,9 @@ hcl/
 ├── decor_test.mbt     # Decor 单元测试（新增）
 ├── decor_wbtest.mbt   # Decor 白盒测试（新增）
 ├── parser_decor_test.mbt # 解析器装饰集成测试（新增）
+├── visit.mbt           # AST 不可变遍历（新增）
+├── visit_mut.mbt       # AST 可变遍历（新增）
+├── visit_test.mbt      # 遍历测试（新增）
 └── cmd/
     └── main/
         ├── main.mbt   # CLI 入口
@@ -327,6 +336,6 @@ hcl/
 
 ## 参考资料
 
-- hcl-rs 源码：`/home/lenitain/.projects/hcl-rs/`
+- hcl-rs 源码：`/home/pilot/.projects/hcl-rs/`
 - HCL 规范：https://github.com/hashicorp/hcl/blob/main/spec.md
 - MoonBit 文档：https://docs.moonbitlang.com
