@@ -1,7 +1,6 @@
 ///|
 /// HCL CLI Tool - converts HCL to JSON
 /// Run with `moon run cmd/main` from the project root.
-
 fn main {
   println("HCL CLI Tool")
   println("Usage: moon run cmd/main [FILE]")

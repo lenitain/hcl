@@ -1,6 +1,5 @@
 ///|
 /// Tests for HCL to JSON conversion
-
 test "hcl_to_json basic attribute" {
   let input = "name = \"John\""
   let result = hcl_to_json(input)
@@ -13,6 +12,7 @@ test "hcl_to_json basic attribute" {
   }
 }
 
+///|
 test "hcl_to_json multiple attributes" {
   let input = "name = \"John\"\nage = 30"
   let result = hcl_to_json(input)
@@ -27,6 +27,7 @@ test "hcl_to_json multiple attributes" {
   }
 }
 
+///|
 test "hcl_to_json block" {
   let input = "server {\n  host = \"localhost\"\n  port = 8080\n}"
   let result = hcl_to_json(input)
@@ -42,6 +43,7 @@ test "hcl_to_json block" {
   }
 }
 
+///|
 test "hcl_to_json nested blocks" {
   let input = "server {\n  config {\n    timeout = 30\n  }\n}"
   let result = hcl_to_json(input)
@@ -56,6 +58,7 @@ test "hcl_to_json nested blocks" {
   }
 }
 
+///|
 test "hcl_to_json array" {
   let input = "tags = [\"web\", \"api\"]"
   let result = hcl_to_json(input)
@@ -68,6 +71,7 @@ test "hcl_to_json array" {
   }
 }
 
+///|
 test "hcl_to_json object" {
   let input = "metadata = { version = \"1.0\", author = \"test\" }"
   let result = hcl_to_json(input)
@@ -83,6 +87,7 @@ test "hcl_to_json object" {
   }
 }
 
+///|
 test "hcl_to_json boolean values" {
   let input = "enabled = true\ndisabled = false"
   let result = hcl_to_json(input)
@@ -97,6 +102,7 @@ test "hcl_to_json boolean values" {
   }
 }
 
+///|
 test "hcl_to_json null value" {
   let input = "value = null"
   let result = hcl_to_json(input)
@@ -109,6 +115,7 @@ test "hcl_to_json null value" {
   }
 }
 
+///|
 test "hcl_to_json number types" {
   let input = "int_val = 42\nfloat_val = 3.14"
   let result = hcl_to_json(input)
@@ -123,6 +130,7 @@ test "hcl_to_json number types" {
   }
 }
 
+///|
 test "hcl_to_json_pretty basic" {
   let input = "name = \"John\""
   let result = hcl_to_json_pretty(input)
@@ -136,6 +144,7 @@ test "hcl_to_json_pretty basic" {
   }
 }
 
+///|
 test "hcl_to_json_pretty nested" {
   let input = "server {\n  host = \"localhost\"\n}"
   let result = hcl_to_json_pretty(input)
@@ -149,6 +158,7 @@ test "hcl_to_json_pretty nested" {
   }
 }
 
+///|
 test "hcl_to_json string escaping" {
   let input = "message = \"Hello\\nWorld\""
   let result = hcl_to_json(input)
@@ -161,6 +171,7 @@ test "hcl_to_json string escaping" {
   }
 }
 
+///|
 test "hcl_to_json complex nested structure" {
   let input = "server {\n  config {\n    options = [\"opt1\", \"opt2\"]\n  }\n}"
   let result = hcl_to_json(input)
@@ -175,6 +186,7 @@ test "hcl_to_json complex nested structure" {
   }
 }
 
+///|
 test "hcl_to_json error handling" {
   let input = "name = "
   let result = hcl_to_json(input)
@@ -187,6 +199,7 @@ test "hcl_to_json error handling" {
   }
 }
 
+///|
 test "hcl_to_json empty input" {
   let input = ""
   let result = hcl_to_json(input)
@@ -196,6 +209,7 @@ test "hcl_to_json empty input" {
   }
 }
 
+///|
 test "hcl_to_json only whitespace" {
   let input = "   \n  \n  "
   let result = hcl_to_json(input)

@@ -527,7 +527,8 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
             } else if c >= '0' && c <= '9' {
               if in_decimal {
                 decimal_place = decimal_place * 10.0
-                result = result + (c.to_int() - '0'.to_int()).to_double() / decimal_place
+                result = result +
+                  (c.to_int() - '0'.to_int()).to_double() / decimal_place
               } else {
                 result = result * 10.0 + (c.to_int() - '0'.to_int()).to_double()
               }

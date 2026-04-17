@@ -26,10 +26,10 @@ pub fn body_to_json(body : Body) -> String {
   if items.is_empty() {
     return "{}"
   }
-  
+
   let mut result = "{"
   let mut first = true
-  
+
   for item in items {
     match item {
       Attribute(attr) => {
@@ -37,7 +37,10 @@ pub fn body_to_json(body : Body) -> String {
           result = result + ","
         }
         first = false
-        result = result + escape_json_string(attr.get_key()) + ":" + value_to_json(attr.get_value())
+        result = result +
+          escape_json_string(attr.get_key()) +
+          ":" +
+          value_to_json(attr.get_value())
       }
       Block(block) => {
         if !first {
@@ -50,11 +53,14 @@ pub fn body_to_json(body : Body) -> String {
         } else {
           block.get_type_name() + "_" + labels.join("_")
         }
-        result = result + escape_json_string(block_key) + ":" + body_to_json(block.get_body())
+        result = result +
+          escape_json_string(block_key) +
+          ":" +
+          body_to_json(block.get_body())
       }
     }
   }
-  
+
   result + "}"
 }
 
@@ -71,13 +77,13 @@ fn body_to_json_pretty_impl(body : Body, indent : Int) -> String {
   if items.is_empty() {
     return "{}"
   }
-  
+
   let prefix = repeat_string("  ", indent)
   let inner_prefix = repeat_string("  ", indent + 1)
-  
+
   let mut result = "{\n"
   let mut first = true
-  
+
   for item in items {
     match item {
       Attribute(attr) => {
@@ -85,7 +91,11 @@ fn body_to_json_pretty_impl(body : Body, indent : Int) -> String {
           result = result + ",\n"
         }
         first = false
-        result = result + inner_prefix + escape_json_string(attr.get_key()) + ": " + value_to_json_pretty(attr.get_value(), indent + 1)
+        result = result +
+          inner_prefix +
+          escape_json_string(attr.get_key()) +
+          ": " +
+          value_to_json_pretty(attr.get_value(), indent + 1)
       }
       Block(block) => {
         if !first {
@@ -98,11 +108,15 @@ fn body_to_json_pretty_impl(body : Body, indent : Int) -> String {
         } else {
           block.get_type_name() + "_" + labels.join("_")
         }
-        result = result + inner_prefix + escape_json_string(block_key) + ": " + body_to_json_pretty_impl(block.get_body(), indent + 1)
+        result = result +
+          inner_prefix +
+          escape_json_string(block_key) +
+          ": " +
+          body_to_json_pretty_impl(block.get_body(), indent + 1)
       }
     }
   }
-  
+
   result + "\n" + prefix + "}"
 }
 
@@ -157,7 +171,12 @@ fn value_to_json_pretty(value : HCLValue, indent : Int) -> String {
       } else {
         let inner_prefix = repeat_string("  ", indent + 1)
         let items = arr.map(fn(v) { value_to_json_pretty(v, indent + 1) })
-        "[\n" + inner_prefix + items.join(",\n" + inner_prefix) + "\n" + repeat_string("  ", indent) + "]"
+        "[\n" +
+        inner_prefix +
+        items.join(",\n" + inner_prefix) +
+        "\n" +
+        repeat_string("  ", indent) +
+        "]"
       }
     Object(obj) =>
       if obj.is_empty() {
@@ -171,7 +190,11 @@ fn value_to_json_pretty(value : HCLValue, indent : Int) -> String {
             result = result + ",\n"
           }
           first = false
-          result = result + inner_prefix + escape_json_string(k) + ": " + value_to_json_pretty(v, indent + 1)
+          result = result +
+            inner_prefix +
+            escape_json_string(k) +
+            ": " +
+            value_to_json_pretty(v, indent + 1)
         }
         result + "\n" + repeat_string("  ", indent) + "}"
       }
@@ -207,7 +230,9 @@ fn escape_json_string(s : String) -> String {
 ///|
 /// Format a number as hexadecimal with specified width
 fn format_hex(value : Int, width : Int) -> String {
-  let hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+  let hex_chars = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+  ]
   let mut result = ""
   let mut v = value
   for _ in 0..<width {
