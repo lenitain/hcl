@@ -1,6 +1,6 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：JSON 转换和 CLI 工具完成 (约 90% 功能覆盖)
+## 当前状态：序列化 derive 支持完成 (约 95% 功能覆盖)
 
 ## 已完成 ✅
 
@@ -40,8 +40,18 @@
 - ✅ Body 到字符串
 - ✅ 字符串转义
 
+### 序列化 Derive 支持
+- `trait.mbt` - ToHCL/FromHCL trait 定义
+- `builder.mbt` - Builder 模式辅助函数
+- ✅ ToHCL trait（to_hcl_value 方法）
+- ✅ FromHCL trait（from_hcl_value 方法）
+- ✅ 基础类型自动实现（Int, Double, String, Bool 等）
+- ✅ Array/Option 泛型实现
+- ✅ Builder 模式（ObjectBuilder, ArrayBuilder）
+- ✅ derive 白盒测试覆盖
+
 ### 测试
-- ✅ 146 个测试全部通过
+- ✅ 202 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -49,6 +59,7 @@
 - 覆盖：Schema验证（类型检查、必填字段、自定义验证器、集成测试）
 - 覆盖：Heredoc 解析（基本、多行、strip、自定义 delimiter）
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
+- 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -84,10 +95,6 @@
 ## 未完成 ❌
 
 ### 中优先级
-- [ ] 序列化 derive 支持
-  - 需要 MoonBit 编译器支持 derive 宏
-  - 或提供手动实现的辅助函数
-
 - [x] 更好的错误消息
   - [x] 上下文信息（显示出错的代码行）
   - [x] 修复建议（列指针指向错误位置）
@@ -164,12 +171,18 @@
 4. CLI 工具 ✅
 ```
 
-### 阶段 5：高级功能（待定）
+### 阶段 5：高级功能（部分完成）
 ```
 1. 保留空白和注释的编辑（类似 hcl-edit）
 2. 性能优化
 3. 完整的 spec test suite
 4. 更多 CLI 功能（文件读取、批量处理）
+5. 序列化 derive 支持 ✅
+   - ToHCL trait ✅
+   - FromHCL trait ✅
+   - Builder 模式 ✅
+   - 基础类型自动实现 ✅
+   - Array/Option 泛型实现 ✅
 ```
 
 ## 文件结构
@@ -200,6 +213,11 @@ hcl/
 ├── hcl_test.mbt       # 基础测试
 ├── eval_test.mbt      # 基础表达式求值测试
 ├── error_test.mbt     # 错误消息测试
+├── trait.mbt          # ToHCL/FromHCL trait 定义（新增）
+├── builder.mbt        # Builder 模式辅助函数（新增）
+├── trait_wbtest.mbt   # trait 白盒测试（新增）
+├── builder_wbtest.mbt # builder 白盒测试（新增）
+├── derive_wbtest.mbt  # derive 白盒测试（新增）
 └── cmd/
     └── main/
         ├── main.mbt   # CLI 入口（新增）

@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn body_to_json(Body) -> String
+
+pub fn body_to_json_pretty(Body) -> String
+
 pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]
@@ -26,6 +30,8 @@ pub fn from_hcl_bool(String) -> Result[Bool, HCLError]
 
 pub fn from_hcl_int(String) -> Result[Int, HCLError]
 
+pub fn[T : FromHCL] from_hcl_str(String) -> Result[T, HCLError]
+
 pub fn from_hcl_string(String) -> Result[String, HCLError]
 
 pub fn from_hcl_value(String) -> Result[HCLValue, HCLError]
@@ -33,6 +39,26 @@ pub fn from_hcl_value(String) -> Result[HCLValue, HCLError]
 pub fn from_hcl_with_schema(String, TypeSchema) -> Result[HCLValue, HCLError]
 
 pub fn from_hcl_with_schema_full(String, TypeSchema) -> Result[HCLValue, Array[HCLError]]
+
+pub fn hcl_array(Array[HCLValue]) -> HCLValue
+
+pub fn hcl_bool(Bool) -> HCLValue
+
+pub fn hcl_float(Double) -> HCLValue
+
+pub fn hcl_int(Int) -> HCLValue
+
+pub fn hcl_int64(Int64) -> HCLValue
+
+pub fn hcl_null() -> HCLValue
+
+pub fn hcl_object(Map[String, HCLValue]) -> HCLValue
+
+pub fn hcl_str(String) -> HCLValue
+
+pub fn hcl_to_json(String) -> Result[String, HCLError]
+
+pub fn hcl_to_json_pretty(String) -> Result[String, HCLError]
 
 pub fn int_in_range(Int, Int) -> (HCLValue, String) -> Array[HCLError]
 
@@ -51,6 +77,8 @@ pub fn to_hcl_body(Body) -> String
 pub fn to_hcl_bool(Bool) -> String
 
 pub fn to_hcl_int(Int) -> String
+
+pub fn[T : ToHCL] to_hcl_str(T) -> String
 
 pub fn to_hcl_string(String) -> String
 
@@ -78,6 +106,7 @@ pub struct Block {
   labels : Array[String]
   body : Body
 } derive(Eq, @debug.Debug)
+pub fn Block::builder(String) -> BlockBuilder
 pub fn Block::find_attr(Self, String) -> Attr?
 pub fn Block::get_body(Self) -> Body
 pub fn Block::get_labels(Self) -> Array[String]
@@ -85,11 +114,24 @@ pub fn Block::get_type_name(Self) -> String
 pub fn Block::new(String, Array[String], Body) -> Self
 pub fn Block::simple(String, Body) -> Self
 
+pub struct BlockBuilder {
+  type_name : String
+  labels : Array[String]
+  items : Array[BodyItem]
+}
+pub fn BlockBuilder::attr(Self, String, HCLValue) -> Self
+pub fn[T : ToHCL] BlockBuilder::attr_hcl(Self, String, T) -> Self
+pub fn BlockBuilder::attr_if(Self, String, HCLValue, Bool) -> Self
+pub fn BlockBuilder::body(Self, Body) -> Self
+pub fn BlockBuilder::build(Self) -> Block
+pub fn BlockBuilder::label(Self, String) -> Self
+
 pub struct Body {
   items : Array[BodyItem]
 } derive(Eq, @debug.Debug)
 pub fn Body::add_attr(Self, String, HCLValue) -> Self
 pub fn Body::add_block(Self, Block) -> Self
+pub fn Body::builder() -> BodyBuilder
 pub fn Body::find_attr(Self, String) -> Attr?
 pub fn Body::find_block(Self, String) -> Block?
 pub fn Body::find_blocks(Self, String) -> Array[Block]
@@ -98,6 +140,16 @@ pub fn Body::get_items(Self) -> Array[BodyItem]
 pub fn Body::is_empty(Self) -> Bool
 pub fn Body::len(Self) -> Int
 pub fn Body::new() -> Self
+
+pub struct BodyBuilder {
+  items : Array[BodyItem]
+}
+pub fn BodyBuilder::attr(Self, String, HCLValue) -> Self
+pub fn[T : ToHCL] BodyBuilder::attr_hcl(Self, String, T) -> Self
+pub fn BodyBuilder::attr_if(Self, String, HCLValue, Bool) -> Self
+pub fn[T : ToHCL] BodyBuilder::attr_option(Self, String, T?) -> Self
+pub fn BodyBuilder::block(Self, Block) -> Self
+pub fn BodyBuilder::build(Self) -> Body
 
 pub(all) enum BodyItem {
   Attribute(Attr)
@@ -283,4 +335,11 @@ pub type HCLResult[T] = Result[T, HCLError]
 pub type Validator = (HCLValue, String) -> Array[HCLError]
 
 // Traits
+pub trait FromHCL {
+  from_hcl(HCLValue) -> Result[Self, HCLError]
+}
+
+pub trait ToHCL {
+  to_hcl(Self) -> HCLValue
+}
 

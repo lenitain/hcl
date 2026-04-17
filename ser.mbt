@@ -131,3 +131,51 @@ fn repeat_string(s : String, n : Int) -> String {
   }
   result
 }
+
+///|
+/// Create Int HCLValue
+pub fn hcl_int(v : Int) -> HCLValue {
+  Int(v)
+}
+
+///|
+/// Create Int64 HCLValue
+pub fn hcl_int64(v : Int64) -> HCLValue {
+  Int64(v)
+}
+
+///|
+/// Create Float HCLValue
+pub fn hcl_float(v : Double) -> HCLValue {
+  Float(v)
+}
+
+///|
+/// Create Bool HCLValue
+pub fn hcl_bool(v : Bool) -> HCLValue {
+  Bool(v)
+}
+
+///|
+/// Create String HCLValue
+pub fn hcl_str(v : String) -> HCLValue {
+  String(v)
+}
+
+///|
+/// Create Null HCLValue
+pub fn hcl_null() -> HCLValue {
+  Null
+}
+
+///|
+/// Create Array HCLValue
+pub fn hcl_array(items : Array[HCLValue]) -> HCLValue {
+  Array(items)
+}
+
+///|
+/// Create Object HCLValue
+pub fn hcl_object(entries : Map[String, HCLValue]) -> HCLValue {
+  Object(entries)
+}
