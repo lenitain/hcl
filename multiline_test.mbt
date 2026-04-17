@@ -9,10 +9,10 @@ test "multiline conditional in array true" {
         Attribute(attr) => {
           let value = attr.get_value()
           match value {
-            Array(items) => {
+            Array(items, _) => {
               let eval_result = eval_expr_simple(items[0])
               match eval_result {
-                Ok(v) => assert_true(v == String("a"))
+                Ok(v) => assert_true(v == String("a", Decor::empty()))
                 Err(_) => panic()
               }
             }
@@ -35,10 +35,10 @@ test "multiline conditional in array false" {
         Attribute(attr) => {
           let value = attr.get_value()
           match value {
-            Array(items) => {
+            Array(items, _) => {
               let eval_result = eval_expr_simple(items[0])
               match eval_result {
-                Ok(v) => assert_true(v == String("b"))
+                Ok(v) => assert_true(v == String("b", Decor::empty()))
                 Err(_) => panic()
               }
             }
@@ -62,7 +62,7 @@ test "multiline conditional single line still works" {
           let value = attr.get_value()
           let eval_result = eval_expr_simple(value)
           match eval_result {
-            Ok(v) => assert_true(v == String("yes"))
+            Ok(v) => assert_true(v == String("yes", Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -83,7 +83,7 @@ test "multiline binary expression" {
           let value = attr.get_value()
           let eval_result = eval_expr_simple(value)
           match eval_result {
-            Ok(v) => assert_true(v == Int(3))
+            Ok(v) => assert_true(v == Int(3, Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -104,7 +104,7 @@ test "multiline conditional top level" {
           let value = attr.get_value()
           let eval_result = eval_expr_simple(value)
           match eval_result {
-            Ok(v) => assert_true(v == String("a"))
+            Ok(v) => assert_true(v == String("a", Decor::empty()))
             Err(_) => panic()
           }
         }

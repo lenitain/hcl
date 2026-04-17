@@ -528,6 +528,87 @@ fn Lexer::read_ident_or_keyword(self : Lexer) -> HCLResult[(Token, Lexer)] {
 }
 
 ///|
+/// Get the next token with leading trivia (whitespace, newlines, and comments)
+pub fn Lexer::next_token_with_trivia(
+  self : Lexer,
+) -> HCLResult[(Token, Lexer, String?)] {
+  let mut trivia = ""
+  let mut lexer = self
+  let newline_code = '\n'.to_int().to_uint16()
+  let slash_code = '/'.to_int().to_uint16()
+
+  // Collect all trivia: whitespace, newlines, and comments
+  let mut has_more = true
+  while has_more {
+    has_more = false
+
+    // Collect whitespace (including newlines)
+    let start = lexer.pos
+    while !lexer.is_at_end() {
+      match lexer.peek() {
+        Some(c) if c == ' '.to_int().to_uint16() ||
+          c == '\t'.to_int().to_uint16() ||
+          c == '\r'.to_int().to_uint16() ||
+          c == newline_code => lexer = lexer.advance()
+        _ => break
+      }
+    }
+    if lexer.pos > start {
+      trivia = trivia + lexer.input[start:lexer.pos].to_string()
+      has_more = true
+    }
+
+    // Try to collect a comment
+    if !lexer.is_at_end() && lexer.peek() == Some(slash_code) {
+      match lexer.peek_next() {
+        Some(c) if c == slash_code => {
+          // Line comment
+          let cstart = lexer.pos
+          lexer = lexer.advance().advance()
+          while !lexer.is_at_end() && lexer.peek() != Some(newline_code) {
+            lexer = lexer.advance()
+          }
+          trivia = trivia + lexer.input[cstart:lexer.pos].to_string()
+          has_more = true
+        }
+        Some(c) if c == '*'.to_int().to_uint16() => {
+          // Block comment
+          let cstart = lexer.pos
+          lexer = lexer.advance().advance()
+          let star_code = '*'.to_int().to_uint16()
+          let slash2_code = '/'.to_int().to_uint16()
+          while !lexer.is_at_end() {
+            if lexer.peek() == Some(star_code) &&
+              lexer.peek_next() == Some(slash2_code) {
+              lexer = lexer.advance().advance()
+              break
+            }
+            lexer = lexer.advance()
+          }
+          trivia = trivia + lexer.input[cstart:lexer.pos].to_string()
+          has_more = true
+        }
+        _ => ()
+      }
+    }
+  }
+
+  // Record where trivia ends (before token)
+  let token_start = lexer.pos
+
+  // Get the actual token (may skip additional whitespace)
+  match lexer.next_token() {
+    Ok((token, final_lexer)) => {
+      // Extract trivia from original position to token start
+      let full_trivia = self.input[self.pos:token_start].to_string()
+      let prefix = if full_trivia == "" { None } else { Some(full_trivia) }
+      Ok((token, final_lexer, prefix))
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
 /// Get the next token
 pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
   let lexer = self.skip_whitespace()
@@ -698,6 +779,70 @@ fn hex_digit_value(c : UInt16) -> Int {
 /// Check if char code is an octal digit (0-7)
 fn is_octal_digit(c : UInt16) -> Bool {
   c >= '0'.to_int().to_uint16() && c <= '7'.to_int().to_uint16()
+}
+
+///|
+/// Collect whitespace (spaces, tabs, CR) without consuming, returns collected text
+pub fn Lexer::collect_whitespace(self : Lexer) -> (Lexer, String?) {
+  let start = self.pos
+  let mut lexer = self
+  while !lexer.is_at_end() {
+    match lexer.peek() {
+      Some(c) if c == ' '.to_int().to_uint16() ||
+        c == '\t'.to_int().to_uint16() ||
+        c == '\r'.to_int().to_uint16() => lexer = lexer.advance()
+      _ => break
+    }
+  }
+  if lexer.pos > start {
+    (lexer, Some(lexer.input[start:lexer.pos].to_string()))
+  } else {
+    (lexer, None)
+  }
+}
+
+///|
+/// Collect comment (line or block) without consuming, returns collected text
+pub fn Lexer::collect_comment(self : Lexer) -> (Lexer, String?) {
+  if self.is_at_end() {
+    return (self, None)
+  }
+
+  let slash_code = '/'.to_int().to_uint16()
+  let newline_code = '\n'.to_int().to_uint16()
+  let star_code = '*'.to_int().to_uint16()
+
+  if self.peek() == Some(slash_code) {
+    match self.peek_next() {
+      Some(c) if c == slash_code => {
+        // Line comment
+        let start = self.pos
+        let mut lexer = self.advance().advance()
+        while !lexer.is_at_end() && lexer.peek() != Some(newline_code) {
+          lexer = lexer.advance()
+        }
+        (lexer, Some(lexer.input[start:lexer.pos].to_string()))
+      }
+      Some(c) if c == star_code => {
+        // Block comment
+        let start = self.pos
+        let mut lexer = self.advance().advance()
+        while !lexer.is_at_end() {
+          if lexer.peek() == Some(star_code) &&
+            lexer.peek_next() == Some(slash_code) {
+            lexer = lexer.advance().advance()
+            return (lexer, Some(lexer.input[start:lexer.pos].to_string()))
+          }
+          lexer = lexer.advance()
+        }
+        // Unterminated block comment - return what we have
+        (lexer, Some(lexer.input[start:lexer.pos].to_string()))
+      }
+      _ => (self, None)
+    }
+  } else {
+    (self, None)
+  }
 }
 
 ///|

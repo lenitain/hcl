@@ -34,10 +34,10 @@ fn body_to_value(body : Body) -> HCLValue {
   }
 
   for type_name, group in block_groups {
-    result[type_name] = Object(group)
+    result[type_name] = Object(group, Decor::empty())
   }
 
-  Object(result)
+  Object(result, Decor::empty())
 }
 
 ///|
@@ -60,34 +60,46 @@ test "spec operators equality" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let eq = obj.get("equality").unwrap()
           match eq {
-            Object(eq_obj) => {
+            Object(eq_obj, _) => {
               let eq_eq = eq_obj.get("==").unwrap()
               match eq_eq {
-                Object(m) => {
-                  assert_true(m.get("exactly").unwrap() == Bool(true))
-                  assert_true(m.get("not").unwrap() == Bool(false))
+                Object(m, _) => {
                   assert_true(
-                    m.get("type_mismatch_number").unwrap() == Bool(false),
+                    m.get("exactly").unwrap() == Bool(true, Decor::empty()),
                   )
                   assert_true(
-                    m.get("type_mismatch_bool").unwrap() == Bool(false),
+                    m.get("not").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("type_mismatch_number").unwrap() ==
+                    Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("type_mismatch_bool").unwrap() ==
+                    Bool(false, Decor::empty()),
                   )
                 }
                 _ => panic()
               }
               let neq = eq_obj.get("!=").unwrap()
               match neq {
-                Object(m) => {
-                  assert_true(m.get("exactly").unwrap() == Bool(false))
-                  assert_true(m.get("not").unwrap() == Bool(true))
+                Object(m, _) => {
                   assert_true(
-                    m.get("type_mismatch_number").unwrap() == Bool(true),
+                    m.get("exactly").unwrap() == Bool(false, Decor::empty()),
                   )
                   assert_true(
-                    m.get("type_mismatch_bool").unwrap() == Bool(true),
+                    m.get("not").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("type_mismatch_number").unwrap() ==
+                    Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("type_mismatch_bool").unwrap() ==
+                    Bool(true, Decor::empty()),
                   )
                 }
                 _ => panic()
@@ -113,43 +125,67 @@ test "spec operators inequality" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let ineq = obj.get("inequality").unwrap()
           match ineq {
-            Object(ineq_obj) => {
+            Object(ineq_obj, _) => {
               let lt_val = ineq_obj.get("<").unwrap()
               match lt_val {
-                Object(m) => {
-                  assert_true(m.get("lt").unwrap() == Bool(true))
-                  assert_true(m.get("gt").unwrap() == Bool(false))
-                  assert_true(m.get("eq").unwrap() == Bool(false))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("lt").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("gt").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("eq").unwrap() == Bool(false, Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
               let lte_val = ineq_obj.get("<=").unwrap()
               match lte_val {
-                Object(m) => {
-                  assert_true(m.get("lt").unwrap() == Bool(true))
-                  assert_true(m.get("gt").unwrap() == Bool(false))
-                  assert_true(m.get("eq").unwrap() == Bool(true))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("lt").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("gt").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("eq").unwrap() == Bool(true, Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
               let gt_val = ineq_obj.get(">").unwrap()
               match gt_val {
-                Object(m) => {
-                  assert_true(m.get("lt").unwrap() == Bool(false))
-                  assert_true(m.get("gt").unwrap() == Bool(true))
-                  assert_true(m.get("eq").unwrap() == Bool(false))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("lt").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("gt").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("eq").unwrap() == Bool(false, Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
               let gte_val = ineq_obj.get(">=").unwrap()
               match gte_val {
-                Object(m) => {
-                  assert_true(m.get("lt").unwrap() == Bool(false))
-                  assert_true(m.get("gt").unwrap() == Bool(true))
-                  assert_true(m.get("eq").unwrap() == Bool(true))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("lt").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("gt").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("eq").unwrap() == Bool(true, Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
@@ -174,26 +210,28 @@ test "spec operators arithmetic" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let arith = obj.get("arithmetic").unwrap()
           match arith {
-            Object(m) => {
-              assert_true(m.get("add").unwrap() == Float(5.5))
-              assert_true(m.get("sub").unwrap() == Float(1.5))
-              assert_true(m.get("sub_neg").unwrap() == Float(-1.5))
-              assert_true(m.get("mul").unwrap() == Float(9.0))
-              assert_true(m.get("mod").unwrap() == Int(1))
+            Object(m, _) => {
+              assert_true(m.get("add").unwrap() == Float(5.5, Decor::empty()))
+              assert_true(m.get("sub").unwrap() == Float(1.5, Decor::empty()))
+              assert_true(
+                m.get("sub_neg").unwrap() == Float(-1.5, Decor::empty()),
+              )
+              assert_true(m.get("mul").unwrap() == Float(9.0, Decor::empty()))
+              assert_true(m.get("mod").unwrap() == Int(1, Decor::empty()))
               match m.get("add_big").unwrap() {
-                Float(f) => assert_true(f > 4.0 && f < 5.0)
+                Float(f, _) => assert_true(f > 4.0 && f < 5.0)
                 _ => panic()
               }
               match m.get("div").unwrap() {
-                Float(f) => assert_true(f > 0.09 && f < 0.11)
-                Int(i) => assert_true(i == 0)
+                Float(f, _) => assert_true(f > 0.09 && f < 0.11)
+                Int(i, _) => assert_true(i == 0)
                 _ => panic()
               }
               match m.get("mod_frac").unwrap() {
-                Float(f) => assert_true(f > 0.7 && f < 0.9)
+                Float(f, _) => assert_true(f > 0.7 && f < 0.9)
                 _ => panic()
               }
             }
@@ -217,27 +255,43 @@ test "spec operators logical binary" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let log_bin = obj.get("logical_binary").unwrap()
           match log_bin {
-            Object(log_bin_obj) => {
+            Object(log_bin_obj, _) => {
               let and_val = log_bin_obj.get("&&").unwrap()
               match and_val {
-                Object(m) => {
-                  assert_true(m.get("tt").unwrap() == Bool(true))
-                  assert_true(m.get("ft").unwrap() == Bool(false))
-                  assert_true(m.get("tf").unwrap() == Bool(false))
-                  assert_true(m.get("ff").unwrap() == Bool(false))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("tt").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("ft").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("tf").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("ff").unwrap() == Bool(false, Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
               let or_val = log_bin_obj.get("||").unwrap()
               match or_val {
-                Object(m) => {
-                  assert_true(m.get("tt").unwrap() == Bool(true))
-                  assert_true(m.get("ft").unwrap() == Bool(true))
-                  assert_true(m.get("tf").unwrap() == Bool(true))
-                  assert_true(m.get("ff").unwrap() == Bool(false))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("tt").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("ft").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("tf").unwrap() == Bool(true, Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("ff").unwrap() == Bool(false, Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
@@ -262,15 +316,17 @@ test "spec operators conditional" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let log_un = obj.get("logical_unary").unwrap()
           match log_un {
-            Object(log_un_obj) => {
+            Object(log_un_obj, _) => {
               let not_val = log_un_obj.get("!").unwrap()
               match not_val {
-                Object(m) => {
-                  assert_true(m.get("t").unwrap() == Bool(false))
-                  assert_true(m.get("f").unwrap() == Bool(true))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("t").unwrap() == Bool(false, Decor::empty()),
+                  )
+                  assert_true(m.get("f").unwrap() == Bool(true, Decor::empty()))
                 }
                 _ => panic()
               }
@@ -279,20 +335,30 @@ test "spec operators conditional" {
           }
           let cond = obj.get("conditional").unwrap()
           match cond {
-            Object(cond_obj) => {
+            Object(cond_obj, _) => {
               let reg = cond_obj.get("regular").unwrap()
               match reg {
-                Object(m) => {
-                  assert_true(m.get("t").unwrap() == String("a"))
-                  assert_true(m.get("f").unwrap() == String("b"))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("t").unwrap() == String("a", Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("f").unwrap() == String("b", Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
               let nl = cond_obj.get("newline").unwrap()
               match nl {
-                Object(m) => {
-                  assert_true(m.get("t").unwrap() == Array([String("a")]))
-                  assert_true(m.get("f").unwrap() == Array([String("b")]))
+                Object(m, _) => {
+                  assert_true(
+                    m.get("t").unwrap() ==
+                    Array([String("a", Decor::empty())], Decor::empty()),
+                  )
+                  assert_true(
+                    m.get("f").unwrap() ==
+                    Array([String("b", Decor::empty())], Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
@@ -317,28 +383,32 @@ test "spec heredoc normal" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let normal = obj.get("normal").unwrap()
           match normal {
-            Object(m) => {
-              assert_true(m.get("basic").unwrap() == String("Foo\nBar\nBaz\n"))
+            Object(m, _) => {
+              assert_true(
+                m.get("basic").unwrap() ==
+                String("Foo\nBar\nBaz\n", Decor::empty()),
+              )
               assert_true(
                 m.get("indented").unwrap() ==
-                String("    Foo\n    Bar\n    Baz\n"),
+                String("    Foo\n    Bar\n    Baz\n", Decor::empty()),
               )
               assert_true(
                 m.get("indented_more").unwrap() ==
-                String("    Foo\n      Bar\n    Baz\n"),
+                String("    Foo\n      Bar\n    Baz\n", Decor::empty()),
               )
               assert_true(
                 m.get("newlines_between").unwrap() ==
-                String("Foo\n\nBar\n\nBaz\n"),
+                String("Foo\n\nBar\n\nBaz\n", Decor::empty()),
               )
               assert_true(
-                m.get("marker_at_suffix").unwrap() == String("    NOT EOT\n"),
+                m.get("marker_at_suffix").unwrap() ==
+                String("    NOT EOT\n", Decor::empty()),
               )
               match m.get("indented_newlines_between").unwrap() {
-                String(s) => {
+                String(s, _) => {
                   assert_true(s.contains("Foo"))
                   assert_true(s.contains("Bar"))
                   assert_true(s.contains("Baz"))
@@ -366,26 +436,32 @@ test "spec heredoc indent" {
   match result {
     Ok(value) =>
       match value {
-        Object(obj) => {
+        Object(obj, _) => {
           let indent = obj.get("indent").unwrap()
           match indent {
-            Object(m) => {
-              assert_true(m.get("basic").unwrap() == String("Foo\nBar\nBaz\n"))
+            Object(m, _) => {
               assert_true(
-                m.get("indented").unwrap() == String("Foo\nBar\nBaz\n"),
+                m.get("basic").unwrap() ==
+                String("Foo\nBar\nBaz\n", Decor::empty()),
               )
               assert_true(
-                m.get("indented_more").unwrap() == String("Foo\n  Bar\nBaz\n"),
+                m.get("indented").unwrap() ==
+                String("Foo\nBar\nBaz\n", Decor::empty()),
               )
               assert_true(
-                m.get("indented_less").unwrap() == String("  Foo\nBar\n  Baz\n"),
+                m.get("indented_more").unwrap() ==
+                String("Foo\n  Bar\nBaz\n", Decor::empty()),
+              )
+              assert_true(
+                m.get("indented_less").unwrap() ==
+                String("  Foo\nBar\n  Baz\n", Decor::empty()),
               )
               assert_true(
                 m.get("newlines_between").unwrap() ==
-                String("Foo\n\nBar\n\nBaz\n"),
+                String("Foo\n\nBar\n\nBaz\n", Decor::empty()),
               )
               match m.get("indented_newlines_between").unwrap() {
-                String(s) => {
+                String(s, _) => {
                   assert_true(s.contains("Foo"))
                   assert_true(s.contains("Bar"))
                   assert_true(s.contains("Baz"))

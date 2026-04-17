@@ -20,7 +20,7 @@ test "parse template with interpolation" {
   let input = "Hello, ${name}!"
   match Template::from_string(input) {
     Ok(template) => {
-      let vars = { "name": HCLValue::String("Alice") }
+      let vars = { "name": HCLValue::String("Alice", Decor::empty()) }
       let funcs = {}
       match template.evaluate(vars, funcs) {
         Ok(result) => assert_eq(result, "Hello, Alice!")
@@ -37,8 +37,8 @@ test "parse template with multiple interpolations" {
   match Template::from_string(input) {
     Ok(template) => {
       let vars = {
-        "greeting": HCLValue::String("Hi"),
-        "name": HCLValue::String("Bob"),
+        "greeting": HCLValue::String("Hi", Decor::empty()),
+        "name": HCLValue::String("Bob", Decor::empty()),
       }
       let funcs = {}
       match template.evaluate(vars, funcs) {
@@ -55,7 +55,7 @@ test "parse template with number interpolation" {
   let input = "Count: ${count}"
   match Template::from_string(input) {
     Ok(template) => {
-      let vars = { "count": HCLValue::Int(42) }
+      let vars = { "count": HCLValue::Int(42, Decor::empty()) }
       let funcs = {}
       match template.evaluate(vars, funcs) {
         Ok(result) => assert_eq(result, "Count: 42")
@@ -71,7 +71,7 @@ test "parse template with boolean interpolation" {
   let input = "Active: ${active}"
   match Template::from_string(input) {
     Ok(template) => {
-      let vars = { "active": HCLValue::Bool(true) }
+      let vars = { "active": HCLValue::Bool(true, Decor::empty()) }
       let funcs = {}
       match template.evaluate(vars, funcs) {
         Ok(result) => assert_eq(result, "Active: true")
@@ -87,7 +87,7 @@ test "parse template with conditional true" {
   let input = "%{if show}Visible%{endif}"
   match Template::from_string(input) {
     Ok(template) => {
-      let vars = { "show": HCLValue::Bool(true) }
+      let vars = { "show": HCLValue::Bool(true, Decor::empty()) }
       let funcs = {}
       match template.evaluate(vars, funcs) {
         Ok(result) => assert_eq(result, "Visible")
@@ -103,7 +103,7 @@ test "parse template with conditional false" {
   let input = "%{if show}Visible%{endif}"
   match Template::from_string(input) {
     Ok(template) => {
-      let vars = { "show": HCLValue::Bool(false) }
+      let vars = { "show": HCLValue::Bool(false, Decor::empty()) }
       let funcs = {}
       match template.evaluate(vars, funcs) {
         Ok(result) => assert_eq(result, "")
@@ -120,11 +120,14 @@ test "parse template with for loop" {
   match Template::from_string(input) {
     Ok(template) => {
       let vars = {
-        "items": HCLValue::Array([
-          HCLValue::String("a"),
-          HCLValue::String("b"),
-          HCLValue::String("c"),
-        ]),
+        "items": HCLValue::Array(
+          [
+            HCLValue::String("a", Decor::empty()),
+            HCLValue::String("b", Decor::empty()),
+            HCLValue::String("c", Decor::empty()),
+          ],
+          Decor::empty(),
+        ),
       }
       let funcs = {}
       match template.evaluate(vars, funcs) {
@@ -142,9 +145,9 @@ test "parse template with complex structure" {
   match Template::from_string(input) {
     Ok(template) => {
       let vars = {
-        "name": HCLValue::String("John"),
-        "age": HCLValue::Int(30),
-        "active": HCLValue::Bool(true),
+        "name": HCLValue::String("John", Decor::empty()),
+        "age": HCLValue::Int(30, Decor::empty()),
+        "active": HCLValue::Bool(true, Decor::empty()),
       }
       let funcs = {}
       match template.evaluate(vars, funcs) {
@@ -159,7 +162,7 @@ test "parse template with complex structure" {
 ///|
 test "evaluate template directly" {
   let input = "Hello, ${name}!"
-  let vars = { "name": HCLValue::String("World") }
+  let vars = { "name": HCLValue::String("World", Decor::empty()) }
   let funcs = {}
   match evaluate_template(input, vars, funcs) {
     Ok(result) => assert_eq(result, "Hello, World!")
@@ -189,8 +192,8 @@ test "template with nested conditionals" {
   match Template::from_string(input) {
     Ok(template) => {
       let vars = {
-        "outer": HCLValue::Bool(true),
-        "inner": HCLValue::Bool(true),
+        "outer": HCLValue::Bool(true, Decor::empty()),
+        "inner": HCLValue::Bool(true, Decor::empty()),
       }
       let funcs = {}
       match template.evaluate(vars, funcs) {
@@ -208,7 +211,13 @@ test "template with for loop and interpolation" {
   match Template::from_string(input) {
     Ok(template) => {
       let vars = {
-        "items": HCLValue::Array([HCLValue::String("x"), HCLValue::String("y")]),
+        "items": HCLValue::Array(
+          [
+            HCLValue::String("x", Decor::empty()),
+            HCLValue::String("y", Decor::empty()),
+          ],
+          Decor::empty(),
+        ),
       }
       let funcs = {}
       match template.evaluate(vars, funcs) {
@@ -243,8 +252,8 @@ test "parse heredoc with interpolation" {
   match Template::from_heredoc(input, "EOF", false) {
     Ok(template) => {
       let vars = {
-        "name": HCLValue::String("Alice"),
-        "place": HCLValue::String("Wonderland"),
+        "name": HCLValue::String("Alice", Decor::empty()),
+        "place": HCLValue::String("Wonderland", Decor::empty()),
       }
       let funcs = {}
       match template.evaluate(vars, funcs) {

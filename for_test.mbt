@@ -45,8 +45,10 @@ test "parse for expr simple" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "result")
           match attr.get_value() {
-            Object(obj) =>
-              assert_true(obj.get("type") == Some(String("for_expr")))
+            Object(obj, _) =>
+              assert_true(
+                obj.get("type") == Some(String("for_expr", Decor::empty())),
+              )
             Array(_) =>
               // If it parsed as array, the for expression parsing failed
               panic()
@@ -70,14 +72,21 @@ test "eval for expr simple" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["numbers"] = Array([Int(1), Int(2), Int(3)])
+          variables["numbers"] = Array(
+            [
+              Int(1, Decor::empty()),
+              Int(2, Decor::empty()),
+              Int(3, Decor::empty()),
+            ],
+            Decor::empty(),
+          )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           match eval_expr(value, variables, functions) {
-            Ok(Array(arr)) => {
+            Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 3)
-              assert_true(arr[0] == Int(2))
-              assert_true(arr[1] == Int(4))
-              assert_true(arr[2] == Int(6))
+              assert_true(arr[0] == Int(2, Decor::empty()))
+              assert_true(arr[1] == Int(4, Decor::empty()))
+              assert_true(arr[2] == Int(6, Decor::empty()))
             }
             _ => panic()
           }
@@ -100,10 +109,17 @@ test "parse object comprehension" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "upper_keys")
           match attr.get_value() {
-            Object(obj) => {
-              assert_true(obj.get("type") == Some(String("for_object_expr")))
-              assert_true(obj.get("key_var") == Some(String("k")))
-              assert_true(obj.get("value_var") == Some(String("v")))
+            Object(obj, _) => {
+              assert_true(
+                obj.get("type") ==
+                Some(String("for_object_expr", Decor::empty())),
+              )
+              assert_true(
+                obj.get("key_var") == Some(String("k", Decor::empty())),
+              )
+              assert_true(
+                obj.get("value_var") == Some(String("v", Decor::empty())),
+              )
             }
             _ => panic()
           }
@@ -127,10 +143,12 @@ test "parse list comprehension with filter" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "evens")
           match attr.get_value() {
-            Object(obj) => {
-              assert_true(obj.get("type") == Some(String("for_expr")))
-              assert_true(obj.get("var") == Some(String("x")))
-              assert_true(obj.get("filter") != Some(Null))
+            Object(obj, _) => {
+              assert_true(
+                obj.get("type") == Some(String("for_expr", Decor::empty())),
+              )
+              assert_true(obj.get("var") == Some(String("x", Decor::empty())))
+              assert_true(obj.get("filter") != Some(Null(Decor::empty())))
             }
             _ => panic()
           }
@@ -152,15 +170,22 @@ test "evaluate list comprehension" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["numbers"] = Array([Int(1), Int(2), Int(3)])
+          variables["numbers"] = Array(
+            [
+              Int(1, Decor::empty()),
+              Int(2, Decor::empty()),
+              Int(3, Decor::empty()),
+            ],
+            Decor::empty(),
+          )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Array(arr)) => {
+            Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 3)
-              assert_true(arr[0] == Int(2))
-              assert_true(arr[1] == Int(4))
-              assert_true(arr[2] == Int(6))
+              assert_true(arr[0] == Int(2, Decor::empty()))
+              assert_true(arr[1] == Int(4, Decor::empty()))
+              assert_true(arr[2] == Int(6, Decor::empty()))
             }
             _ => panic()
           }
@@ -181,14 +206,22 @@ test "evaluate list comprehension with filter" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["numbers"] = Array([Int(1), Int(2), Int(3), Int(4)])
+          variables["numbers"] = Array(
+            [
+              Int(1, Decor::empty()),
+              Int(2, Decor::empty()),
+              Int(3, Decor::empty()),
+              Int(4, Decor::empty()),
+            ],
+            Decor::empty(),
+          )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Array(arr)) => {
+            Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 2)
-              assert_true(arr[0] == Int(2))
-              assert_true(arr[1] == Int(4))
+              assert_true(arr[0] == Int(2, Decor::empty()))
+              assert_true(arr[1] == Int(4, Decor::empty()))
             }
             _ => panic()
           }
@@ -210,15 +243,17 @@ test "evaluate object comprehension" {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
           let config : Map[String, HCLValue] = Map::new()
-          config["host"] = String("localhost")
-          config["port"] = Int(8080)
-          variables["config"] = Object(config)
+          config["host"] = String("localhost", Decor::empty())
+          config["port"] = Int(8080, Decor::empty())
+          variables["config"] = Object(config, Decor::empty())
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Object(obj)) => {
-              assert_true(obj.get("host") == Some(String("localhost")))
-              assert_true(obj.get("port") == Some(Int(8080)))
+            Ok(Object(obj, _)) => {
+              assert_true(
+                obj.get("host") == Some(String("localhost", Decor::empty())),
+              )
+              assert_true(obj.get("port") == Some(Int(8080, Decor::empty())))
             }
             _ => panic()
           }
@@ -242,23 +277,23 @@ test "evaluate nested for expressions" {
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Array(arr)) => {
+            Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 2)
               // First element: [3, 4]
               match arr[0] {
-                Array(inner) => {
+                Array(inner, _) => {
                   assert_eq(inner.length(), 2)
-                  assert_true(inner[0] == Int(3))
-                  assert_true(inner[1] == Int(4))
+                  assert_true(inner[0] == Int(3, Decor::empty()))
+                  assert_true(inner[1] == Int(4, Decor::empty()))
                 }
                 _ => panic()
               }
               // Second element: [6, 8]
               match arr[1] {
-                Array(inner) => {
+                Array(inner, _) => {
                   assert_eq(inner.length(), 2)
-                  assert_true(inner[0] == Int(6))
-                  assert_true(inner[1] == Int(8))
+                  assert_true(inner[0] == Int(6, Decor::empty()))
+                  assert_true(inner[1] == Int(8, Decor::empty()))
                 }
                 _ => panic()
               }
@@ -285,7 +320,7 @@ test "for expression with empty collection" {
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Array(arr)) => assert_eq(arr.length(), 0)
+            Ok(Array(arr, _)) => assert_eq(arr.length(), 0)
             _ => panic()
           }
         }
@@ -305,11 +340,14 @@ test "for expression with string transformation" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["names"] = Array([String("Alice"), String("Bob")])
+          variables["names"] = Array(
+            [String("Alice", Decor::empty()), String("Bob", Decor::empty())],
+            Decor::empty(),
+          )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Array(arr)) => assert_eq(arr.length(), 2)
+            Ok(Array(arr, _)) => assert_eq(arr.length(), 2)
             // Note: Template evaluation would be needed for full string interpolation
             // For now, we just check the structure is correct
             _ => panic()
@@ -331,11 +369,18 @@ test "for expression with conditional filter false" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["numbers"] = Array([Int(1), Int(2), Int(3)])
+          variables["numbers"] = Array(
+            [
+              Int(1, Decor::empty()),
+              Int(2, Decor::empty()),
+              Int(3, Decor::empty()),
+            ],
+            Decor::empty(),
+          )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(Array(arr)) => assert_eq(arr.length(), 0)
+            Ok(Array(arr, _)) => assert_eq(arr.length(), 0)
             _ => panic()
           }
         }

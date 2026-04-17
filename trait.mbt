@@ -14,14 +14,14 @@ pub trait FromHCL {
 /// Get type name for error messages
 fn type_name_of(value : HCLValue) -> String {
   match value {
-    Null => "null"
-    Bool(_) => "bool"
-    Int(_) => "int"
-    Int64(_) => "int64"
-    Float(_) => "float"
-    String(_) => "string"
-    Array(_) => "array"
-    Object(_) => "object"
+    Null(_) => "null"
+    Bool(_, _) => "bool"
+    Int(_, _) => "int"
+    Int64(_, _) => "int64"
+    Float(_, _) => "float"
+    String(_, _) => "string"
+    Array(_, _) => "array"
+    Object(_, _) => "object"
   }
 }
 
@@ -55,14 +55,14 @@ impl FromHCL for HCLValue with from_hcl(value) {
 ///|
 /// ToHCL implementation for Int
 impl ToHCL for Int with to_hcl(self) {
-  Int(self)
+  Int(self, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Int
 impl FromHCL for Int with from_hcl(value) {
   match value {
-    Int(i) => Ok(i)
+    Int(i, _) => Ok(i)
     _ => Err(HCLError::type_mismatch("Int", type_name_of(value)))
   }
 }
@@ -70,15 +70,15 @@ impl FromHCL for Int with from_hcl(value) {
 ///|
 /// ToHCL implementation for Int64
 impl ToHCL for Int64 with to_hcl(self) {
-  Int64(self)
+  Int64(self, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Int64
 impl FromHCL for Int64 with from_hcl(value) {
   match value {
-    Int64(i) => Ok(i)
-    Int(i) => Ok(i.to_int64())
+    Int64(i, _) => Ok(i)
+    Int(i, _) => Ok(i.to_int64())
     _ => Err(HCLError::type_mismatch("Int64", type_name_of(value)))
   }
 }
@@ -86,16 +86,16 @@ impl FromHCL for Int64 with from_hcl(value) {
 ///|
 /// ToHCL implementation for Double
 impl ToHCL for Double with to_hcl(self) {
-  Float(self)
+  Float(self, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Double
 impl FromHCL for Double with from_hcl(value) {
   match value {
-    Float(f) => Ok(f)
-    Int(i) => Ok(i.to_double())
-    Int64(i) => Ok(i.to_double())
+    Float(f, _) => Ok(f)
+    Int(i, _) => Ok(i.to_double())
+    Int64(i, _) => Ok(i.to_double())
     _ => Err(HCLError::type_mismatch("Double", type_name_of(value)))
   }
 }
@@ -103,14 +103,14 @@ impl FromHCL for Double with from_hcl(value) {
 ///|
 /// ToHCL implementation for Bool
 impl ToHCL for Bool with to_hcl(self) {
-  Bool(self)
+  Bool(self, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Bool
 impl FromHCL for Bool with from_hcl(value) {
   match value {
-    Bool(b) => Ok(b)
+    Bool(b, _) => Ok(b)
     _ => Err(HCLError::type_mismatch("Bool", type_name_of(value)))
   }
 }
@@ -118,14 +118,14 @@ impl FromHCL for Bool with from_hcl(value) {
 ///|
 /// ToHCL implementation for String
 impl ToHCL for String with to_hcl(self) {
-  String(self)
+  String(self, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for String
 impl FromHCL for String with from_hcl(value) {
   match value {
-    String(s) => Ok(s)
+    String(s, _) => Ok(s)
     _ => Err(HCLError::type_mismatch("String", type_name_of(value)))
   }
 }
@@ -135,7 +135,7 @@ impl FromHCL for String with from_hcl(value) {
 impl[T : ToHCL] ToHCL for T? with to_hcl(self) {
   match self {
     Some(v) => v.to_hcl()
-    None => Null
+    None => Null(Decor::empty())
   }
 }
 
@@ -143,7 +143,7 @@ impl[T : ToHCL] ToHCL for T? with to_hcl(self) {
 /// FromHCL implementation for Option
 impl[T : FromHCL] FromHCL for T? with from_hcl(value) {
   match value {
-    Null => Ok(None)
+    Null(_) => Ok(None)
     _ =>
       match T::from_hcl(value) {
         Ok(v) => Ok(Some(v))
@@ -156,14 +156,14 @@ impl[T : FromHCL] FromHCL for T? with from_hcl(value) {
 /// ToHCL implementation for Array
 impl[T : ToHCL] ToHCL for Array[T] with to_hcl(self) {
   let items = self.map(fn(v) { v.to_hcl() })
-  Array(items)
+  Array(items, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Array
 impl[T : FromHCL] FromHCL for Array[T] with from_hcl(value) {
   match value {
-    Array(arr) => {
+    Array(arr, _) => {
       let result = []
       for v in arr {
         match T::from_hcl(v) {
@@ -184,14 +184,14 @@ impl[T : ToHCL] ToHCL for Map[String, T] with to_hcl(self) {
   for k, v in self {
     obj[k] = v.to_hcl()
   }
-  Object(obj)
+  Object(obj, Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Map
 impl[T : FromHCL] FromHCL for Map[String, T] with from_hcl(value) {
   match value {
-    Object(obj) => {
+    Object(obj, _) => {
       let result = {}
       for k, v in obj {
         match T::from_hcl(v) {

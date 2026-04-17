@@ -311,7 +311,7 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
   // Check for string literal
   if has_prefix(trimmed, "\"") && has_suffix(trimmed, "\"") {
     let content = substring(trimmed, 1, trimmed.length() - 1)
-    return Ok(String(content))
+    return Ok(String(content, Decor::empty()))
   }
 
   // Check for number
@@ -326,7 +326,7 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
     // Simple number parsing
     if trimmed.contains(".") {
       // Float - simplified
-      return Ok(Float(0.0))
+      return Ok(Float(0.0, Decor::empty()))
     } else {
       // Integer
       let mut result = 0
@@ -344,25 +344,33 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
         }
         i += 1
       }
-      return Ok(Int(if negative { -result } else { result }))
+      return Ok(Int(if negative { -result } else { result }, Decor::empty()))
     }
   }
 
   // Check for boolean
   if trimmed == "true" {
-    return Ok(Bool(true))
+    return Ok(Bool(true, Decor::empty()))
   }
   if trimmed == "false" {
-    return Ok(Bool(false))
+    return Ok(Bool(false, Decor::empty()))
   }
 
   // Check for null
   if trimmed == "null" {
-    return Ok(Null)
+    return Ok(Null(Decor::empty()))
   }
 
   // Variable reference
-  Ok(Object({ "type": String("variable"), "name": String(trimmed) }))
+  Ok(
+    Object(
+      {
+        "type": String("variable", Decor::empty()),
+        "name": String(trimmed, Decor::empty()),
+      },
+      Decor::empty(),
+    ),
+  )
 }
 
 ///|
@@ -395,7 +403,7 @@ pub fn Template::evaluate(
         match eval_expr(condition, variables, functions) {
           Ok(cond_value) =>
             match cond_value {
-              Bool(b) =>
+              Bool(b, _) =>
                 if b {
                   // Evaluate conditional body
                   match
@@ -426,7 +434,7 @@ pub fn Template::evaluate(
         match eval_expr(collection, variables, functions) {
           Ok(collection_value) =>
             match collection_value {
-              Array(arr) =>
+              Array(arr, _) =>
                 // Evaluate for loop body for each item
                 match
                   evaluate_for_body(
@@ -743,14 +751,14 @@ fn strip_heredoc_indent(text : String) -> String {
 /// Convert HCLValue to string
 fn value_to_string(value : HCLValue) -> String {
   match value {
-    Null => "null"
-    Bool(b) => if b { "true" } else { "false" }
-    Int(i) => i.to_string()
-    Int64(i) => i.to_string()
-    Float(f) => f.to_string()
-    String(s) => s
-    Array(_) => "[array]"
-    Object(_) => "[object]"
+    Null(_) => "null"
+    Bool(b, _) => if b { "true" } else { "false" }
+    Int(i, _) => i.to_string()
+    Int64(i, _) => i.to_string()
+    Float(f, _) => f.to_string()
+    String(s, _) => s
+    Array(_, _) => "[array]"
+    Object(_, _) => "[object]"
   }
 }
 

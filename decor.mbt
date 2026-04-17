@@ -80,6 +80,9 @@ pub fn[T] Decorated::get_decor(self : Decorated[T]) -> Decor {
 
 ///|
 /// Set decor
-pub fn[T] Decorated::set_decor(self : Decorated[T], decor : Decor) -> Decorated[T] {
+pub fn[T] Decorated::set_decor(
+  self : Decorated[T],
+  decor : Decor,
+) -> Decorated[T] {
   { value: self.value, decor }
 }

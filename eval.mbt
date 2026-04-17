@@ -41,12 +41,12 @@ pub fn eval_unary(op : String, operand : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate addition
 fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Int(a + b))
-    (Int64(a), Int64(b)) => Ok(Int64(a + b))
-    (Float(a), Float(b)) => Ok(Float(a + b))
-    (Int(a), Float(b)) => Ok(Float(a.to_double() + b))
-    (Float(a), Int(b)) => Ok(Float(a + b.to_double()))
-    (String(a), String(b)) => Ok(String(a + b))
+    (Int(a, _), Int(b, _)) => Ok(Int(a + b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Int64(a + b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Float(a + b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Float(a.to_double() + b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Float(a + b.to_double(), Decor::empty()))
+    (String(a, _), String(b, _)) => Ok(String(a + b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for addition"))
   }
 }
@@ -55,11 +55,11 @@ fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate subtraction
 fn eval_sub(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Int(a - b))
-    (Int64(a), Int64(b)) => Ok(Int64(a - b))
-    (Float(a), Float(b)) => Ok(Float(a - b))
-    (Int(a), Float(b)) => Ok(Float(a.to_double() - b))
-    (Float(a), Int(b)) => Ok(Float(a - b.to_double()))
+    (Int(a, _), Int(b, _)) => Ok(Int(a - b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Int64(a - b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Float(a - b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Float(a.to_double() - b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Float(a - b.to_double(), Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for subtraction"))
   }
 }
@@ -68,11 +68,11 @@ fn eval_sub(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate multiplication
 fn eval_mul(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Int(a * b))
-    (Int64(a), Int64(b)) => Ok(Int64(a * b))
-    (Float(a), Float(b)) => Ok(Float(a * b))
-    (Int(a), Float(b)) => Ok(Float(a.to_double() * b))
-    (Float(a), Int(b)) => Ok(Float(a * b.to_double()))
+    (Int(a, _), Int(b, _)) => Ok(Int(a * b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Int64(a * b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Float(a * b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Float(a.to_double() * b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Float(a * b.to_double(), Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for multiplication"))
   }
 }
@@ -81,35 +81,35 @@ fn eval_mul(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate division
 fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) =>
+    (Int(a, _), Int(b, _)) =>
       if b == 0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Int(a / b))
+        Ok(Int(a / b, Decor::empty()))
       }
-    (Int64(a), Int64(b)) =>
+    (Int64(a, _), Int64(b, _)) =>
       if b == 0L {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Int64(a / b))
+        Ok(Int64(a / b, Decor::empty()))
       }
-    (Float(a), Float(b)) =>
+    (Float(a, _), Float(b, _)) =>
       if b == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Float(a / b))
+        Ok(Float(a / b, Decor::empty()))
       }
-    (Int(a), Float(b)) =>
+    (Int(a, _), Float(b, _)) =>
       if b == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Float(a.to_double() / b))
+        Ok(Float(a.to_double() / b, Decor::empty()))
       }
-    (Float(a), Int(b)) =>
+    (Float(a, _), Int(b, _)) =>
       if b == 0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Float(a / b.to_double()))
+        Ok(Float(a / b.to_double(), Decor::empty()))
       }
     _ => Err(HCLError::type_error("Invalid types for division"))
   }
@@ -119,35 +119,35 @@ fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate modulo
 fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) =>
+    (Int(a, _), Int(b, _)) =>
       if b == 0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Int(a % b))
+        Ok(Int(a % b, Decor::empty()))
       }
-    (Int64(a), Int64(b)) =>
+    (Int64(a, _), Int64(b, _)) =>
       if b == 0L {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Int64(a % b))
+        Ok(Int64(a % b, Decor::empty()))
       }
-    (Float(a), Float(b)) =>
+    (Float(a, _), Float(b, _)) =>
       if b == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Float(a % b))
+        Ok(Float(a % b, Decor::empty()))
       }
-    (Int(a), Float(b)) =>
+    (Int(a, _), Float(b, _)) =>
       if b == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Float(a.to_double() % b))
+        Ok(Float(a.to_double() % b, Decor::empty()))
       }
-    (Float(a), Int(b)) =>
+    (Float(a, _), Int(b, _)) =>
       if b == 0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Float(a % b.to_double()))
+        Ok(Float(a % b.to_double(), Decor::empty()))
       }
     _ => Err(HCLError::type_error("Invalid types for modulo"))
   }
@@ -156,24 +156,24 @@ fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 ///|
 /// Evaluate equality
 fn eval_eq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
-  Ok(Bool(left == right))
+  Ok(Bool(left == right, Decor::empty()))
 }
 
 ///|
 /// Evaluate inequality
 fn eval_neq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
-  Ok(Bool(left != right))
+  Ok(Bool(left != right, Decor::empty()))
 }
 
 ///|
 /// Evaluate less than
 fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Bool(a < b))
-    (Int64(a), Int64(b)) => Ok(Bool(a < b))
-    (Float(a), Float(b)) => Ok(Bool(a < b))
-    (Int(a), Float(b)) => Ok(Bool(a.to_double() < b))
-    (Float(a), Int(b)) => Ok(Bool(a < b.to_double()))
+    (Int(a, _), Int(b, _)) => Ok(Bool(a < b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Bool(a < b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Bool(a < b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() < b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Bool(a < b.to_double(), Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than"))
   }
 }
@@ -182,11 +182,11 @@ fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate greater than
 fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Bool(a > b))
-    (Int64(a), Int64(b)) => Ok(Bool(a > b))
-    (Float(a), Float(b)) => Ok(Bool(a > b))
-    (Int(a), Float(b)) => Ok(Bool(a.to_double() > b))
-    (Float(a), Int(b)) => Ok(Bool(a > b.to_double()))
+    (Int(a, _), Int(b, _)) => Ok(Bool(a > b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Bool(a > b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Bool(a > b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() > b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Bool(a > b.to_double(), Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than"))
   }
 }
@@ -195,11 +195,11 @@ fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate less than or equal
 fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Bool(a <= b))
-    (Int64(a), Int64(b)) => Ok(Bool(a <= b))
-    (Float(a), Float(b)) => Ok(Bool(a <= b))
-    (Int(a), Float(b)) => Ok(Bool(a.to_double() <= b))
-    (Float(a), Int(b)) => Ok(Bool(a <= b.to_double()))
+    (Int(a, _), Int(b, _)) => Ok(Bool(a <= b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Bool(a <= b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Bool(a <= b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() <= b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Bool(a <= b.to_double(), Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than or equal"))
   }
 }
@@ -208,11 +208,11 @@ fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate greater than or equal
 fn eval_gte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a), Int(b)) => Ok(Bool(a >= b))
-    (Int64(a), Int64(b)) => Ok(Bool(a >= b))
-    (Float(a), Float(b)) => Ok(Bool(a >= b))
-    (Int(a), Float(b)) => Ok(Bool(a.to_double() >= b))
-    (Float(a), Int(b)) => Ok(Bool(a >= b.to_double()))
+    (Int(a, _), Int(b, _)) => Ok(Bool(a >= b, Decor::empty()))
+    (Int64(a, _), Int64(b, _)) => Ok(Bool(a >= b, Decor::empty()))
+    (Float(a, _), Float(b, _)) => Ok(Bool(a >= b, Decor::empty()))
+    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() >= b, Decor::empty()))
+    (Float(a, _), Int(b, _)) => Ok(Bool(a >= b.to_double(), Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than or equal"))
   }
 }
@@ -221,7 +221,7 @@ fn eval_gte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate logical and
 fn eval_and(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Bool(a), Bool(b)) => Ok(Bool(a && b))
+    (Bool(a, _), Bool(b, _)) => Ok(Bool(a && b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for logical and"))
   }
 }
@@ -230,7 +230,7 @@ fn eval_and(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate logical or
 fn eval_or(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Bool(a), Bool(b)) => Ok(Bool(a || b))
+    (Bool(a, _), Bool(b, _)) => Ok(Bool(a || b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for logical or"))
   }
 }
@@ -239,9 +239,9 @@ fn eval_or(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate negation
 fn eval_negate(operand : HCLValue) -> HCLResult[HCLValue] {
   match operand {
-    Int(i) => Ok(Int(-i))
-    Int64(i) => Ok(Int64(-i))
-    Float(f) => Ok(Float(-f))
+    Int(i, _) => Ok(Int(-i, Decor::empty()))
+    Int64(i, _) => Ok(Int64(-i, Decor::empty()))
+    Float(f, _) => Ok(Float(-f, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid type for negation"))
   }
 }
@@ -250,7 +250,7 @@ fn eval_negate(operand : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate logical not
 fn eval_not(operand : HCLValue) -> HCLResult[HCLValue] {
   match operand {
-    Bool(b) => Ok(Bool(!b))
+    Bool(b, _) => Ok(Bool(!b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid type for logical not"))
   }
 }
@@ -263,7 +263,7 @@ pub fn eval_conditional(
   false_expr : HCLValue,
 ) -> HCLResult[HCLValue] {
   match condition {
-    Bool(b) => if b { Ok(true_expr) } else { Ok(false_expr) }
+    Bool(b, _) => if b { Ok(true_expr) } else { Ok(false_expr) }
     _ => Err(HCLError::type_error("Condition must be boolean"))
   }
 }
@@ -277,10 +277,15 @@ pub fn eval_expr(
 ) -> HCLResult[HCLValue] {
   match expr {
     // Basic values - return as-is
-    Null | Bool(_) | Int(_) | Int64(_) | Float(_) | String(_) => Ok(expr)
+    Null(_)
+    | Bool(_, _)
+    | Int(_, _)
+    | Int64(_, _)
+    | Float(_, _)
+    | String(_, _) => Ok(expr)
 
     // Array - evaluate each element
-    Array(arr) => {
+    Array(arr, _) => {
       let result = []
       for item in arr {
         match eval_expr(item, variables, functions) {
@@ -288,13 +293,13 @@ pub fn eval_expr(
           Err(e) => return Err(e)
         }
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
 
     // Object - check if it's a special expression type
-    Object(obj) =>
+    Object(obj, _) =>
       match obj.get("type") {
-        Some(String("conditional")) => {
+        Some(String("conditional", _)) => {
           let condition = obj.get("condition").unwrap()
           let true_expr = obj.get("true_expr").unwrap()
           let false_expr = obj.get("false_expr").unwrap()
@@ -305,10 +310,10 @@ pub fn eval_expr(
             Err(e) => Err(e)
           }
         }
-        Some(String("variable")) => {
+        Some(String("variable", _)) => {
           let name = obj.get("name").unwrap()
           match name {
-            String(var_name) =>
+            String(var_name, _) =>
               match variables.get(var_name) {
                 Some(value) => Ok(value)
                 None => Err(HCLError::undefined_variable(var_name))
@@ -316,12 +321,12 @@ pub fn eval_expr(
             _ => Err(HCLError::type_error("Variable name must be string"))
           }
         }
-        Some(String("function_call")) => {
+        Some(String("function_call", _)) => {
           let name = obj.get("name").unwrap()
           let args = obj.get("args").unwrap()
 
           match (name, args) {
-            (String(func_name), Array(func_args)) => {
+            (String(func_name, _), Array(func_args, _)) => {
               // Evaluate arguments
               let evaluated_args = []
               for arg in func_args {
@@ -340,12 +345,12 @@ pub fn eval_expr(
             _ => Err(HCLError::type_error("Invalid function call structure"))
           }
         }
-        Some(String("property_access")) => {
+        Some(String("property_access", _)) => {
           let obj_value = obj.get("object").unwrap()
           let property = obj.get("property").unwrap()
 
           match (eval_expr(obj_value, variables, functions), property) {
-            (Ok(Object(target_obj)), String(prop_name)) =>
+            (Ok(Object(target_obj, _)), String(prop_name, _)) =>
               match target_obj.get(prop_name) {
                 Some(value) => Ok(value)
                 None => Err(HCLError::undefined_property(prop_name))
@@ -355,7 +360,7 @@ pub fn eval_expr(
             (Err(e), _) => Err(e)
           }
         }
-        Some(String("index_access")) => {
+        Some(String("index_access", _)) => {
           let obj_value = obj.get("object").unwrap()
           let index = obj.get("index").unwrap()
 
@@ -364,13 +369,13 @@ pub fn eval_expr(
               eval_expr(obj_value, variables, functions),
               eval_expr(index, variables, functions),
             ) {
-            (Ok(Array(arr)), Ok(Int(i))) =>
+            (Ok(Array(arr, _)), Ok(Int(i, _))) =>
               if i >= 0 && i < arr.length() {
                 Ok(arr[i])
               } else {
                 Err(HCLError::invalid_value("Array index out of bounds"))
               }
-            (Ok(Object(target_obj)), Ok(String(key))) =>
+            (Ok(Object(target_obj, _)), Ok(String(key, _))) =>
               match target_obj.get(key) {
                 Some(value) => Ok(value)
                 None => Err(HCLError::undefined_property(key))
@@ -379,7 +384,7 @@ pub fn eval_expr(
             (Err(e), _) => Err(e)
           }
         }
-        Some(String("binary_expr")) => {
+        Some(String("binary_expr", _)) => {
           // Binary expression: left op right
           let op = obj.get("op").unwrap()
           let left = obj.get("left").unwrap()
@@ -392,27 +397,27 @@ pub fn eval_expr(
             ) {
             (Ok(left_val), Ok(right_val)) =>
               match op {
-                String(op_str) => eval_binary(left_val, op_str, right_val)
+                String(op_str, _) => eval_binary(left_val, op_str, right_val)
                 _ => Err(HCLError::type_error("Operator must be string"))
               }
             (Err(e), _) => Err(e)
             (_, Err(e)) => Err(e)
           }
         }
-        Some(String("unary_expr")) => {
+        Some(String("unary_expr", _)) => {
           let op = obj.get("op").unwrap()
           let operand = obj.get("operand").unwrap()
 
           match eval_expr(operand, variables, functions) {
             Ok(operand_val) =>
               match op {
-                String(op_str) => eval_unary(op_str, operand_val)
+                String(op_str, _) => eval_unary(op_str, operand_val)
                 _ => Err(HCLError::type_error("Operator must be string"))
               }
             Err(e) => Err(e)
           }
         }
-        Some(String("for_expr")) => {
+        Some(String("for_expr", _)) => {
           // List comprehension: [for x in list: expr]
           let loop_var_name = obj.get("var").unwrap()
           let collection = obj.get("collection").unwrap()
@@ -420,24 +425,24 @@ pub fn eval_expr(
           let filter = obj.get("filter").unwrap()
 
           match eval_expr(collection, variables, functions) {
-            Ok(Array(arr)) => {
+            Ok(Array(arr, _)) => {
               let result = []
               for item in arr {
                 // Check filter if present
                 let should_include = match filter {
-                  Null => true
+                  Null(_) => true
                   filter_expr => {
                     // Create new context with loop variable
                     let loop_vars = variables.copy()
                     match loop_var_name {
-                      String(var_name) => loop_vars[var_name] = item
+                      String(var_name, _) => loop_vars[var_name] = item
                       _ =>
                         return Err(
                           HCLError::type_error("Loop variable must be string"),
                         )
                     }
                     match eval_expr(filter_expr, loop_vars, functions) {
-                      Ok(Bool(b)) => b
+                      Ok(Bool(b, _)) => b
                       Ok(_) =>
                         return Err(
                           HCLError::type_error("Filter must return boolean"),
@@ -451,7 +456,7 @@ pub fn eval_expr(
                   // Create new context with loop variable
                   let loop_vars = variables.copy()
                   match loop_var_name {
-                    String(var_name) => loop_vars[var_name] = item
+                    String(var_name, _) => loop_vars[var_name] = item
                     _ =>
                       return Err(
                         HCLError::type_error("Loop variable must be string"),
@@ -463,13 +468,13 @@ pub fn eval_expr(
                   }
                 }
               }
-              Ok(Array(result))
+              Ok(Array(result, Decor::empty()))
             }
             Ok(_) => Err(HCLError::type_error("For collection must be array"))
             Err(e) => Err(e)
           }
         }
-        Some(String("for_object_expr")) => {
+        Some(String("for_object_expr", _)) => {
           // Object comprehension: {for k, v in obj: k => v}
           let loop_key_var = obj.get("key_var").unwrap()
           let loop_value_var = obj.get("value_var").unwrap()
@@ -479,32 +484,32 @@ pub fn eval_expr(
           let filter = obj.get("filter").unwrap()
 
           match eval_expr(collection, variables, functions) {
-            Ok(Object(source_obj)) => {
+            Ok(Object(source_obj, _)) => {
               let result = {}
               for k, v in source_obj {
                 // Check filter if present
                 let should_include = match filter {
-                  Null => true
+                  Null(_) => true
                   filter_expr => {
                     // Create new context with loop variables
                     let loop_vars = variables.copy()
                     match loop_key_var {
-                      String(key_var_name) =>
-                        loop_vars[key_var_name] = String(k)
+                      String(key_var_name, _) =>
+                        loop_vars[key_var_name] = String(k, Decor::empty())
                       _ =>
                         return Err(
                           HCLError::type_error("Key variable must be string"),
                         )
                     }
                     match loop_value_var {
-                      String(value_var_name) => loop_vars[value_var_name] = v
+                      String(value_var_name, _) => loop_vars[value_var_name] = v
                       _ =>
                         return Err(
                           HCLError::type_error("Value variable must be string"),
                         )
                     }
                     match eval_expr(filter_expr, loop_vars, functions) {
-                      Ok(Bool(b)) => b
+                      Ok(Bool(b, _)) => b
                       Ok(_) =>
                         return Err(
                           HCLError::type_error("Filter must return boolean"),
@@ -518,14 +523,15 @@ pub fn eval_expr(
                   // Create new context with loop variables
                   let loop_vars = variables.copy()
                   match loop_key_var {
-                    String(key_var_name) => loop_vars[key_var_name] = String(k)
+                    String(key_var_name, _) =>
+                      loop_vars[key_var_name] = String(k, Decor::empty())
                     _ =>
                       return Err(
                         HCLError::type_error("Key variable must be string"),
                       )
                   }
                   match loop_value_var {
-                    String(value_var_name) => loop_vars[value_var_name] = v
+                    String(value_var_name, _) => loop_vars[value_var_name] = v
                     _ =>
                       return Err(
                         HCLError::type_error("Value variable must be string"),
@@ -533,7 +539,7 @@ pub fn eval_expr(
                   }
 
                   match eval_expr(key_expr, loop_vars, functions) {
-                    Ok(String(new_key)) =>
+                    Ok(String(new_key, _)) =>
                       match eval_expr(value_expr, loop_vars, functions) {
                         Ok(new_value) => result[new_key] = new_value
                         Err(e) => return Err(e)
@@ -546,7 +552,7 @@ pub fn eval_expr(
                   }
                 }
               }
-              Ok(Object(result))
+              Ok(Object(result, Decor::empty()))
             }
             Ok(_) => Err(HCLError::type_error("For collection must be object"))
             Err(e) => Err(e)
@@ -561,7 +567,7 @@ pub fn eval_expr(
               Err(e) => return Err(e)
             }
           }
-          Ok(Object(result))
+          Ok(Object(result, Decor::empty()))
         }
       }
   }

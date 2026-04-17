@@ -10,8 +10,8 @@
 test "abs positive" {
   let funcs = builtin_functions()
   let f = funcs["abs"]
-  match f([HCLValue::Int(5)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(5))
+  match f([HCLValue::Int(5, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(5, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -20,8 +20,8 @@ test "abs positive" {
 test "abs negative" {
   let funcs = builtin_functions()
   let f = funcs["abs"]
-  match f([HCLValue::Int(-5)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(5))
+  match f([HCLValue::Int(-5, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(5, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -30,8 +30,8 @@ test "abs negative" {
 test "abs float" {
   let funcs = builtin_functions()
   let f = funcs["abs"]
-  match f([HCLValue::Float(-3.14)]) {
-    Ok(v) => assert_true(v == HCLValue::Float(3.14))
+  match f([HCLValue::Float(-3.14, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Float(3.14, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -40,8 +40,8 @@ test "abs float" {
 test "ceil" {
   let funcs = builtin_functions()
   let f = funcs["ceil"]
-  match f([HCLValue::Float(3.2)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(4))
+  match f([HCLValue::Float(3.2, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(4, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -50,8 +50,8 @@ test "ceil" {
 test "ceil negative" {
   let funcs = builtin_functions()
   let f = funcs["ceil"]
-  match f([HCLValue::Float(-3.2)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(-3))
+  match f([HCLValue::Float(-3.2, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(-3, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -60,8 +60,8 @@ test "ceil negative" {
 test "floor" {
   let funcs = builtin_functions()
   let f = funcs["floor"]
-  match f([HCLValue::Float(3.8)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(3))
+  match f([HCLValue::Float(3.8, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(3, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -70,8 +70,8 @@ test "floor" {
 test "floor negative" {
   let funcs = builtin_functions()
   let f = funcs["floor"]
-  match f([HCLValue::Float(-3.2)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(-4))
+  match f([HCLValue::Float(-3.2, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(-4, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -80,8 +80,12 @@ test "floor negative" {
 test "log" {
   let funcs = builtin_functions()
   let f = funcs["log"]
-  match f([HCLValue::Float(8.0), HCLValue::Float(2.0)]) {
-    Ok(HCLValue::Float(v)) => assert_true((v - 3.0).abs() < 0.0001)
+  match
+    f([
+      HCLValue::Float(8.0, Decor::empty()),
+      HCLValue::Float(2.0, Decor::empty()),
+    ]) {
+    Ok(HCLValue::Float(v, _)) => assert_true((v - 3.0).abs() < 0.0001)
     _ => panic()
   }
 }
@@ -90,7 +94,11 @@ test "log" {
 test "log invalid base" {
   let funcs = builtin_functions()
   let f = funcs["log"]
-  match f([HCLValue::Float(8.0), HCLValue::Float(1.0)]) {
+  match
+    f([
+      HCLValue::Float(8.0, Decor::empty()),
+      HCLValue::Float(1.0, Decor::empty()),
+    ]) {
     Ok(_) => panic()
     Err(e) => assert_true(e.message().contains("base"))
   }
@@ -100,8 +108,9 @@ test "log invalid base" {
 test "max two args" {
   let funcs = builtin_functions()
   let f = funcs["max"]
-  match f([HCLValue::Int(3), HCLValue::Int(7)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(7))
+  match
+    f([HCLValue::Int(3, Decor::empty()), HCLValue::Int(7, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(7, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -111,8 +120,13 @@ test "max multiple args" {
   let funcs = builtin_functions()
   let f = funcs["max"]
   match
-    f([HCLValue::Int(3), HCLValue::Int(7), HCLValue::Int(5), HCLValue::Int(9)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(9))
+    f([
+      HCLValue::Int(3, Decor::empty()),
+      HCLValue::Int(7, Decor::empty()),
+      HCLValue::Int(5, Decor::empty()),
+      HCLValue::Int(9, Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Int(9, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -121,8 +135,9 @@ test "max multiple args" {
 test "min two args" {
   let funcs = builtin_functions()
   let f = funcs["min"]
-  match f([HCLValue::Int(3), HCLValue::Int(7)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(3))
+  match
+    f([HCLValue::Int(3, Decor::empty()), HCLValue::Int(7, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(3, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -132,8 +147,13 @@ test "min multiple args" {
   let funcs = builtin_functions()
   let f = funcs["min"]
   match
-    f([HCLValue::Int(10), HCLValue::Int(3), HCLValue::Int(7), HCLValue::Int(5)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(3))
+    f([
+      HCLValue::Int(10, Decor::empty()),
+      HCLValue::Int(3, Decor::empty()),
+      HCLValue::Int(7, Decor::empty()),
+      HCLValue::Int(5, Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Int(3, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -142,8 +162,12 @@ test "min multiple args" {
 test "parseint base 10" {
   let funcs = builtin_functions()
   let f = funcs["parseint"]
-  match f([HCLValue::String("42"), HCLValue::Int(10)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(42))
+  match
+    f([
+      HCLValue::String("42", Decor::empty()),
+      HCLValue::Int(10, Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Int(42, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -152,8 +176,12 @@ test "parseint base 10" {
 test "parseint base 16" {
   let funcs = builtin_functions()
   let f = funcs["parseint"]
-  match f([HCLValue::String("ff"), HCLValue::Int(16)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(255))
+  match
+    f([
+      HCLValue::String("ff", Decor::empty()),
+      HCLValue::Int(16, Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Int(255, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -162,8 +190,12 @@ test "parseint base 16" {
 test "parseint base 2" {
   let funcs = builtin_functions()
   let f = funcs["parseint"]
-  match f([HCLValue::String("1010"), HCLValue::Int(2)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(10))
+  match
+    f([
+      HCLValue::String("1010", Decor::empty()),
+      HCLValue::Int(2, Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Int(10, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -172,8 +204,12 @@ test "parseint base 2" {
 test "pow" {
   let funcs = builtin_functions()
   let f = funcs["pow"]
-  match f([HCLValue::Float(2.0), HCLValue::Float(3.0)]) {
-    Ok(HCLValue::Float(v)) => assert_true((v - 8.0).abs() < 0.0001)
+  match
+    f([
+      HCLValue::Float(2.0, Decor::empty()),
+      HCLValue::Float(3.0, Decor::empty()),
+    ]) {
+    Ok(HCLValue::Float(v, _)) => assert_true((v - 8.0).abs() < 0.0001)
     _ => panic()
   }
 }
@@ -182,8 +218,8 @@ test "pow" {
 test "signum positive" {
   let funcs = builtin_functions()
   let f = funcs["signum"]
-  match f([HCLValue::Int(5)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(1))
+  match f([HCLValue::Int(5, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(1, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -192,8 +228,8 @@ test "signum positive" {
 test "signum negative" {
   let funcs = builtin_functions()
   let f = funcs["signum"]
-  match f([HCLValue::Int(-5)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(-1))
+  match f([HCLValue::Int(-5, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(-1, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -202,8 +238,8 @@ test "signum negative" {
 test "signum zero" {
   let funcs = builtin_functions()
   let f = funcs["signum"]
-  match f([HCLValue::Int(0)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(0))
+  match f([HCLValue::Int(0, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(0, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -218,8 +254,17 @@ test "length array" {
   let funcs = builtin_functions()
   let f = funcs["length"]
   match
-    f([HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2), HCLValue::Int(3)])]) {
-    Ok(v) => assert_true(v == HCLValue::Int(3))
+    f([
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Int(3, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -228,8 +273,8 @@ test "length array" {
 test "length string" {
   let funcs = builtin_functions()
   let f = funcs["length"]
-  match f([HCLValue::String("hello")]) {
-    Ok(v) => assert_true(v == HCLValue::Int(5))
+  match f([HCLValue::String("hello", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(5, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -239,10 +284,10 @@ test "length object" {
   let funcs = builtin_functions()
   let f = funcs["length"]
   let obj : Map[String, HCLValue] = Map::new()
-  obj["a"] = HCLValue::Int(1)
-  obj["b"] = HCLValue::Int(2)
-  match f([HCLValue::Object(obj)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(2))
+  obj["a"] = HCLValue::Int(1, Decor::empty())
+  obj["b"] = HCLValue::Int(2, Decor::empty())
+  match f([HCLValue::Object(obj, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(2, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -252,10 +297,10 @@ test "keys" {
   let funcs = builtin_functions()
   let f = funcs["keys"]
   let obj : Map[String, HCLValue] = Map::new()
-  obj["a"] = HCLValue::Int(1)
-  obj["b"] = HCLValue::Int(2)
-  match f([HCLValue::Object(obj)]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 2)
+  obj["a"] = HCLValue::Int(1, Decor::empty())
+  obj["b"] = HCLValue::Int(2, Decor::empty())
+  match f([HCLValue::Object(obj, Decor::empty())]) {
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 2)
     _ => panic()
   }
 }
@@ -265,10 +310,10 @@ test "values" {
   let funcs = builtin_functions()
   let f = funcs["values"]
   let obj : Map[String, HCLValue] = Map::new()
-  obj["a"] = HCLValue::Int(1)
-  obj["b"] = HCLValue::Int(2)
-  match f([HCLValue::Object(obj)]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 2)
+  obj["a"] = HCLValue::Int(1, Decor::empty())
+  obj["b"] = HCLValue::Int(2, Decor::empty())
+  match f([HCLValue::Object(obj, Decor::empty())]) {
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 2)
     _ => panic()
   }
 }
@@ -279,10 +324,17 @@ test "contains true" {
   let f = funcs["contains"]
   match
     f([
-      HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2), HCLValue::Int(3)]),
-      HCLValue::Int(2),
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+      HCLValue::Int(2, Decor::empty()),
     ]) {
-    Ok(v) => assert_true(v == HCLValue::Bool(true))
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -293,10 +345,17 @@ test "contains false" {
   let f = funcs["contains"]
   match
     f([
-      HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2), HCLValue::Int(3)]),
-      HCLValue::Int(5),
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+      HCLValue::Int(5, Decor::empty()),
     ]) {
-    Ok(v) => assert_true(v == HCLValue::Bool(false))
+    Ok(v) => assert_true(v == HCLValue::Bool(false, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -307,13 +366,19 @@ test "flatten nested" {
   let f = funcs["flatten"]
   match
     f([
-      HCLValue::Array([
-        HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2)]),
-        HCLValue::Array([HCLValue::Int(3)]),
-        HCLValue::Int(4),
-      ]),
+      HCLValue::Array(
+        [
+          HCLValue::Array(
+            [HCLValue::Int(1, Decor::empty()), HCLValue::Int(2, Decor::empty())],
+            Decor::empty(),
+          ),
+          HCLValue::Array([HCLValue::Int(3, Decor::empty())], Decor::empty()),
+          HCLValue::Int(4, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
     ]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 4)
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 4)
     _ => panic()
   }
 }
@@ -323,11 +388,15 @@ test "merge" {
   let funcs = builtin_functions()
   let f = funcs["merge"]
   let obj1 : Map[String, HCLValue] = Map::new()
-  obj1["a"] = HCLValue::Int(1)
+  obj1["a"] = HCLValue::Int(1, Decor::empty())
   let obj2 : Map[String, HCLValue] = Map::new()
-  obj2["b"] = HCLValue::Int(2)
-  match f([HCLValue::Object(obj1), HCLValue::Object(obj2)]) {
-    Ok(HCLValue::Object(result)) => assert_true(result.size() == 2)
+  obj2["b"] = HCLValue::Int(2, Decor::empty())
+  match
+    f([
+      HCLValue::Object(obj1, Decor::empty()),
+      HCLValue::Object(obj2, Decor::empty()),
+    ]) {
+    Ok(HCLValue::Object(result, _)) => assert_true(result.length() == 2)
     _ => panic()
   }
 }
@@ -337,12 +406,16 @@ test "merge override" {
   let funcs = builtin_functions()
   let f = funcs["merge"]
   let obj1 : Map[String, HCLValue] = Map::new()
-  obj1["a"] = HCLValue::Int(1)
+  obj1["a"] = HCLValue::Int(1, Decor::empty())
   let obj2 : Map[String, HCLValue] = Map::new()
-  obj2["a"] = HCLValue::Int(99)
-  match f([HCLValue::Object(obj1), HCLValue::Object(obj2)]) {
-    Ok(HCLValue::Object(result)) =>
-      assert_true(result["a"] == HCLValue::Int(99))
+  obj2["a"] = HCLValue::Int(99, Decor::empty())
+  match
+    f([
+      HCLValue::Object(obj1, Decor::empty()),
+      HCLValue::Object(obj2, Decor::empty()),
+    ]) {
+    Ok(HCLValue::Object(result, _)) =>
+      assert_true(result["a"] == HCLValue::Int(99, Decor::empty()))
     _ => panic()
   }
 }
@@ -352,11 +425,20 @@ test "reverse array" {
   let funcs = builtin_functions()
   let f = funcs["reverse"]
   match
-    f([HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2), HCLValue::Int(3)])]) {
-    Ok(HCLValue::Array(arr)) => {
-      assert_true(arr[0] == HCLValue::Int(3))
-      assert_true(arr[1] == HCLValue::Int(2))
-      assert_true(arr[2] == HCLValue::Int(1))
+    f([
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+    ]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_true(arr[0] == HCLValue::Int(3, Decor::empty()))
+      assert_true(arr[1] == HCLValue::Int(2, Decor::empty()))
+      assert_true(arr[2] == HCLValue::Int(1, Decor::empty()))
     }
     _ => panic()
   }
@@ -366,8 +448,8 @@ test "reverse array" {
 test "reverse string" {
   let funcs = builtin_functions()
   let f = funcs["reverse"]
-  match f([HCLValue::String("abc")]) {
-    Ok(v) => assert_true(v == HCLValue::String("cba"))
+  match f([HCLValue::String("abc", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("cba", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -378,15 +460,18 @@ test "distinct" {
   let f = funcs["distinct"]
   match
     f([
-      HCLValue::Array([
-        HCLValue::Int(1),
-        HCLValue::Int(2),
-        HCLValue::Int(1),
-        HCLValue::Int(3),
-        HCLValue::Int(2),
-      ]),
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
     ]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 3)
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 3)
     _ => panic()
   }
 }
@@ -396,11 +481,20 @@ test "sort" {
   let funcs = builtin_functions()
   let f = funcs["sort"]
   match
-    f([HCLValue::Array([HCLValue::Int(3), HCLValue::Int(1), HCLValue::Int(2)])]) {
-    Ok(HCLValue::Array(arr)) => {
-      assert_true(arr[0] == HCLValue::Int(1))
-      assert_true(arr[1] == HCLValue::Int(2))
-      assert_true(arr[2] == HCLValue::Int(3))
+    f([
+      HCLValue::Array(
+        [
+          HCLValue::Int(3, Decor::empty()),
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+    ]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_true(arr[0] == HCLValue::Int(1, Decor::empty()))
+      assert_true(arr[1] == HCLValue::Int(2, Decor::empty()))
+      assert_true(arr[2] == HCLValue::Int(3, Decor::empty()))
     }
     _ => panic()
   }
@@ -412,16 +506,19 @@ test "sort strings" {
   let f = funcs["sort"]
   match
     f([
-      HCLValue::Array([
-        HCLValue::String("c"),
-        HCLValue::String("a"),
-        HCLValue::String("b"),
-      ]),
+      HCLValue::Array(
+        [
+          HCLValue::String("c", Decor::empty()),
+          HCLValue::String("a", Decor::empty()),
+          HCLValue::String("b", Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
     ]) {
-    Ok(HCLValue::Array(arr)) => {
-      assert_true(arr[0] == HCLValue::String("a"))
-      assert_true(arr[1] == HCLValue::String("b"))
-      assert_true(arr[2] == HCLValue::String("c"))
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_true(arr[0] == HCLValue::String("a", Decor::empty()))
+      assert_true(arr[1] == HCLValue::String("b", Decor::empty()))
+      assert_true(arr[2] == HCLValue::String("c", Decor::empty()))
     }
     _ => panic()
   }
@@ -433,21 +530,24 @@ test "slice" {
   let f = funcs["slice"]
   match
     f([
-      HCLValue::Array([
-        HCLValue::Int(1),
-        HCLValue::Int(2),
-        HCLValue::Int(3),
-        HCLValue::Int(4),
-        HCLValue::Int(5),
-      ]),
-      HCLValue::Int(1),
-      HCLValue::Int(4),
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+          HCLValue::Int(4, Decor::empty()),
+          HCLValue::Int(5, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+      HCLValue::Int(1, Decor::empty()),
+      HCLValue::Int(4, Decor::empty()),
     ]) {
-    Ok(HCLValue::Array(arr)) => {
+    Ok(HCLValue::Array(arr, _)) => {
       assert_true(arr.length() == 3)
-      assert_true(arr[0] == HCLValue::Int(2))
-      assert_true(arr[1] == HCLValue::Int(3))
-      assert_true(arr[2] == HCLValue::Int(4))
+      assert_true(arr[0] == HCLValue::Int(2, Decor::empty()))
+      assert_true(arr[1] == HCLValue::Int(3, Decor::empty()))
+      assert_true(arr[2] == HCLValue::Int(4, Decor::empty()))
     }
     _ => panic()
   }
@@ -459,10 +559,17 @@ test "element" {
   let f = funcs["element"]
   match
     f([
-      HCLValue::Array([HCLValue::Int(10), HCLValue::Int(20), HCLValue::Int(30)]),
-      HCLValue::Int(1),
+      HCLValue::Array(
+        [
+          HCLValue::Int(10, Decor::empty()),
+          HCLValue::Int(20, Decor::empty()),
+          HCLValue::Int(30, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+      HCLValue::Int(1, Decor::empty()),
     ]) {
-    Ok(v) => assert_true(v == HCLValue::Int(20))
+    Ok(v) => assert_true(v == HCLValue::Int(20, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -473,10 +580,17 @@ test "element wrap around" {
   let f = funcs["element"]
   match
     f([
-      HCLValue::Array([HCLValue::Int(10), HCLValue::Int(20), HCLValue::Int(30)]),
-      HCLValue::Int(5),
+      HCLValue::Array(
+        [
+          HCLValue::Int(10, Decor::empty()),
+          HCLValue::Int(20, Decor::empty()),
+          HCLValue::Int(30, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+      HCLValue::Int(5, Decor::empty()),
     ]) {
-    Ok(v) => assert_true(v == HCLValue::Int(30))
+    Ok(v) => assert_true(v == HCLValue::Int(30, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -490,8 +604,8 @@ test "element wrap around" {
 test "chomp newline" {
   let funcs = builtin_functions()
   let f = funcs["chomp"]
-  match f([HCLValue::String("hello\n")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match f([HCLValue::String("hello\n", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -500,8 +614,8 @@ test "chomp newline" {
 test "chomp crlf" {
   let funcs = builtin_functions()
   let f = funcs["chomp"]
-  match f([HCLValue::String("hello\r\n")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match f([HCLValue::String("hello\r\n", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -510,8 +624,8 @@ test "chomp crlf" {
 test "chomp no newline" {
   let funcs = builtin_functions()
   let f = funcs["chomp"]
-  match f([HCLValue::String("hello")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match f([HCLValue::String("hello", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -520,8 +634,12 @@ test "chomp no newline" {
 test "indent" {
   let funcs = builtin_functions()
   let f = funcs["indent"]
-  match f([HCLValue::Int(2), HCLValue::String("a\nb")]) {
-    Ok(v) => assert_true(v == HCLValue::String("  a\n  b"))
+  match
+    f([
+      HCLValue::Int(2, Decor::empty()),
+      HCLValue::String("a\nb", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("  a\n  b", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -532,14 +650,17 @@ test "join" {
   let f = funcs["join"]
   match
     f([
-      HCLValue::String(", "),
-      HCLValue::Array([
-        HCLValue::String("a"),
-        HCLValue::String("b"),
-        HCLValue::String("c"),
-      ]),
+      HCLValue::String(", ", Decor::empty()),
+      HCLValue::Array(
+        [
+          HCLValue::String("a", Decor::empty()),
+          HCLValue::String("b", Decor::empty()),
+          HCLValue::String("c", Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
     ]) {
-    Ok(v) => assert_true(v == HCLValue::String("a, b, c"))
+    Ok(v) => assert_true(v == HCLValue::String("a, b, c", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -548,8 +669,8 @@ test "join" {
 test "lower" {
   let funcs = builtin_functions()
   let f = funcs["lower"]
-  match f([HCLValue::String("HELLO")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match f([HCLValue::String("HELLO", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -558,8 +679,8 @@ test "lower" {
 test "upper" {
   let funcs = builtin_functions()
   let f = funcs["upper"]
-  match f([HCLValue::String("hello")]) {
-    Ok(v) => assert_true(v == HCLValue::String("HELLO"))
+  match f([HCLValue::String("hello", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("HELLO", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -570,11 +691,11 @@ test "replace" {
   let f = funcs["replace"]
   match
     f([
-      HCLValue::String("hello world"),
-      HCLValue::String("world"),
-      HCLValue::String("moon"),
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("world", Decor::empty()),
+      HCLValue::String("moon", Decor::empty()),
     ]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello moon"))
+    Ok(v) => assert_true(v == HCLValue::String("hello moon", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -583,12 +704,16 @@ test "replace" {
 test "split" {
   let funcs = builtin_functions()
   let f = funcs["split"]
-  match f([HCLValue::String(","), HCLValue::String("a,b,c")]) {
-    Ok(HCLValue::Array(arr)) => {
+  match
+    f([
+      HCLValue::String(",", Decor::empty()),
+      HCLValue::String("a,b,c", Decor::empty()),
+    ]) {
+    Ok(HCLValue::Array(arr, _)) => {
       assert_true(arr.length() == 3)
-      assert_true(arr[0] == HCLValue::String("a"))
-      assert_true(arr[1] == HCLValue::String("b"))
-      assert_true(arr[2] == HCLValue::String("c"))
+      assert_true(arr[0] == HCLValue::String("a", Decor::empty()))
+      assert_true(arr[1] == HCLValue::String("b", Decor::empty()))
+      assert_true(arr[2] == HCLValue::String("c", Decor::empty()))
     }
     _ => panic()
   }
@@ -598,8 +723,8 @@ test "split" {
 test "strrev" {
   let funcs = builtin_functions()
   let f = funcs["strrev"]
-  match f([HCLValue::String("abc")]) {
-    Ok(v) => assert_true(v == HCLValue::String("cba"))
+  match f([HCLValue::String("abc", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("cba", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -609,8 +734,12 @@ test "substr" {
   let funcs = builtin_functions()
   let f = funcs["substr"]
   match
-    f([HCLValue::String("hello world"), HCLValue::Int(6), HCLValue::Int(5)]) {
-    Ok(v) => assert_true(v == HCLValue::String("world"))
+    f([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::Int(6, Decor::empty()),
+      HCLValue::Int(5, Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("world", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -619,8 +748,12 @@ test "substr" {
 test "trim" {
   let funcs = builtin_functions()
   let f = funcs["trim"]
-  match f([HCLValue::String("  hello  "), HCLValue::String(" ")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match
+    f([
+      HCLValue::String("  hello  ", Decor::empty()),
+      HCLValue::String(" ", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -629,8 +762,12 @@ test "trim" {
 test "trimprefix" {
   let funcs = builtin_functions()
   let f = funcs["trimprefix"]
-  match f([HCLValue::String("hello world"), HCLValue::String("hello ")]) {
-    Ok(v) => assert_true(v == HCLValue::String("world"))
+  match
+    f([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("hello ", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("world", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -639,8 +776,12 @@ test "trimprefix" {
 test "trimprefix no match" {
   let funcs = builtin_functions()
   let f = funcs["trimprefix"]
-  match f([HCLValue::String("hello world"), HCLValue::String("bye ")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello world"))
+  match
+    f([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("bye ", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello world", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -649,8 +790,12 @@ test "trimprefix no match" {
 test "trimsuffix" {
   let funcs = builtin_functions()
   let f = funcs["trimsuffix"]
-  match f([HCLValue::String("hello world"), HCLValue::String(" world")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match
+    f([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String(" world", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -659,8 +804,12 @@ test "trimsuffix" {
 test "trimsuffix no match" {
   let funcs = builtin_functions()
   let f = funcs["trimsuffix"]
-  match f([HCLValue::String("hello world"), HCLValue::String(" moon")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello world"))
+  match
+    f([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String(" moon", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello world", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -669,8 +818,8 @@ test "trimsuffix no match" {
 test "trimspace" {
   let funcs = builtin_functions()
   let f = funcs["trimspace"]
-  match f([HCLValue::String("  hello  ")]) {
-    Ok(v) => assert_true(v == HCLValue::String("hello"))
+  match f([HCLValue::String("  hello  ", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("hello", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -681,12 +830,15 @@ test "format" {
   let f = funcs["format"]
   match
     f([
-      HCLValue::String("Hello %s, you are %d years old"),
-      HCLValue::String("Alice"),
-      HCLValue::Int(30),
+      HCLValue::String("Hello %s, you are %d years old", Decor::empty()),
+      HCLValue::String("Alice", Decor::empty()),
+      HCLValue::Int(30, Decor::empty()),
     ]) {
     Ok(v) =>
-      assert_true(v == HCLValue::String("Hello Alice, you are 30 years old"))
+      assert_true(
+        v ==
+        HCLValue::String("Hello Alice, you are 30 years old", Decor::empty()),
+      )
     Err(_) => panic()
   }
 }
@@ -695,8 +847,8 @@ test "format" {
 test "format percent escape" {
   let funcs = builtin_functions()
   let f = funcs["format"]
-  match f([HCLValue::String("100%%")]) {
-    Ok(v) => assert_true(v == HCLValue::String("100%"))
+  match f([HCLValue::String("100%%", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("100%", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -707,14 +859,21 @@ test "formatlist" {
   let f = funcs["formatlist"]
   match
     f([
-      HCLValue::String("item-%d"),
-      HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2), HCLValue::Int(3)]),
+      HCLValue::String("item-%d", Decor::empty()),
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
     ]) {
-    Ok(HCLValue::Array(arr)) => {
+    Ok(HCLValue::Array(arr, _)) => {
       assert_true(arr.length() == 3)
-      assert_true(arr[0] == HCLValue::String("item-1"))
-      assert_true(arr[1] == HCLValue::String("item-2"))
-      assert_true(arr[2] == HCLValue::String("item-3"))
+      assert_true(arr[0] == HCLValue::String("item-1", Decor::empty()))
+      assert_true(arr[1] == HCLValue::String("item-2", Decor::empty()))
+      assert_true(arr[2] == HCLValue::String("item-3", Decor::empty()))
     }
     _ => panic()
   }
@@ -729,8 +888,8 @@ test "formatlist" {
 test "tobool from string" {
   let funcs = builtin_functions()
   let f = funcs["tobool"]
-  match f([HCLValue::String("true")]) {
-    Ok(v) => assert_true(v == HCLValue::Bool(true))
+  match f([HCLValue::String("true", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -739,8 +898,8 @@ test "tobool from string" {
 test "tobool from string false" {
   let funcs = builtin_functions()
   let f = funcs["tobool"]
-  match f([HCLValue::String("FALSE")]) {
-    Ok(v) => assert_true(v == HCLValue::Bool(false))
+  match f([HCLValue::String("FALSE", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(false, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -749,8 +908,8 @@ test "tobool from string false" {
 test "tobool from int" {
   let funcs = builtin_functions()
   let f = funcs["tobool"]
-  match f([HCLValue::Int(1)]) {
-    Ok(v) => assert_true(v == HCLValue::Bool(true))
+  match f([HCLValue::Int(1, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -759,8 +918,8 @@ test "tobool from int" {
 test "tobool from int zero" {
   let funcs = builtin_functions()
   let f = funcs["tobool"]
-  match f([HCLValue::Int(0)]) {
-    Ok(v) => assert_true(v == HCLValue::Bool(false))
+  match f([HCLValue::Int(0, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(false, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -769,8 +928,8 @@ test "tobool from int zero" {
 test "tonumber from string" {
   let funcs = builtin_functions()
   let f = funcs["tonumber"]
-  match f([HCLValue::String("42")]) {
-    Ok(v) => assert_true(v == HCLValue::Int(42))
+  match f([HCLValue::String("42", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(42, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -779,8 +938,8 @@ test "tonumber from string" {
 test "tonumber from string float" {
   let funcs = builtin_functions()
   let f = funcs["tonumber"]
-  match f([HCLValue::String("3.14")]) {
-    Ok(v) => assert_true(v == HCLValue::Float(3.14))
+  match f([HCLValue::String("3.14", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Float(3.14, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -789,8 +948,8 @@ test "tonumber from string float" {
 test "tonumber from bool" {
   let funcs = builtin_functions()
   let f = funcs["tonumber"]
-  match f([HCLValue::Bool(true)]) {
-    Ok(v) => assert_true(v == HCLValue::Int(1))
+  match f([HCLValue::Bool(true, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::Int(1, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -799,8 +958,8 @@ test "tonumber from bool" {
 test "tolist" {
   let funcs = builtin_functions()
   let f = funcs["tolist"]
-  match f([HCLValue::Int(42)]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 1)
+  match f([HCLValue::Int(42, Decor::empty())]) {
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 1)
     _ => panic()
   }
 }
@@ -809,8 +968,14 @@ test "tolist" {
 test "tolist already array" {
   let funcs = builtin_functions()
   let f = funcs["tolist"]
-  match f([HCLValue::Array([HCLValue::Int(1), HCLValue::Int(2)])]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 2)
+  match
+    f([
+      HCLValue::Array(
+        [HCLValue::Int(1, Decor::empty()), HCLValue::Int(2, Decor::empty())],
+        Decor::empty(),
+      ),
+    ]) {
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 2)
     _ => panic()
   }
 }
@@ -820,9 +985,10 @@ test "tomap" {
   let funcs = builtin_functions()
   let f = funcs["tomap"]
   let obj : Map[String, HCLValue] = Map::new()
-  obj["a"] = HCLValue::Int(1)
-  match f([HCLValue::Object(obj)]) {
-    Ok(HCLValue::Object(result)) => assert_true(result["a"] == HCLValue::Int(1))
+  obj["a"] = HCLValue::Int(1, Decor::empty())
+  match f([HCLValue::Object(obj, Decor::empty())]) {
+    Ok(HCLValue::Object(result, _)) =>
+      assert_true(result["a"] == HCLValue::Int(1, Decor::empty()))
     _ => panic()
   }
 }
@@ -831,7 +997,7 @@ test "tomap" {
 test "tomap error" {
   let funcs = builtin_functions()
   let f = funcs["tomap"]
-  match f([HCLValue::Int(42)]) {
+  match f([HCLValue::Int(42, Decor::empty())]) {
     Ok(_) => panic()
     Err(e) => assert_true(e.message().contains("object"))
   }
@@ -843,14 +1009,17 @@ test "toset" {
   let f = funcs["toset"]
   match
     f([
-      HCLValue::Array([
-        HCLValue::Int(1),
-        HCLValue::Int(2),
-        HCLValue::Int(1),
-        HCLValue::Int(3),
-      ]),
+      HCLValue::Array(
+        [
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(2, Decor::empty()),
+          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Int(3, Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
     ]) {
-    Ok(HCLValue::Array(arr)) => assert_true(arr.length() == 3)
+    Ok(HCLValue::Array(arr, _)) => assert_true(arr.length() == 3)
     _ => panic()
   }
 }
@@ -859,8 +1028,8 @@ test "toset" {
 test "tostring from int" {
   let funcs = builtin_functions()
   let f = funcs["tostring"]
-  match f([HCLValue::Int(42)]) {
-    Ok(v) => assert_true(v == HCLValue::String("42"))
+  match f([HCLValue::Int(42, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("42", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -869,8 +1038,8 @@ test "tostring from int" {
 test "tostring from bool" {
   let funcs = builtin_functions()
   let f = funcs["tostring"]
-  match f([HCLValue::Bool(true)]) {
-    Ok(v) => assert_true(v == HCLValue::String("true"))
+  match f([HCLValue::Bool(true, Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("true", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -879,8 +1048,8 @@ test "tostring from bool" {
 test "tostring from null" {
   let funcs = builtin_functions()
   let f = funcs["tostring"]
-  match f([HCLValue::Null]) {
-    Ok(v) => assert_true(v == HCLValue::String("null"))
+  match f([HCLValue::Null(Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("null", Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -893,13 +1062,16 @@ test "tostring from null" {
 ///|
 test "builtin functions integrated in eval" {
   let obj : Map[String, HCLValue] = Map::new()
-  obj["type"] = HCLValue::String("function_call")
-  obj["name"] = HCLValue::String("abs")
-  obj["args"] = HCLValue::Array([HCLValue::Int(-5)])
-  let expr = HCLValue::Object(obj)
+  obj["type"] = HCLValue::String("function_call", Decor::empty())
+  obj["name"] = HCLValue::String("abs", Decor::empty())
+  obj["args"] = HCLValue::Array(
+    [HCLValue::Int(-5, Decor::empty())],
+    Decor::empty(),
+  )
+  let expr = HCLValue::Object(obj, Decor::empty())
   let result = eval_expr(expr, Map::new(), builtin_functions())
   match result {
-    Ok(v) => assert_true(v == HCLValue::Int(5))
+    Ok(v) => assert_true(v == HCLValue::Int(5, Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -907,19 +1079,25 @@ test "builtin functions integrated in eval" {
 ///|
 test "nested function calls" {
   let inner_obj : Map[String, HCLValue] = Map::new()
-  inner_obj["type"] = HCLValue::String("function_call")
-  inner_obj["name"] = HCLValue::String("tostring")
-  inner_obj["args"] = HCLValue::Array([HCLValue::Int(42)])
+  inner_obj["type"] = HCLValue::String("function_call", Decor::empty())
+  inner_obj["name"] = HCLValue::String("tostring", Decor::empty())
+  inner_obj["args"] = HCLValue::Array(
+    [HCLValue::Int(42, Decor::empty())],
+    Decor::empty(),
+  )
 
   let outer_obj : Map[String, HCLValue] = Map::new()
-  outer_obj["type"] = HCLValue::String("function_call")
-  outer_obj["name"] = HCLValue::String("upper")
-  outer_obj["args"] = HCLValue::Array([HCLValue::Object(inner_obj)])
+  outer_obj["type"] = HCLValue::String("function_call", Decor::empty())
+  outer_obj["name"] = HCLValue::String("upper", Decor::empty())
+  outer_obj["args"] = HCLValue::Array(
+    [HCLValue::Object(inner_obj, Decor::empty())],
+    Decor::empty(),
+  )
 
-  let expr = HCLValue::Object(outer_obj)
+  let expr = HCLValue::Object(outer_obj, Decor::empty())
   let result = eval_expr(expr, Map::new(), builtin_functions())
   match result {
-    Ok(v) => assert_true(v == HCLValue::String("42"))
+    Ok(v) => assert_true(v == HCLValue::String("42", Decor::empty()))
     Err(_) => panic()
   }
 }

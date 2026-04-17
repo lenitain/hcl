@@ -10,7 +10,7 @@ test "parse simple attribute" {
       match body.get_items()[0] {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "name")
-          assert_true(attr.get_value() == String("John"))
+          assert_true(attr.get_value() == String("John", Decor::empty()))
         }
         _ => panic()
       }
@@ -83,7 +83,7 @@ test "parse array" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "items")
           match attr.get_value() {
-            Array(arr) => assert_eq(arr.length(), 3)
+            Array(arr, _) => assert_eq(arr.length(), 3)
             _ => panic()
           }
         }
@@ -125,7 +125,7 @@ test "parse null value" {
     Ok(body) => {
       assert_eq(body.len(), 1)
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Null)
+        Attribute(attr) => assert_true(attr.get_value() == Null(Decor::empty()))
         _ => panic()
       }
     }
@@ -166,7 +166,9 @@ test "parse heredoc basic" {
       match body.get_items()[0] {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "text")
-          assert_true(attr.get_value() == String("Hello World\n"))
+          assert_true(
+            attr.get_value() == String("Hello World\n", Decor::empty()),
+          )
         }
         _ => panic()
       }
@@ -186,7 +188,10 @@ test "parse heredoc multiline" {
       match body.get_items()[0] {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "config")
-          assert_true(attr.get_value() == String("line 1\nline 2\nline 3\n"))
+          assert_true(
+            attr.get_value() ==
+            String("line 1\nline 2\nline 3\n", Decor::empty()),
+          )
         }
         _ => panic()
       }
@@ -207,7 +212,9 @@ test "parse heredoc with strip" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "config")
           // With strip, leading whitespace should be removed
-          assert_true(attr.get_value() == String("indented\ncontent\n"))
+          assert_true(
+            attr.get_value() == String("indented\ncontent\n", Decor::empty()),
+          )
         }
         _ => panic()
       }
@@ -231,7 +238,9 @@ test "parse heredoc in block" {
           match block.get_body().get_items()[0] {
             Attribute(attr) => {
               assert_eq(attr.get_key(), "policy")
-              assert_true(attr.get_value() == String("Allow all\n"))
+              assert_true(
+                attr.get_value() == String("Allow all\n", Decor::empty()),
+              )
             }
             _ => panic()
           }
@@ -254,7 +263,9 @@ test "parse heredoc with custom delimiter" {
       match body.get_items()[0] {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "data")
-          assert_true(attr.get_value() == String("custom delimiter\n"))
+          assert_true(
+            attr.get_value() == String("custom delimiter\n", Decor::empty()),
+          )
         }
         _ => panic()
       }
@@ -274,7 +285,7 @@ test "parse hex number" {
       match body.get_items()[0] {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "value")
-          assert_true(attr.get_value() == Int(255))
+          assert_true(attr.get_value() == Int(255, Decor::empty()))
         }
         _ => panic()
       }
@@ -290,7 +301,8 @@ test "parse hex number uppercase" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(255))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(255, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -304,7 +316,8 @@ test "parse hex with underscore" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(255))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(255, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -318,7 +331,8 @@ test "parse hex mixed case" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(0xDead))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(0xDead, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -332,7 +346,8 @@ test "parse octal number" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(63))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(63, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -346,7 +361,8 @@ test "parse octal uppercase" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(63))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(63, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -360,7 +376,8 @@ test "parse octal with underscore" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(63))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(63, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -374,7 +391,8 @@ test "parse binary number" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(10))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(10, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -388,7 +406,8 @@ test "parse binary uppercase" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(10))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(10, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -402,7 +421,8 @@ test "parse binary with underscore" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(10))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(10, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -416,7 +436,8 @@ test "parse hex zero" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(0))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(0, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -430,7 +451,8 @@ test "parse octal zero" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(0))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(0, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -444,7 +466,8 @@ test "parse binary zero" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == Int(0))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == Int(0, Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -458,7 +481,8 @@ test "parse unicode escape 4-digit lowercase" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("A"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("A", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -472,7 +496,8 @@ test "parse unicode escape 4-digit uppercase" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("J"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("J", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -486,7 +511,8 @@ test "parse unicode escape 4-digit mixed case" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("\u{ff}"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("\u{ff}", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -500,7 +526,8 @@ test "parse unicode escape bracket format" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("A"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("A", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -514,7 +541,8 @@ test "parse unicode escape bracket 4-digit" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("A"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("A", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -528,7 +556,8 @@ test "parse unicode escape bracket 5-digit" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("\u{1f600}"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("\u{1f600}", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -542,7 +571,8 @@ test "parse unicode escape multiple in string" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("Hello"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("Hello", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -556,7 +586,8 @@ test "parse unicode escape mixed formats" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("Hello"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("Hello", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -598,7 +629,8 @@ test "parse unicode escape zero" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("\u{0}"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("\u{0}", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -612,7 +644,8 @@ test "parse unicode escape max bmp" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("\u{ffff}"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("\u{ffff}", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -626,7 +659,8 @@ test "parse unicode escape max valid" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("\u{10ffff}"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("\u{10ffff}", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()
@@ -640,7 +674,8 @@ test "parse unicode escape bracket single digit" {
   match result {
     Ok(body) =>
       match body.get_items()[0] {
-        Attribute(attr) => assert_true(attr.get_value() == String("\u{1}"))
+        Attribute(attr) =>
+          assert_true(attr.get_value() == String("\u{1}", Decor::empty()))
         _ => panic()
       }
     Err(_) => panic()

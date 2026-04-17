@@ -66,9 +66,9 @@ pub fn builtin_functions() -> Map[
 /// Convert HCLValue to Double for numeric operations
 fn to_double(val : HCLValue) -> HCLResult[Double] {
   match val {
-    Int(i) => Ok(i.to_double())
-    Int64(i) => Ok(i.to_double())
-    Float(f) => Ok(f)
+    Int(i, _) => Ok(i.to_double())
+    Int64(i, _) => Ok(i.to_double())
+    Float(f, _) => Ok(f)
     _ => Err(HCLError::type_error("Expected number"))
   }
 }
@@ -220,9 +220,9 @@ fn parse_double(s : String) -> HCLResult[Double] {
 fn fn_abs(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "abs") is Ok
   match args[0] {
-    Int(i) => Ok(Int(i.abs()))
-    Int64(i) => Ok(Int64(i.abs()))
-    Float(f) => Ok(Float(f.abs()))
+    Int(i, _) => Ok(Int(i.abs(), Decor::empty()))
+    Int64(i, _) => Ok(Int64(i.abs(), Decor::empty()))
+    Float(f, _) => Ok(Float(f.abs(), Decor::empty()))
     _ => Err(HCLError::type_error("abs() requires a number"))
   }
 }
@@ -232,7 +232,7 @@ fn fn_abs(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_ceil(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "ceil") is Ok
   match to_double(args[0]) {
-    Ok(f) => Ok(Int(f.ceil().to_int()))
+    Ok(f) => Ok(Int(f.ceil().to_int(), Decor::empty()))
     Err(e) => Err(e)
   }
 }
@@ -242,7 +242,7 @@ fn fn_ceil(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_floor(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "floor") is Ok
   match to_double(args[0]) {
-    Ok(f) => Ok(Int(f.floor().to_int()))
+    Ok(f) => Ok(Int(f.floor().to_int(), Decor::empty()))
     Err(e) => Err(e)
   }
 }
@@ -260,7 +260,7 @@ fn fn_log(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else {
         // log_base(num) = ln(num) / ln(base)
         let result = @math.ln(num) / @math.ln(base)
-        Ok(Float(result))
+        Ok(Float(result, Decor::empty()))
       }
     (Err(e), _) => Err(e)
     (_, Err(e)) => Err(e)
@@ -302,14 +302,14 @@ fn fn_min(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_parseint(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "parseint") is Ok
   match (args[0], args[1]) {
-    (String(s), Int(base)) =>
+    (String(s, _), Int(base, _)) =>
       match parse_int_with_base(s, base) {
-        Ok(i) => Ok(Int(i))
+        Ok(i) => Ok(Int(i, Decor::empty()))
         Err(e) => Err(e)
       }
-    (String(s), Int64(base)) =>
+    (String(s, _), Int64(base, _)) =>
       match parse_int_with_base(s, base.to_int()) {
-        Ok(i) => Ok(Int(i))
+        Ok(i) => Ok(Int(i, Decor::empty()))
         Err(e) => Err(e)
       }
     _ => Err(HCLError::type_error("parseint() expects (string, number)"))
@@ -321,7 +321,7 @@ fn fn_parseint(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_pow(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "pow") is Ok
   match (to_double(args[0]), to_double(args[1])) {
-    (Ok(base), Ok(exp)) => Ok(Float(@math.pow(base, exp)))
+    (Ok(base), Ok(exp)) => Ok(Float(@math.pow(base, exp), Decor::empty()))
     (Err(e), _) => Err(e)
     (_, Err(e)) => Err(e)
   }
@@ -332,29 +332,29 @@ fn fn_pow(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "signum") is Ok
   match args[0] {
-    Int(i) =>
+    Int(i, _) =>
       if i < 0 {
-        Ok(Int(-1))
+        Ok(Int(-1, Decor::empty()))
       } else if i > 0 {
-        Ok(Int(1))
+        Ok(Int(1, Decor::empty()))
       } else {
-        Ok(Int(0))
+        Ok(Int(0, Decor::empty()))
       }
-    Int64(i) =>
+    Int64(i, _) =>
       if i < 0L {
-        Ok(Int64(-1L))
+        Ok(Int64(-1L, Decor::empty()))
       } else if i > 0L {
-        Ok(Int64(1L))
+        Ok(Int64(1L, Decor::empty()))
       } else {
-        Ok(Int64(0L))
+        Ok(Int64(0L, Decor::empty()))
       }
-    Float(f) =>
+    Float(f, _) =>
       if f < 0.0 {
-        Ok(Int(-1))
+        Ok(Int(-1, Decor::empty()))
       } else if f > 0.0 {
-        Ok(Int(1))
+        Ok(Int(1, Decor::empty()))
       } else {
-        Ok(Int(0))
+        Ok(Int(0, Decor::empty()))
       }
     _ => Err(HCLError::type_error("signum() requires a number"))
   }
@@ -370,9 +370,9 @@ fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_length(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "length") is Ok
   match args[0] {
-    Array(a) => Ok(Int(a.length()))
-    Object(o) => Ok(Int(o.size()))
-    String(s) => Ok(Int(s.length()))
+    Array(a, _) => Ok(Int(a.length(), Decor::empty()))
+    Object(o, _) => Ok(Int(o.size(), Decor::empty()))
+    String(s, _) => Ok(Int(s.length(), Decor::empty()))
     _ => Err(HCLError::type_error("length() requires array, object, or string"))
   }
 }
@@ -382,12 +382,12 @@ fn fn_length(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_keys(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "keys") is Ok
   match args[0] {
-    Object(o) => {
+    Object(o, _) => {
       let result = []
       for k, _ in o {
-        result.push(String(k))
+        result.push(String(k, Decor::empty()))
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("keys() requires an object"))
   }
@@ -398,12 +398,12 @@ fn fn_keys(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_values(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "values") is Ok
   match args[0] {
-    Object(o) => {
+    Object(o, _) => {
       let result = []
       for _, v in o {
         result.push(v)
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("values() requires an object"))
   }
@@ -414,13 +414,13 @@ fn fn_values(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_contains(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "contains") is Ok
   match args[0] {
-    Array(arr) => {
+    Array(arr, _) => {
       for item in arr {
         if item == args[1] {
-          return Ok(Bool(true))
+          return Ok(Bool(true, Decor::empty()))
         }
       }
-      Ok(Bool(false))
+      Ok(Bool(false, Decor::empty()))
     }
     _ => Err(HCLError::type_error("contains() requires an array"))
   }
@@ -431,10 +431,10 @@ fn fn_contains(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_flatten(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "flatten") is Ok
   match args[0] {
-    Array(arr) => {
+    Array(arr, _) => {
       let result = []
       flatten_recursive(arr, result)
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("flatten() requires an array"))
   }
@@ -444,7 +444,7 @@ fn fn_flatten(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn flatten_recursive(arr : Array[HCLValue], result : Array[HCLValue]) -> Unit {
   for item in arr {
     match item {
-      Array(inner) => flatten_recursive(inner, result)
+      Array(inner, _) => flatten_recursive(inner, result)
       _ => result.push(item)
     }
   }
@@ -457,14 +457,14 @@ fn fn_merge(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   let result = {}
   for arg in args {
     match arg {
-      Object(o) =>
+      Object(o, _) =>
         for k, v in o {
           result[k] = v
         }
       _ => return Err(HCLError::type_error("merge() requires objects"))
     }
   }
-  Ok(Object(result))
+  Ok(Object(result, Decor::empty()))
 }
 
 ///|
@@ -472,23 +472,23 @@ fn fn_merge(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_reverse(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "reverse") is Ok
   match args[0] {
-    Array(arr) => {
+    Array(arr, _) => {
       let result = []
       let mut i = arr.length() - 1
       while i >= 0 {
         result.push(arr[i])
         i = i - 1
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
-    String(s) => {
+    String(s, _) => {
       let mut result = ""
       let mut i = s.length() - 1
       while i >= 0 {
         result = result + char_at(s, i)
         i = i - 1
       }
-      Ok(String(result))
+      Ok(String(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("reverse() requires an array or string"))
   }
@@ -499,7 +499,7 @@ fn fn_reverse(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_distinct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "distinct") is Ok
   match args[0] {
-    Array(arr) => {
+    Array(arr, _) => {
       let result = []
       let seen = Set::new()
       for item in arr {
@@ -509,7 +509,7 @@ fn fn_distinct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
           result.push(item)
         }
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("distinct() requires an array"))
   }
@@ -520,18 +520,18 @@ fn fn_distinct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_sort(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "sort") is Ok
   match args[0] {
-    Array(arr) => {
+    Array(arr, _) => {
       let result = arr.copy()
       result.sort_by(fn(a, b) {
         match (a, b) {
-          (Int(a), Int(b)) => a.compare(b)
-          (Int64(a), Int64(b)) => a.compare(b)
-          (Float(a), Float(b)) => a.compare(b)
-          (String(a), String(b)) => a.compare(b)
+          (Int(a, _), Int(b, _)) => a.compare(b)
+          (Int64(a, _), Int64(b, _)) => a.compare(b)
+          (Float(a, _), Float(b, _)) => a.compare(b)
+          (String(a, _), String(b, _)) => a.compare(b)
           _ => 0
         }
       })
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("sort() requires an array"))
   }
@@ -542,7 +542,7 @@ fn fn_sort(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 3, "slice") is Ok
   match (args[0], args[1], args[2]) {
-    (Array(arr), Int(from), Int(to)) => {
+    (Array(arr, _), Int(from, _), Int(to, _)) => {
       if from < 0 || to > arr.length() || from > to {
         return Err(HCLError::invalid_value("slice() indices out of bounds"))
       }
@@ -550,7 +550,7 @@ fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       for i in from..<to {
         result.push(arr[i])
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("slice() requires (array, int, int)"))
   }
@@ -561,7 +561,7 @@ fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "element") is Ok
   match (args[0], args[1]) {
-    (Array(arr), Int(idx)) => {
+    (Array(arr, _), Int(idx, _)) => {
       if arr.length() == 0 {
         return Err(HCLError::invalid_value("element() called on empty list"))
       }
@@ -582,7 +582,7 @@ fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_chomp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "chomp") is Ok
   match args[0] {
-    String(s) => {
+    String(s, _) => {
       let len = s.length()
       let result = if len >= 2 &&
         char_at(s, len - 2) == "\r" &&
@@ -595,7 +595,7 @@ fn fn_chomp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else {
         s
       }
-      Ok(String(result))
+      Ok(String(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("chomp() requires a string"))
   }
@@ -606,14 +606,14 @@ fn fn_chomp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_indent(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "indent") is Ok
   match (args[0], args[1]) {
-    (Int(spaces), String(s)) => {
+    (Int(spaces, _), String(s, _)) => {
       let pad = " ".repeat(spaces)
       let lines = s.split("\n")
       let result = []
       for line in lines {
         result.push(pad + line.to_string())
       }
-      Ok(String(result.join("\n")))
+      Ok(String(result.join("\n"), Decor::empty()))
     }
     _ => Err(HCLError::type_error("indent() requires (int, string)"))
   }
@@ -624,16 +624,16 @@ fn fn_indent(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_join(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "join") is Ok
   match (args[0], args[1]) {
-    (String(sep), Array(arr)) => {
+    (String(sep, _), Array(arr, _)) => {
       let parts = []
       for item in arr {
         match item {
-          String(s) => parts.push(s)
+          String(s, _) => parts.push(s)
           _ =>
             return Err(HCLError::type_error("join() requires string elements"))
         }
       }
-      Ok(String(parts.join(sep)))
+      Ok(String(parts.join(sep), Decor::empty()))
     }
     _ => Err(HCLError::type_error("join() requires (string, array)"))
   }
@@ -644,7 +644,7 @@ fn fn_join(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_lower(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "lower") is Ok
   match args[0] {
-    String(s) => Ok(String(s.to_lower()))
+    String(s, _) => Ok(String(s.to_lower(), Decor::empty()))
     _ => Err(HCLError::type_error("lower() requires a string"))
   }
 }
@@ -654,7 +654,7 @@ fn fn_lower(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_upper(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "upper") is Ok
   match args[0] {
-    String(s) => Ok(String(s.to_upper()))
+    String(s, _) => Ok(String(s.to_upper(), Decor::empty()))
     _ => Err(HCLError::type_error("upper() requires a string"))
   }
 }
@@ -664,8 +664,8 @@ fn fn_upper(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_replace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 3, "replace") is Ok
   match (args[0], args[1], args[2]) {
-    (String(s), String(pattern), String(replacement)) =>
-      Ok(String(s.replace(old=pattern, new=replacement)))
+    (String(s, _), String(pattern, _), String(replacement, _)) =>
+      Ok(String(s.replace(old=pattern, new=replacement), Decor::empty()))
     _ =>
       Err(HCLError::type_error("replace() requires (string, string, string)"))
   }
@@ -676,13 +676,13 @@ fn fn_replace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_split(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "split") is Ok
   match (args[0], args[1]) {
-    (String(sep), String(s)) => {
+    (String(sep, _), String(s, _)) => {
       let parts = s.split(sep)
       let result = []
       for part in parts {
-        result.push(String(part.to_string()))
+        result.push(String(part.to_string(), Decor::empty()))
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("split() requires (string, string)"))
   }
@@ -693,14 +693,14 @@ fn fn_split(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_strrev(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "strrev") is Ok
   match args[0] {
-    String(s) => {
+    String(s, _) => {
       let mut result = ""
       let mut i = s.length() - 1
       while i >= 0 {
         result = result + char_at(s, i)
         i = i - 1
       }
-      Ok(String(result))
+      Ok(String(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("strrev() requires a string"))
   }
@@ -711,7 +711,7 @@ fn fn_strrev(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_substr(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 3, "substr") is Ok
   match (args[0], args[1], args[2]) {
-    (String(s), Int(offset), Int(length)) => {
+    (String(s, _), Int(offset, _), Int(length, _)) => {
       if offset < 0 || offset > s.length() {
         return Err(HCLError::invalid_value("substr() offset out of bounds"))
       }
@@ -720,7 +720,7 @@ fn fn_substr(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else {
         offset + length
       }
-      Ok(String(substring(s, offset, end)))
+      Ok(String(substring(s, offset, end), Decor::empty()))
     }
     _ => Err(HCLError::type_error("substr() requires (string, int, int)"))
   }
@@ -731,7 +731,7 @@ fn fn_substr(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_trim(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "trim") is Ok
   match (args[0], args[1]) {
-    (String(s), String(cutset)) => {
+    (String(s, _), String(cutset, _)) => {
       let mut start = 0
       let mut end = s.length()
       while start < end && cutset.contains(char_at(s, start)) {
@@ -740,7 +740,7 @@ fn fn_trim(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       while end > start && cutset.contains(char_at(s, end - 1)) {
         end = end - 1
       }
-      Ok(String(substring(s, start, end)))
+      Ok(String(substring(s, start, end), Decor::empty()))
     }
     _ => Err(HCLError::type_error("trim() requires (string, string)"))
   }
@@ -751,11 +751,11 @@ fn fn_trim(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_trimprefix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "trimprefix") is Ok
   match (args[0], args[1]) {
-    (String(s), String(prefix)) =>
+    (String(s, _), String(prefix, _)) =>
       if s.starts_with(prefix) {
-        Ok(String(substring(s, prefix.length(), s.length())))
+        Ok(String(substring(s, prefix.length(), s.length()), Decor::empty()))
       } else {
-        Ok(String(s))
+        Ok(String(s, Decor::empty()))
       }
     _ => Err(HCLError::type_error("trimprefix() requires (string, string)"))
   }
@@ -766,11 +766,13 @@ fn fn_trimprefix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_trimsuffix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "trimsuffix") is Ok
   match (args[0], args[1]) {
-    (String(s), String(suffix)) =>
+    (String(s, _), String(suffix, _)) =>
       if s.ends_with(suffix) {
-        Ok(String(substring(s, 0, s.length() - suffix.length())))
+        Ok(
+          String(substring(s, 0, s.length() - suffix.length()), Decor::empty()),
+        )
       } else {
-        Ok(String(s))
+        Ok(String(s, Decor::empty()))
       }
     _ => Err(HCLError::type_error("trimsuffix() requires (string, string)"))
   }
@@ -781,7 +783,7 @@ fn fn_trimsuffix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_trimspace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "trimspace") is Ok
   match args[0] {
-    String(s) => Ok(String(s.trim().to_string()))
+    String(s, _) => Ok(String(s.trim().to_string(), Decor::empty()))
     _ => Err(HCLError::type_error("trimspace() requires a string"))
   }
 }
@@ -791,7 +793,7 @@ fn fn_trimspace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_min_args(args, 1, "format") is Ok
   match args[0] {
-    String(pattern) => {
+    String(pattern, _) => {
       let mut result = ""
       let mut i = 0
       let mut arg_idx = 1
@@ -809,12 +811,12 @@ fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
               )
             }
             let formatted = match args[arg_idx] {
-              String(s) => s
-              Int(n) => n.to_string()
-              Int64(n) => n.to_string()
-              Float(f) => f.to_string()
-              Bool(b) => if b { "true" } else { "false" }
-              Null => "null"
+              String(s, _) => s
+              Int(n, _) => n.to_string()
+              Int64(n, _) => n.to_string()
+              Float(f, _) => f.to_string()
+              Bool(b, _) => if b { "true" } else { "false" }
+              Null(_) => "null"
               _ => args[arg_idx].to_json_string()
             }
             result = result + formatted
@@ -829,7 +831,7 @@ fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
           i = i + 1
         }
       }
-      Ok(String(result))
+      Ok(String(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("format() first argument must be string"))
   }
@@ -840,16 +842,16 @@ fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_formatlist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "formatlist") is Ok
   match (args[0], args[1]) {
-    (String(pattern), Array(arr)) => {
+    (String(pattern, _), Array(arr, _)) => {
       let result = []
       for item in arr {
-        let formatted = fn_format([String(pattern), item])
+        let formatted = fn_format([String(pattern, Decor::empty()), item])
         match formatted {
           Ok(v) => result.push(v)
           Err(e) => return Err(e)
         }
       }
-      Ok(Array(result))
+      Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("formatlist() requires (string, array)"))
   }
@@ -865,18 +867,18 @@ fn fn_formatlist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_tobool(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tobool") is Ok
   match args[0] {
-    Bool(b) => Ok(Bool(b))
-    String(s) => {
+    Bool(b, _) => Ok(Bool(b, Decor::empty()))
+    String(s, _) => {
       let lower = s.to_lower()
       if lower == "true" {
-        Ok(Bool(true))
+        Ok(Bool(true, Decor::empty()))
       } else if lower == "false" {
-        Ok(Bool(false))
+        Ok(Bool(false, Decor::empty()))
       } else {
         Err(HCLError::invalid_value("Cannot convert '" + s + "' to bool"))
       }
     }
-    Int(i) => Ok(Bool(i != 0))
+    Int(i, _) => Ok(Bool(i != 0, Decor::empty()))
     _ => Err(HCLError::type_error("tobool() cannot convert this type"))
   }
 }
@@ -886,10 +888,10 @@ fn fn_tobool(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tonumber") is Ok
   match args[0] {
-    Int(i) => Ok(Int(i))
-    Int64(i) => Ok(Int64(i))
-    Float(f) => Ok(Float(f))
-    String(s) => {
+    Int(i, _) => Ok(Int(i, Decor::empty()))
+    Int64(i, _) => Ok(Int64(i, Decor::empty()))
+    Float(f, _) => Ok(Float(f, Decor::empty()))
+    String(s, _) => {
       // Check if it looks like a float
       let mut is_float = false
       for c in s {
@@ -900,17 +902,17 @@ fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       if is_float {
         match parse_double(s) {
-          Ok(f) => Ok(Float(f))
+          Ok(f) => Ok(Float(f, Decor::empty()))
           Err(e) => Err(e)
         }
       } else {
         match parse_int_with_base(s, 10) {
-          Ok(i) => Ok(Int(i))
+          Ok(i) => Ok(Int(i, Decor::empty()))
           Err(e) => Err(e)
         }
       }
     }
-    Bool(b) => Ok(Int(if b { 1 } else { 0 }))
+    Bool(b, _) => Ok(Int(if b { 1 } else { 0 }, Decor::empty()))
     _ => Err(HCLError::type_error("tonumber() cannot convert this type"))
   }
 }
@@ -920,8 +922,8 @@ fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_tolist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tolist") is Ok
   match args[0] {
-    Array(a) => Ok(Array(a))
-    _ => Ok(Array([args[0]]))
+    Array(a, _) => Ok(Array(a, Decor::empty()))
+    _ => Ok(Array([args[0]], Decor::empty()))
   }
 }
 
@@ -930,7 +932,7 @@ fn fn_tolist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_tomap(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tomap") is Ok
   match args[0] {
-    Object(o) => Ok(Object(o))
+    Object(o, _) => Ok(Object(o, Decor::empty()))
     _ => Err(HCLError::type_error("tomap() requires an object"))
   }
 }
@@ -940,8 +942,8 @@ fn fn_tomap(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_toset(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "toset") is Ok
   match args[0] {
-    Array(_) => fn_distinct(args)
-    _ => Ok(Array([args[0]]))
+    Array(_, _) => fn_distinct(args)
+    _ => Ok(Array([args[0]], Decor::empty()))
   }
 }
 
@@ -950,12 +952,12 @@ fn fn_toset(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_tostring(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tostring") is Ok
   match args[0] {
-    String(s) => Ok(String(s))
-    Int(i) => Ok(String(i.to_string()))
-    Int64(i) => Ok(String(i.to_string()))
-    Float(f) => Ok(String(f.to_string()))
-    Bool(b) => Ok(String(if b { "true" } else { "false" }))
-    Null => Ok(String("null"))
-    _ => Ok(String(args[0].to_json_string()))
+    String(s, _) => Ok(String(s, Decor::empty()))
+    Int(i, _) => Ok(String(i.to_string(), Decor::empty()))
+    Int64(i, _) => Ok(String(i.to_string(), Decor::empty()))
+    Float(f, _) => Ok(String(f.to_string(), Decor::empty()))
+    Bool(b, _) => Ok(String(if b { "true" } else { "false" }, Decor::empty()))
+    Null(_) => Ok(String("null", Decor::empty()))
+    _ => Ok(String(args[0].to_json_string(), Decor::empty()))
   }
 }

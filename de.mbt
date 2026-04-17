@@ -8,7 +8,7 @@ pub fn from_hcl_int(input : String) -> Result[Int, HCLError] {
     Ok(body) => {
       let value = body_to_value(body)
       match value {
-        Int(i) => Ok(i)
+        Int(i, _) => Ok(i)
         _ => Err(HCLError::type_mismatch("Int", value_to_type_name(value)))
       }
     }
@@ -23,7 +23,7 @@ pub fn from_hcl_string(input : String) -> Result[String, HCLError] {
     Ok(body) => {
       let value = body_to_value(body)
       match value {
-        String(s) => Ok(s)
+        String(s, _) => Ok(s)
         _ => Err(HCLError::type_mismatch("String", value_to_type_name(value)))
       }
     }
@@ -38,7 +38,7 @@ pub fn from_hcl_bool(input : String) -> Result[Bool, HCLError] {
     Ok(body) => {
       let value = body_to_value(body)
       match value {
-        Bool(b) => Ok(b)
+        Bool(b, _) => Ok(b)
         _ => Err(HCLError::type_mismatch("Bool", value_to_type_name(value)))
       }
     }
@@ -74,7 +74,7 @@ fn body_to_value(body : Body) -> HCLValue {
       }
     }
   }
-  Object(obj)
+  Object(obj, Decor::empty())
 }
 
 ///|
@@ -121,13 +121,13 @@ pub fn from_hcl_with_schema_full(
 /// Get type name for error messages
 fn value_to_type_name(value : HCLValue) -> String {
   match value {
-    Null => "null"
-    Bool(_) => "bool"
-    Int(_) => "int"
-    Int64(_) => "int64"
-    Float(_) => "float"
-    String(_) => "string"
-    Array(_) => "array"
-    Object(_) => "object"
+    Null(_) => "null"
+    Bool(_, _) => "bool"
+    Int(_, _) => "int"
+    Int64(_, _) => "int64"
+    Float(_, _) => "float"
+    String(_, _) => "string"
+    Array(_, _) => "array"
+    Object(_, _) => "object"
   }
 }

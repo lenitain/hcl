@@ -147,17 +147,17 @@ fn validate_at(
       }
     IntSchema =>
       match value {
-        Int(_) => []
+        Int(_, _) => []
         _ => [HCLError::validation_error(path, "expected int")]
       }
     Int64Schema =>
       match value {
-        Int64(_) => []
+        Int64(_, _) => []
         _ => [HCLError::validation_error(path, "expected int64")]
       }
     FloatSchema =>
       match value {
-        Float(_) => []
+        Float(_, _) => []
         _ => [HCLError::validation_error(path, "expected float")]
       }
     NumberSchema =>
@@ -185,7 +185,7 @@ fn validate_array(
   path : String,
 ) -> Array[HCLError] {
   match value {
-    Array(arr) => {
+    Array(arr, _) => {
       let errors = []
       for i in 0..<arr.length() {
         let elem_path = path + "[" + i.to_string() + "]"
@@ -208,7 +208,7 @@ fn validate_object(
   path : String,
 ) -> Array[HCLError] {
   match value {
-    Object(obj) => {
+    Object(obj, _) => {
       let errors = []
       for name, field_schema in field_schemas {
         let field_path = path + "." + name
@@ -301,7 +301,7 @@ fn validate_object_ex(
   path : String,
 ) -> Array[HCLError] {
   match value {
-    Object(obj) => {
+    Object(obj, _) => {
       let errors = []
       for name, field_schema in field_schemas {
         let field_path = path + "." + name
@@ -343,7 +343,7 @@ fn validate_object_ex(
 pub fn string_not_empty() -> Validator {
   fn(value, path) {
     match value {
-      String(s) if s.is_empty() =>
+      String(s, _) if s.is_empty() =>
         [HCLError::validation_error(path, "string must not be empty")]
       _ => []
     }
@@ -355,7 +355,7 @@ pub fn string_not_empty() -> Validator {
 pub fn int_in_range(min : Int, max : Int) -> Validator {
   fn(value, path) {
     match value {
-      Int(i) if i < min || i > max =>
+      Int(i, _) if i < min || i > max =>
         [
           HCLError::validation_error(
             path,
@@ -378,7 +378,7 @@ pub fn int_in_range(min : Int, max : Int) -> Validator {
 pub fn string_starts_with(prefix : String) -> Validator {
   fn(value, path) {
     match value {
-      String(s) if !s.has_prefix(prefix) =>
+      String(s, _) if !s.has_prefix(prefix) =>
         [HCLError::validation_error(path, "string must start with " + prefix)]
       _ => []
     }

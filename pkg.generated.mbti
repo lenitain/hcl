@@ -24,7 +24,15 @@ pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn evaluate_template(String, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
 
+pub fn format_attr_with_decor(Attr) -> String
+
 pub fn format_body(Body) -> String
+
+pub fn format_body_with_decor(Body) -> String
+
+pub fn format_value_content(HCLValue) -> String
+
+pub fn format_value_with_decor(HCLValue) -> String
 
 pub fn from_hcl_body(String) -> Result[Body, HCLError]
 
@@ -237,15 +245,16 @@ pub fn HCLError::undefined_variable(String) -> Self
 pub fn HCLError::validation_error(String, String) -> Self
 
 pub(all) enum HCLValue {
-  Null
-  Bool(Bool)
-  Int(Int)
-  Int64(Int64)
-  Float(Double)
-  String(String)
-  Array(Array[HCLValue])
-  Object(Map[String, HCLValue])
+  Null(Decor)
+  Bool(Bool, Decor)
+  Int(Int, Decor)
+  Int64(Int64, Decor)
+  Float(Double, Decor)
+  String(String, Decor)
+  Array(Array[HCLValue], Decor)
+  Object(Map[String, HCLValue], Decor)
 } derive(Eq, @debug.Debug)
+pub fn HCLValue::array(Array[Self]) -> Self
 pub fn HCLValue::as_array(Self) -> Array[Self]?
 pub fn HCLValue::as_bool(Self) -> Bool?
 pub fn HCLValue::as_float(Self) -> Double?
@@ -253,12 +262,19 @@ pub fn HCLValue::as_int(Self) -> Int?
 pub fn HCLValue::as_int64(Self) -> Int64?
 pub fn HCLValue::as_object(Self) -> Map[String, Self]?
 pub fn HCLValue::as_string(Self) -> String?
+pub fn HCLValue::bool(Bool) -> Self
+pub fn HCLValue::get_decor(Self) -> Decor
+pub fn HCLValue::int(Int) -> Self
 pub fn HCLValue::is_array(Self) -> Bool
 pub fn HCLValue::is_bool(Self) -> Bool
 pub fn HCLValue::is_null(Self) -> Bool
 pub fn HCLValue::is_number(Self) -> Bool
 pub fn HCLValue::is_object(Self) -> Bool
 pub fn HCLValue::is_string(Self) -> Bool
+pub fn HCLValue::null() -> Self
+pub fn HCLValue::object(Map[String, Self]) -> Self
+pub fn HCLValue::set_decor(Self, Decor) -> Self
+pub fn HCLValue::string(String) -> Self
 pub fn HCLValue::to_json_string(Self) -> String
 
 pub struct Lexer {
@@ -267,16 +283,20 @@ pub struct Lexer {
   line : Int
   col : Int
 }
+pub fn Lexer::collect_comment(Self) -> (Self, String?)
+pub fn Lexer::collect_whitespace(Self) -> (Self, String?)
 pub fn Lexer::get_line(Self, Int) -> String
 pub fn Lexer::location(Self) -> (Int, Int, Int)
 pub fn Lexer::new(String) -> Self
 pub fn Lexer::next_token(Self) -> Result[(Token, Self), HCLError]
+pub fn Lexer::next_token_with_trivia(Self) -> Result[(Token, Self, String?), HCLError]
 pub fn Lexer::tokenize(Self) -> Result[Array[Token], HCLError]
 
 pub struct Parser {
   lexer : Lexer
   current : Token
   peek : Token
+  next_prefix : String?
 }
 pub fn Parser::from_lexer(Lexer) -> Result[Self, HCLError]
 pub fn Parser::new(String) -> Result[Self, HCLError]
