@@ -30,6 +30,10 @@ pub fn from_hcl_string(String) -> Result[String, HCLError]
 
 pub fn from_hcl_value(String) -> Result[HCLValue, HCLError]
 
+pub fn from_hcl_with_schema(String, TypeSchema) -> Result[HCLValue, HCLError]
+
+pub fn from_hcl_with_schema_full(String, TypeSchema) -> Result[HCLValue, Array[HCLError]]
+
 pub fn int_in_range(Int, Int) -> (HCLValue, String) -> Array[HCLError]
 
 pub fn is_valid(HCLValue, TypeSchema) -> Bool
