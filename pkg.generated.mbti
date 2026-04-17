@@ -86,6 +86,15 @@ pub(all) enum BodyItem {
   Block(Block)
 } derive(Eq, @debug.Debug)
 
+pub struct FieldSchema {
+  schema : TypeSchema
+  required : Bool
+  description : String
+} derive(Eq, @debug.Debug)
+pub fn FieldSchema::optional(TypeSchema) -> Self
+pub fn FieldSchema::required(TypeSchema) -> Self
+pub fn FieldSchema::with_description(Self, String) -> Self
+
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int)
   TypeError(String, String)
@@ -216,6 +225,29 @@ pub fn Token::is_delimiter(Self) -> Bool
 pub fn Token::is_literal(Self) -> Bool
 pub fn Token::is_operator(Self) -> Bool
 pub fn Token::precedence(Self) -> Int
+
+pub(all) enum TypeSchema {
+  Any
+  NullSchema
+  BoolSchema
+  IntSchema
+  Int64Schema
+  FloatSchema
+  NumberSchema
+  StringSchema
+  ArraySchema(TypeSchema)
+  ObjectSchema(Map[String, FieldSchema])
+} derive(Eq, @debug.Debug)
+pub fn TypeSchema::any() -> Self
+pub fn TypeSchema::array(Self) -> Self
+pub fn TypeSchema::bool() -> Self
+pub fn TypeSchema::float() -> Self
+pub fn TypeSchema::int() -> Self
+pub fn TypeSchema::int64() -> Self
+pub fn TypeSchema::null() -> Self
+pub fn TypeSchema::number() -> Self
+pub fn TypeSchema::object(Map[String, FieldSchema]) -> Self
+pub fn TypeSchema::string() -> Self
 
 // Type aliases
 pub type HCLResult[T] = Result[T, HCLError]

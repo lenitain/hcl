@@ -114,8 +114,7 @@ pub fn HCLError::message(self : HCLError) -> String {
     UndefinedVariable(name) => "Undefined variable: " + name
     UndefinedFunction(name) => "Undefined function: " + name
     UndefinedProperty(name) => "Undefined property: " + name
-    ValidationError(path, msg) =>
-      "Validation error at " + path + ": " + msg
+    ValidationError(path, msg) => "Validation error at " + path + ": " + msg
   }
 }
 
