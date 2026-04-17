@@ -438,6 +438,20 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         Ok(p) => Ok((String(s), p))
         Err(e) => Err(e)
       }
+    HeredocLit(delimiter, content, strip) =>
+      // Parse heredoc as template and evaluate without variables
+      match Template::from_heredoc(content, delimiter, strip) {
+        Ok(template) =>
+          match template.evaluate({}, {}) {
+            Ok(result) =>
+              match self.advance() {
+                Ok(p) => Ok((String(result), p))
+                Err(e) => Err(e)
+              }
+            Err(e) => Err(e)
+          }
+        Err(e) => Err(e)
+      }
     NumberLit(n) => {
       // Parse as integer (simple implementation)
       let value = 0
@@ -1271,6 +1285,7 @@ fn token_to_string(token : Token) -> String {
     Colon => ":"
     FatArrow => "=>"
     Heredoc(strip) => if strip { "<<-" } else { "<<" }
+    HeredocLit(_, _, _) => "heredoc"
     Newline => "newline"
     EOF => "end of file"
     For => "for"

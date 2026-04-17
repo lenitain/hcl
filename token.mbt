@@ -65,6 +65,8 @@ pub(all) enum Token {
   FatArrow
   /// Heredoc start `<<` or `<<-`
   Heredoc(Bool)
+  /// Heredoc literal (delimiter, content, strip)
+  HeredocLit(String, String, Bool)
   /// Newline
   Newline
   /// End of file

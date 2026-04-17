@@ -154,3 +154,111 @@ test "parse with newlines" {
     Err(_) => panic()
   }
 }
+
+///|
+test "parse heredoc basic" {
+  let input = "text = <<EOF\nHello World\nEOF"
+  let result = parse(input)
+  assert_true(result is Ok(_))
+  match result {
+    Ok(body) => {
+      assert_eq(body.len(), 1)
+      match body.get_items()[0] {
+        Attribute(attr) => {
+          assert_eq(attr.get_key(), "text")
+          assert_true(attr.get_value() == String("Hello World\n"))
+        }
+        _ => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc multiline" {
+  let input = "config = <<EOF\nline 1\nline 2\nline 3\nEOF"
+  let result = parse(input)
+  assert_true(result is Ok(_))
+  match result {
+    Ok(body) => {
+      assert_eq(body.len(), 1)
+      match body.get_items()[0] {
+        Attribute(attr) => {
+          assert_eq(attr.get_key(), "config")
+          assert_true(attr.get_value() == String("line 1\nline 2\nline 3\n"))
+        }
+        _ => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc with strip" {
+  let input = "config = <<-EOF\n  indented\n  content\nEOF"
+  let result = parse(input)
+  assert_true(result is Ok(_))
+  match result {
+    Ok(body) => {
+      assert_eq(body.len(), 1)
+      match body.get_items()[0] {
+        Attribute(attr) => {
+          assert_eq(attr.get_key(), "config")
+          // With strip, leading whitespace should be removed
+          assert_true(attr.get_value() == String("indented\ncontent\n"))
+        }
+        _ => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc in block" {
+  let input = "resource \"test\" \"example\" {\n  policy = <<EOF\nAllow all\nEOF\n}"
+  let result = parse(input)
+  assert_true(result is Ok(_))
+  match result {
+    Ok(body) => {
+      assert_eq(body.len(), 1)
+      match body.get_items()[0] {
+        Block(block) => {
+          assert_eq(block.get_type_name(), "resource")
+          assert_eq(block.get_body().len(), 1)
+          match block.get_body().get_items()[0] {
+            Attribute(attr) => {
+              assert_eq(attr.get_key(), "policy")
+              assert_true(attr.get_value() == String("Allow all\n"))
+            }
+            _ => panic()
+          }
+        }
+        _ => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "parse heredoc with custom delimiter" {
+  let input = "data = <<MYDELIM\ncustom delimiter\nMYDELIM"
+  let result = parse(input)
+  assert_true(result is Ok(_))
+  match result {
+    Ok(body) => {
+      assert_eq(body.len(), 1)
+      match body.get_items()[0] {
+        Attribute(attr) => {
+          assert_eq(attr.get_key(), "data")
+          assert_true(attr.get_value() == String("custom delimiter\n"))
+        }
+        _ => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}

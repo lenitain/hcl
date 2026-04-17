@@ -242,6 +242,7 @@ pub(all) enum Token {
   Colon
   FatArrow
   Heredoc(Bool)
+  HeredocLit(String, String, Bool)
   Newline
   EOF
   For

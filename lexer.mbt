@@ -381,13 +381,8 @@ pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
       if lexer.peek_next() == Some('='.to_int().to_uint16()) {
         Ok((LtEq, lexer.advance().advance()))
       } else if lexer.peek_next() == Some('<'.to_int().to_uint16()) {
-        // Heredoc
-        let hlexer = lexer.advance().advance()
-        if hlexer.peek() == Some('-'.to_int().to_uint16()) {
-          Ok((Heredoc(true), hlexer.advance()))
-        } else {
-          Ok((Heredoc(false), hlexer))
-        }
+        // Heredoc - read full heredoc literal
+        lexer.read_heredoc()
       } else {
         Ok((Lt, lexer.advance()))
       }
@@ -488,4 +483,100 @@ fn is_ident_start(c : UInt16) -> Bool {
 /// Check if char code is valid identifier continue
 fn is_ident_continue(c : UInt16) -> Bool {
   is_ident_start(c) || is_digit(c) || c == '-'.to_int().to_uint16()
+}
+
+///|
+/// Read a heredoc literal
+fn Lexer::read_heredoc(self : Lexer) -> HCLResult[(Token, Lexer)] {
+  let start_line = self.line
+  let start_col = self.col
+  let mut lexer = self.advance().advance() // skip <<
+  let strip = if lexer.peek() == Some('-'.to_int().to_uint16()) {
+    lexer = lexer.advance()
+    true
+  } else {
+    false
+  }
+
+  // Read delimiter (identifier)
+  let mut delimiter = ""
+  while !lexer.is_at_end() && is_ident_continue(lexer.peek().unwrap_or(0)) {
+    let c = lexer.peek().unwrap_or(0)
+    delimiter = delimiter + c.to_int().unsafe_to_char().to_string()
+    lexer = lexer.advance()
+  }
+
+  if delimiter.is_empty() {
+    return Err(
+      HCLError::parse_error_with_context(
+        "Expected heredoc delimiter after <<",
+        start_line,
+        start_col,
+        self.pos,
+        self.get_line(start_line),
+      ),
+    )
+  }
+
+  // Skip newline after delimiter
+  if lexer.peek() == Some('\r'.to_int().to_uint16()) {
+    lexer = lexer.advance()
+  }
+  if lexer.peek() == Some('\n'.to_int().to_uint16()) {
+    lexer = lexer.advance()
+  }
+
+  // Read content until delimiter appears on its own line
+  let mut content = ""
+  let mut line_start = lexer.pos
+  let mut found_end = false
+
+  while !lexer.is_at_end() {
+    if lexer.peek() == Some('\n'.to_int().to_uint16()) {
+      // Check if current line matches delimiter
+      let line = lexer.input[line_start:lexer.pos].to_string()
+      let trimmed = line.trim()
+      if trimmed == delimiter {
+        // Found end delimiter
+        lexer = lexer.advance() // skip newline
+        found_end = true
+        break
+      }
+      content = content + line + "\n"
+      lexer = lexer.advance()
+      line_start = lexer.pos
+    } else {
+      lexer = lexer.advance()
+    }
+  }
+
+  // Check if we found the end delimiter
+  if !found_end {
+    // Check last line (might be at end of input without trailing newline)
+    if line_start <= lexer.pos {
+      let line = lexer.input[line_start:lexer.pos].to_string()
+      let trimmed = line.trim()
+      if trimmed == delimiter {
+        found_end = true
+        // Don't add delimiter line to content
+      } else {
+        // Add last line to content if it's not the delimiter
+        content = content + line
+      }
+    }
+  }
+
+  if !found_end {
+    return Err(
+      HCLError::parse_error_with_context(
+        "Unterminated heredoc: expected \"" + delimiter + "\" to end",
+        start_line,
+        start_col,
+        self.pos,
+        self.get_line(start_line),
+      ),
+    )
+  }
+
+  Ok((HeredocLit(delimiter, content, strip), lexer))
 }
