@@ -177,6 +177,7 @@ pub struct Lexer {
   line : Int
   col : Int
 }
+pub fn Lexer::get_line(Self, Int) -> String
 pub fn Lexer::location(Self) -> (Int, Int, Int)
 pub fn Lexer::new(String) -> Self
 pub fn Lexer::next_token(Self) -> Result[(Token, Self), HCLError]

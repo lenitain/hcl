@@ -120,7 +120,14 @@ pub fn HCLError::message(self : HCLError) -> String {
       if context == "" {
         base
       } else {
-        base + "\n" + context
+        let pointer = StringBuilder::new(size_hint=column + 2)
+        let mut i = 0
+        while i < column - 1 {
+          pointer.write_string(" ")
+          i = i + 1
+        }
+        pointer.write_string("^")
+        base + "\n" + context + "\n" + pointer.to_string()
       }
     }
     TypeError(expected, got) =>

@@ -46,11 +46,7 @@ pub fn Lexer::get_line(self : Lexer, line_number : Int) -> String {
 ///|
 /// Extract substring from input[start:end] as String
 fn extract_line(input : String, start : Int, end : Int) -> String {
-  let mut result = ""
-  for i in start..<end {
-    result = result + input[i].to_int().unsafe_to_char().to_string()
-  }
-  result
+  input[start:end].to_string()
 }
 
 ///|
