@@ -574,6 +574,6 @@ pub fn hcl_array(items : Array[HCLValue]) -> HCLValue {
 
 ///|
 /// Create Object HCLValue
-pub fn hcl_object(entries : Map[String, HCLValue]) -> HCLValue {
+pub fn hcl_object(entries : HCLObject) -> HCLValue {
   Object(entries, Decor::empty())
 }

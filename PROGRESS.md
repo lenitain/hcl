@@ -3,20 +3,18 @@
 ## 当前状态：按照 hcl-rs 方案重构中
 
 ## 当前分支
-- 分支：`pilot/ref/builder-pattern-enhancements`
+- 分支：`xt-zhu/feat/map-type-alias`
 - 状态：开发完成
-- 目标：实现 Builder 模式增强
+- 目标：实现 HCLObject 类型（有序 Map）
 
 ## 本次开发完成的功能
-- ✅ TraversalBuilder - Traversal 的构建器模式
-- ✅ FuncCallBuilder - FuncCall 的构建器模式
-- ✅ 格式化器配置 (FormatConfig)
-  - dense 模式
-  - compact_arrays 模式
-  - compact_objects 模式
-  - prefer_ident_keys 选项
-- ✅ Formatter 结构体和 Builder 模式
-- ✅ 新增 46 个测试（488/488 通过）
+- ✅ HCLObject 类型别名 (Map[String, HCLValue]) — 语义清晰，对应 hcl-rs 的 Map 类型
+- ✅ HCLObjectBuilder — 构建器模式，支持 entry/entry_hcl/entry_if/entry_option/extend
+- ✅ 工具函数 — new_hcl_object, hcl_object_from_pairs, hcl_object_keys/values/entries/merge/extend
+- ✅ 更新 value.mbt — Object 变体使用 HCLObject
+- ✅ 更新 ser.mbt — hcl_object 函数使用 HCLObject
+- ✅ 新增 22 个测试（510/510 通过）
+- ✅ MoonBit Map 已保持插入顺序（等价于 IndexMap），无需自定义数据结构
 
 ## 重构计划
 
@@ -52,7 +50,7 @@
 ### 第四阶段：数据结构增强
 | 任务 | 状态 | 依赖 |
 |------|------|------|
-| Map 类型 (IndexMap 替代) | ⏳ | - |
+| Map 类型 (IndexMap 替代) | ✅ 完成 | - |
 | 格式化器配置 (dense/compact) | ✅ 完成 | - |
 | prefer_ident_keys 选项 | ✅ 完成 | - |
 
@@ -82,6 +80,8 @@
 - `error.mbt` - HCLError 和 HCLResult 类型
 - `number.mbt` - Number 类型（PosInt/NegInt/Float 内部表示）
 - `ident.mbt` - Ident 类型（标识符验证和构造）
+- `object.mbt` - HCLObject 类型别名 + HCLObjectBuilder（新增）
+- `object_wbtest.mbt` - HCLObject 白盒测试（新增）
 
 ### 词法分析器 (lexer.mbt)
 - ✅ 基础 token 识别
@@ -124,7 +124,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 488 个测试全部通过
+- ✅ 510 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）

@@ -11,8 +11,8 @@ pub(all) enum HCLValue {
   String(String, Decor)
   /// Array of values with decoration
   Array(Array[HCLValue], Decor)
-  /// Object (map of string to value) with decoration
-  Object(Map[String, HCLValue], Decor)
+  /// Object (ordered map of string to value) with decoration
+  Object(HCLObject, Decor)
 } derive(Debug, Eq)
 
 ///|
@@ -160,7 +160,7 @@ pub fn HCLValue::as_array(self : HCLValue) -> Array[HCLValue]? {
 
 ///|
 /// Get the object value, or None if not an object
-pub fn HCLValue::as_object(self : HCLValue) -> Map[String, HCLValue]? {
+pub fn HCLValue::as_object(self : HCLValue) -> HCLObject? {
   match self {
     Object(o, _) => Some(o)
     _ => None
@@ -211,7 +211,7 @@ pub fn HCLValue::array(arr : Array[HCLValue]) -> HCLValue {
 
 ///|
 /// Create object value with empty decor
-pub fn HCLValue::object(obj : Map[String, HCLValue]) -> HCLValue {
+pub fn HCLValue::object(obj : HCLObject) -> HCLValue {
   Object(obj, Decor::empty())
 }
 
