@@ -1,6 +1,61 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：装饰系统完成，全部功能就绪 (326 测试通过)
+## 当前状态：按照 hcl-rs 方案重构中
+
+## 重构计划
+
+按 hcl-rs 方案重写核心类型，优先级：
+
+### 第一阶段：核心类型
+| 任务 | 状态 | 依赖 |
+|------|------|------|
+| Expression 独立枚举 | ✅ 完成 | - |
+| Value 统一 Number 类型 | ⏳ | - |
+| Identifier 类型 | ⏳ | - |
+| ObjectKey 类型 | ✅ 已包含 | Expression |
+
+### 第二阶段：表达式类型
+| 任务 | 状态 | 依赖 |
+|------|------|------|
+| Traversal 类型 + TraversalBuilder | ⏳ | Expression |
+| FuncCall 类型 + FuncCallBuilder | ⏳ | Expression |
+| FuncDef 参数类型验证 | ⏳ | FuncCall |
+| Conditional 类型 | ✅ 已包含 | Expression |
+| ForExpr 类型 | ✅ 已包含 | Expression |
+| Operation 类型 | ✅ 已包含 | Expression |
+| Parenthesis 支持 | ✅ 已包含 | Expression |
+
+### 第三阶段：Builder 模式
+| 任务 | 状态 | 依赖 |
+|------|------|------|
+| BodyBuilder | ⏳ | - |
+| BlockBuilder | ⏳ | - |
+| TraversalBuilder | ⏳ | Traversal |
+| FuncCallBuilder | ⏳ | FuncCall |
+
+### 第四阶段：数据结构增强
+| 任务 | 状态 | 依赖 |
+|------|------|------|
+| Map 类型 (IndexMap 替代) | ⏳ | - |
+| 格式化器配置 (dense/compact) | ⏳ | - |
+| prefer_ident_keys 选项 | ⏳ | - |
+
+### 第五阶段：高级功能
+| 任务 | 状态 | 依赖 |
+|------|------|------|
+| hcl-edit (visit/visit_mut) | ⏳ | Expression |
+| Decorated\<Expression\> 包装 | ⏳ | Decor |
+| hcl2json CLI 批量处理 | ⏳ | - |
+| hcl2json glob 模式 | ⏳ | - |
+| hcl2json --simplify 选项 | ⏳ | eval |
+| specsuite 完整测试套件 | ⏳ | - |
+
+### 第六阶段：适配
+| 任务 | 状态 | 依赖 |
+|------|------|------|
+| 适配 parser | ⏳ | 以上全部 |
+| 适配 eval | ⏳ | 以上全部 |
+| 适配 template | ⏳ | 以上全部 |
 
 ## 已完成 ✅
 
