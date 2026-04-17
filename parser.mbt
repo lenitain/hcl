@@ -573,23 +573,53 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
         if is_float {
-          // Parse float value
+          // Parse float value (handles decimal point and scientific notation)
           let mut result = 0.0
           let mut decimal_place = 1.0
           let mut in_decimal = false
+          let mut in_exponent = false
+          let mut exponent = 0
+          let mut exponent_negative = false
+          let mut has_exponent_sign = false
           for c in n {
             if c == '-' {
-              // Skip negative sign
+              if in_exponent && !has_exponent_sign {
+                exponent_negative = true
+                has_exponent_sign = true
+              }
+            } else if c == '+' {
+              if in_exponent && !has_exponent_sign {
+                has_exponent_sign = true
+              }
             } else if c == '.' {
               in_decimal = true
+            } else if c == 'e' || c == 'E' {
+              in_exponent = true
             } else if c >= '0' && c <= '9' {
-              if in_decimal {
+              if in_exponent {
+                exponent = exponent * 10 + (c.to_int() - '0'.to_int())
+                has_exponent_sign = true
+              } else if in_decimal {
                 decimal_place = decimal_place * 10.0
                 result = result +
                   (c.to_int() - '0'.to_int()).to_double() / decimal_place
               } else {
                 result = result * 10.0 + (c.to_int() - '0'.to_int()).to_double()
               }
+            }
+          }
+          if exponent != 0 {
+            let e = if exponent_negative { -exponent } else { exponent }
+            let mut scale = 1.0
+            let mut i = 0
+            while i < e.abs() {
+              scale = scale * 10.0
+              i = i + 1
+            }
+            if e >= 0 {
+              result = result * scale
+            } else {
+              result = result / scale
             }
           }
           match self.advance() {

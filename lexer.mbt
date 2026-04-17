@@ -466,8 +466,25 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
           c == 'e'.to_int().to_uint16() || c == 'E'.to_int().to_uint16()
         ) &&
         !is_float => {
-        // Scientific notation
+        // Scientific notation (only after integer part, not after decimal)
         is_float = true
+        num = num + "e"
+        lexer = lexer.advance()
+        // Optional sign
+        match lexer.peek() {
+          Some(c2) if c2 == '+'.to_int().to_uint16() ||
+            c2 == '-'.to_int().to_uint16() => {
+            num = num + c2.to_int().unsafe_to_char().to_string()
+            lexer = lexer.advance()
+          }
+          _ => ()
+        }
+      }
+      Some(c) if (
+          c == 'e'.to_int().to_uint16() || c == 'E'.to_int().to_uint16()
+        ) &&
+        is_float => {
+        // Scientific notation after decimal part
         num = num + "e"
         lexer = lexer.advance()
         // Optional sign

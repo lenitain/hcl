@@ -501,6 +501,91 @@ test "parse binary zero" {
 }
 
 ///|
+test "parse scientific notation positive exponent" {
+  let input = "value = 1e10"
+  let result = parse(input)
+  match result {
+    Ok(body) =>
+      match body.get_items()[0] {
+        Attribute(attr) =>
+          assert_true(
+            attr.get_value() ==
+            Number(Number::from_finite_f64(10000000000.0), Decor::empty()),
+          )
+        _ => panic()
+      }
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
+
+///|
+test "parse scientific notation negative exponent" {
+  let input = "value = 2.5e-3"
+  let result = parse(input)
+  match result {
+    Ok(body) =>
+      match body.get_items()[0] {
+        Attribute(attr) =>
+          match attr.get_value() {
+            Number(n, _) =>
+              assert_true((n.as_float() - 0.0025).abs() < 0.000001)
+            _ => panic()
+          }
+        _ => panic()
+      }
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
+
+///|
+test "parse scientific notation with decimal" {
+  let input = "value = 1.5e2"
+  let result = parse(input)
+  match result {
+    Ok(body) =>
+      match body.get_items()[0] {
+        Attribute(attr) =>
+          match attr.get_value() {
+            Number(n, _) => assert_true((n.as_float() - 150.0).abs() < 0.000001)
+            _ => panic()
+          }
+        _ => panic()
+      }
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
+
+///|
+test "parse scientific notation uppercase E" {
+  let input = "value = 1E3"
+  let result = parse(input)
+  match result {
+    Ok(body) =>
+      match body.get_items()[0] {
+        Attribute(attr) =>
+          assert_true(
+            attr.get_value() ==
+            Number(Number::from_finite_f64(1000.0), Decor::empty()),
+          )
+        _ => panic()
+      }
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
+
+///|
 test "parse unicode escape 4-digit lowercase" {
   let input = "value = \"\\u0041\""
   let result = parse(input)
