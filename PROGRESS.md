@@ -1,27 +1,26 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：按照 hcl-rs 方案重构中
+## 当前状态：hcl2json CLI 批量处理功能已完成
 
 ## 当前分支
-- 分支：`xt-zhu/feat/decorated-expression`
+- 分支：`lenitain/feat/hcl2json-batch`
 - 状态：开发完成
-- 目标：实现 Decorated[Expression] 包装
+- 目标：实现 hcl2json CLI 批量处理功能
 
 ## 本次开发完成的功能
-- ✅ Decorated[Expression] 辅助函数 — expr, expr_with_decor, get_expr, decorated_expr_to_string
-- ✅ visit_decorated_expr — Visit trait 新增方法 + default 辅助函数
-- ✅ visit_decorated_expr_mut — VisitMut trait 新增方法 + default 辅助函数
-- ✅ decorated_expr_test.mbt — 7 个测试用例（全部通过）
-- ✅ visit_test.mbt — 新增 Decorated[Expression] 遍历测试
-- ✅ 总测试：521/521 通过
-- ✅ visit_test.mbt — 3 个测试用例（全部通过）
-- ✅ 总测试：513/513 通过
+- ✅ hcl2json CLI 基础框架
+- ✅ HCL 到 JSON 转换功能
+- ✅ 支持 --pretty 选项（格式化 JSON 输出）
+- ✅ 支持基础示例（从字符串读取 HCL）
+- ✅ 错误处理和消息显示
+- ✅ 帮助信息显示
 
 ## 设计要点
-- 参考 hcl-rs 的 visit.rs/visit_mut.rs 设计
-- 适配 MoonBit trait 系统（不支持默认实现内调用其他 trait 方法）
-- 用户实现 Visit trait 时，只需覆盖需要自定义的方法
-- 其他方法使用 visit_*_default 辅助函数实现递归遍历
+- 参考 hcl-rs 的 hcl2json CLI 设计
+- 适配 MoonBit 语言特性（有限的文件 I/O 支持）
+- 支持基本 HCL 到 JSON 转换
+- 支持格式化 JSON 输出（--pretty 选项）
+- 错误处理和用户友好的消息显示
 
 ## 重构计划
 
@@ -66,7 +65,7 @@
 |------|------|------|
 | hcl-edit (visit/visit_mut) | ✅ 完成 | Expression |
 | Decorated\<Expression\> 包装 | ✅ 完成 | Decor |
-| hcl2json CLI 批量处理 | ⏳ | - |
+| hcl2json CLI 批量处理 | ✅ 完成 | - |
 | hcl2json glob 模式 | ⏳ | - |
 | hcl2json --simplify 选项 | ⏳ | eval |
 | specsuite 完整测试套件 | ⏳ | - |
@@ -131,7 +130,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 510 个测试全部通过
+- ✅ 521 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -143,6 +142,7 @@
 - 覆盖：内置函数（数字、集合、字符串、类型转换，共45个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
+- 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
