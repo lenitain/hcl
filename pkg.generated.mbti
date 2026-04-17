@@ -98,25 +98,34 @@ pub fn validate_one(HCLValue, TypeSchema) -> Result[Unit, HCLError]
 
 // Types and methods
 pub struct Attr {
-  key : String
+  key : Decorated[String]
   value : HCLValue
+  decor : Decor
 } derive(Eq, @debug.Debug)
+pub fn Attr::get_decor(Self) -> Decor
+pub fn Attr::get_decorated_key(Self) -> Decorated[String]
 pub fn Attr::get_key(Self) -> String
 pub fn Attr::get_value(Self) -> HCLValue
 pub fn Attr::new(String, HCLValue) -> Self
+pub fn Attr::with_decor(Decorated[String], HCLValue, Decor) -> Self
 
 pub struct Block {
-  type_name : String
-  labels : Array[String]
+  type_name : Decorated[String]
+  labels : Array[Decorated[String]]
   body : Body
+  decor : Decor
 } derive(Eq, @debug.Debug)
 pub fn Block::builder(String) -> BlockBuilder
 pub fn Block::find_attr(Self, String) -> Attr?
 pub fn Block::get_body(Self) -> Body
+pub fn Block::get_decor(Self) -> Decor
+pub fn Block::get_decorated_labels(Self) -> Array[Decorated[String]]
+pub fn Block::get_decorated_type_name(Self) -> Decorated[String]
 pub fn Block::get_labels(Self) -> Array[String]
 pub fn Block::get_type_name(Self) -> String
 pub fn Block::new(String, Array[String], Body) -> Self
 pub fn Block::simple(String, Body) -> Self
+pub fn Block::with_decor(Decorated[String], Array[Decorated[String]], Body, Decor) -> Self
 
 pub struct BlockBuilder {
   type_name : String
@@ -132,6 +141,7 @@ pub fn BlockBuilder::label(Self, String) -> Self
 
 pub struct Body {
   items : Array[BodyItem]
+  decor : Decor
 } derive(Eq, @debug.Debug)
 pub fn Body::add_attr(Self, String, HCLValue) -> Self
 pub fn Body::add_block(Self, Block) -> Self
@@ -140,10 +150,12 @@ pub fn Body::find_attr(Self, String) -> Attr?
 pub fn Body::find_block(Self, String) -> Block?
 pub fn Body::find_blocks(Self, String) -> Array[Block]
 pub fn Body::from_items(Array[BodyItem]) -> Self
+pub fn Body::get_decor(Self) -> Decor
 pub fn Body::get_items(Self) -> Array[BodyItem]
 pub fn Body::is_empty(Self) -> Bool
 pub fn Body::len(Self) -> Int
 pub fn Body::new() -> Self
+pub fn Body::with_decor(Array[BodyItem], Decor) -> Self
 
 pub struct BodyBuilder {
   items : Array[BodyItem]
@@ -159,6 +171,28 @@ pub(all) enum BodyItem {
   Attribute(Attr)
   Block(Block)
 } derive(Eq, @debug.Debug)
+
+pub struct Decor {
+  prefix : String?
+  suffix : String?
+} derive(Eq, @debug.Debug)
+pub fn Decor::clear(Self) -> Self
+pub fn Decor::empty() -> Self
+pub fn Decor::get_prefix(Self) -> String?
+pub fn Decor::get_suffix(Self) -> String?
+pub fn Decor::new(String?, String?) -> Self
+pub fn Decor::set_prefix(Self, String) -> Self
+pub fn Decor::set_suffix(Self, String) -> Self
+
+pub struct Decorated[T] {
+  value : T
+  decor : Decor
+} derive(Eq, @debug.Debug)
+pub fn[T] Decorated::bare(T) -> Self[T]
+pub fn[T] Decorated::get_decor(Self[T]) -> Decor
+pub fn[T] Decorated::get_value(Self[T]) -> T
+pub fn[T] Decorated::new(T, Decor) -> Self[T]
+pub fn[T] Decorated::set_decor(Self[T], Decor) -> Self[T]
 
 pub struct FieldSchema {
   schema : TypeSchema

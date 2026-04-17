@@ -293,7 +293,12 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
 
       match parser.expect(RBrace) {
         Ok(final_parser) =>
-          Ok((Block::new(type_name, labels, { items, }), final_parser))
+          Ok(
+            (
+              Block::new(type_name, labels, { items, decor: Decor::empty() }),
+              final_parser,
+            ),
+          )
         Err(e) => Err(e)
       }
     }
