@@ -515,8 +515,26 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
         if is_float {
+          // Parse float value
+          let mut result = 0.0
+          let mut decimal_place = 1.0
+          let mut in_decimal = false
+          for c in n {
+            if c == '-' {
+              // Skip negative sign
+            } else if c == '.' {
+              in_decimal = true
+            } else if c >= '0' && c <= '9' {
+              if in_decimal {
+                decimal_place = decimal_place * 10.0
+                result = result + (c.to_int() - '0'.to_int()).to_double() / decimal_place
+              } else {
+                result = result * 10.0 + (c.to_int() - '0'.to_int()).to_double()
+              }
+            }
+          }
           match self.advance() {
-            Ok(p) => Ok((Float(0.0), p)) // TODO: implement float parsing
+            Ok(p) => Ok((Float(result), p))
             Err(e) => Err(e)
           }
         } else {

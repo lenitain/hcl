@@ -1,6 +1,6 @@
-// import {
-//   "opencode/hcl" @lib,
-// }
+import {
+  "hcl" @hcl,
+}
 
 options(
   "is-main": true,

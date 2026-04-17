@@ -1,6 +1,6 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：Heredoc 解析完成 (约 80% 功能覆盖)
+## 当前状态：JSON 转换和 CLI 工具完成 (约 90% 功能覆盖)
 
 ## 已完成 ✅
 
@@ -41,13 +41,14 @@
 - ✅ 字符串转义
 
 ### 测试
-- ✅ 130 个测试全部通过
+- ✅ 146 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
 - 覆盖：for表达式（列表推导、对象推导、条件过滤）
 - 覆盖：Schema验证（类型检查、必填字段、自定义验证器、集成测试）
 - 覆盖：Heredoc 解析（基本、多行、strip、自定义 delimiter）
+- 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -91,10 +92,20 @@
   - [x] 上下文信息（显示出错的代码行）
   - [x] 修复建议（列指针指向错误位置）
 
+- [x] JSON 转换
+  - [x] hcl_to_json() 函数
+  - [x] hcl_to_json_pretty() 函数
+  - [x] body_to_json() 函数
+  - [x] 字符串转义
+  - [x] 浮点数解析修复
+
+- [x] CLI 工具
+  - [x] 基本框架
+  - [x] 命令行参数解析
+  - [x] 使用说明
+
 ### 低优先级
 - [ ] 保留空白和注释的编辑（类似 hcl-edit）
-- [ ] JSON 转换
-- [ ] CLI 工具
 - [ ] 性能优化
 - [ ] 完整的 spec test suite
 
@@ -148,9 +159,17 @@
    - 必填字段 ✅
    - 自定义验证器 ✅
    - 路径跟踪错误 ✅
-2. 更好的错误消息
-3. JSON 转换
-4. CLI 工具
+2. 更好的错误消息 ✅
+3. JSON 转换 ✅
+4. CLI 工具 ✅
+```
+
+### 阶段 5：高级功能（待定）
+```
+1. 保留空白和注释的编辑（类似 hcl-edit）
+2. 性能优化
+3. 完整的 spec test suite
+4. 更多 CLI 功能（文件读取、批量处理）
 ```
 
 ## 文件结构
@@ -167,6 +186,8 @@ hcl/
 ├── expr_test.mbt      # 表达式测试（条件、函数、变量、属性）
 ├── for_test.mbt       # for 表达式测试（新增）
 ├── hcl.mbt            # 主入口
+├── json.mbt           # JSON 转换（新增）
+├── json_test.mbt      # JSON 测试（新增）
 ├── lexer.mbt          # 词法分析器
 ├── parser.mbt         # 解析器
 ├── schema.mbt         # Schema验证（新增）
@@ -177,8 +198,19 @@ hcl/
 ├── token.mbt          # Token 类型
 ├── value.mbt          # HCLValue 类型
 ├── hcl_test.mbt       # 基础测试
-└── eval_test.mbt      # 基础表达式求值测试
+├── eval_test.mbt      # 基础表达式求值测试
+├── error_test.mbt     # 错误消息测试
+└── cmd/
+    └── main/
+        ├── main.mbt   # CLI 入口（新增）
+        └── moon.pkg   # CLI 包配置
 ```
+
+## 参考资料
+
+- hcl-rs 源码：`/home/pilot/.projects/hcl-rs/`
+- HCL 规范：https://github.com/hashicorp/hcl/blob/main/spec.md
+- MoonBit 文档：https://docs.moonbitlang.com
 
 ## 参考资料
 
