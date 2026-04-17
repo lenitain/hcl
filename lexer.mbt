@@ -239,6 +239,7 @@ fn Lexer::read_escape_sequence(self : Lexer) -> HCLResult[(Char, Lexer)] {
     Some(c) if c == '/'.to_int().to_uint16() => Ok(('/', self.advance()))
     Some(c) if c == 'b'.to_int().to_uint16() => Ok(('\b', self.advance()))
     Some(c) if c == 'f'.to_int().to_uint16() => Ok(('\f', self.advance()))
+    Some(c) if c == 'u'.to_int().to_uint16() => self.read_unicode_escape()
     _ =>
       Err(
         HCLError::parse_error_with_context(
@@ -253,12 +254,200 @@ fn Lexer::read_escape_sequence(self : Lexer) -> HCLResult[(Char, Lexer)] {
 }
 
 ///|
-/// Read a number literal
+/// Read Unicode escape sequence (\uXXXX or \u{XXXX})
+fn Lexer::read_unicode_escape(self : Lexer) -> HCLResult[(Char, Lexer)] {
+  let lexer = self.advance() // skip 'u'
+  if lexer.is_at_end() {
+    return Err(
+      HCLError::parse_error_with_context(
+        "Invalid unicode escape sequence",
+        lexer.line,
+        lexer.col,
+        lexer.pos,
+        lexer.get_line(lexer.line),
+      ),
+    )
+  }
+
+  // Check for \u{XXXX} format
+  if lexer.peek() == Some('{'.to_int().to_uint16()) {
+    let lexer = lexer.advance() // skip '{'
+    let mut code_point = 0
+    let mut digits = 0
+    let mut l = lexer
+
+    while !l.is_at_end() {
+      match l.peek() {
+        Some(c) if c == '}'.to_int().to_uint16() => {
+          if digits == 0 {
+            return Err(
+              HCLError::parse_error_with_context(
+                "Invalid unicode escape: empty code point",
+                l.line,
+                l.col,
+                l.pos,
+                l.get_line(l.line),
+              ),
+            )
+          }
+          l = l.advance() // skip '}'
+          // Validate code point range
+          if code_point > 0x10FFFF {
+            return Err(
+              HCLError::parse_error_with_context(
+                "Invalid unicode escape: code point out of range",
+                lexer.line,
+                lexer.col,
+                lexer.pos,
+                lexer.get_line(lexer.line),
+              ),
+            )
+          }
+          return Ok((code_point.unsafe_to_char(), l))
+        }
+        Some(c) if is_hex_digit(c) => {
+          if digits >= 6 {
+            return Err(
+              HCLError::parse_error_with_context(
+                "Invalid unicode escape: too many hex digits",
+                l.line,
+                l.col,
+                l.pos,
+                l.get_line(l.line),
+              ),
+            )
+          }
+          code_point = code_point * 16 + hex_digit_value(c)
+          digits = digits + 1
+          l = l.advance()
+        }
+        _ =>
+          return Err(
+            HCLError::parse_error_with_context(
+              "Invalid unicode escape: expected hex digit or '}'",
+              l.line,
+              l.col,
+              l.pos,
+              l.get_line(l.line),
+            ),
+          )
+      }
+    }
+
+    return Err(
+      HCLError::parse_error_with_context(
+        "Invalid unicode escape: unterminated \\u{} sequence",
+        l.line,
+        l.col,
+        l.pos,
+        l.get_line(l.line),
+      ),
+    )
+  }
+
+  // \uXXXX format - exactly 4 hex digits
+  let mut code_point = 0
+  let mut digits = 0
+  let mut l = lexer
+
+  while digits < 4 && !l.is_at_end() {
+    match l.peek() {
+      Some(c) if is_hex_digit(c) => {
+        code_point = code_point * 16 + hex_digit_value(c)
+        digits = digits + 1
+        l = l.advance()
+      }
+      _ => break
+    }
+  }
+
+  if digits != 4 {
+    return Err(
+      HCLError::parse_error_with_context(
+        "Invalid unicode escape: expected 4 hex digits",
+        lexer.line,
+        lexer.col,
+        lexer.pos,
+        lexer.get_line(lexer.line),
+      ),
+    )
+  }
+
+  Ok((code_point.unsafe_to_char(), l))
+}
+
+///|
+/// Read a number literal (decimal, hex 0x, octal 0o, binary 0b)
 fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
   let mut lexer = self
   let mut num = ""
   let mut is_float = false
 
+  // Check for prefix: 0x (hex), 0o (octal), 0b (binary)
+  match lexer.peek() {
+    Some(c) if c == '0'.to_int().to_uint16() =>
+      match lexer.peek_next() {
+        Some(c2) if c2 == 'x'.to_int().to_uint16() ||
+          c2 == 'X'.to_int().to_uint16() => {
+          // Hex literal
+          lexer = lexer.advance().advance() // skip 0x
+          num = "0x"
+          while !lexer.is_at_end() {
+            match lexer.peek() {
+              Some(c) if is_hex_digit(c) => {
+                num = num + c.to_int().unsafe_to_char().to_string()
+                lexer = lexer.advance()
+              }
+              Some(c) if c == '_'.to_int().to_uint16() =>
+                lexer = lexer.advance()
+              _ => break
+            }
+          }
+          return Ok((NumberLit(num), lexer))
+        }
+        Some(c2) if c2 == 'o'.to_int().to_uint16() ||
+          c2 == 'O'.to_int().to_uint16() => {
+          // Octal literal
+          lexer = lexer.advance().advance() // skip 0o
+          num = "0o"
+          while !lexer.is_at_end() {
+            match lexer.peek() {
+              Some(c) if is_octal_digit(c) => {
+                num = num + c.to_int().unsafe_to_char().to_string()
+                lexer = lexer.advance()
+              }
+              Some(c) if c == '_'.to_int().to_uint16() =>
+                lexer = lexer.advance()
+              _ => break
+            }
+          }
+          return Ok((NumberLit(num), lexer))
+        }
+        Some(c2) if c2 == 'b'.to_int().to_uint16() ||
+          c2 == 'B'.to_int().to_uint16() => {
+          // Binary literal
+          lexer = lexer.advance().advance() // skip 0b
+          num = "0b"
+          while !lexer.is_at_end() {
+            match lexer.peek() {
+              Some(c) if c == '0'.to_int().to_uint16() ||
+                c == '1'.to_int().to_uint16() => {
+                num = num + c.to_int().unsafe_to_char().to_string()
+                lexer = lexer.advance()
+              }
+              Some(c) if c == '_'.to_int().to_uint16() =>
+                lexer = lexer.advance()
+              _ => break
+            }
+          }
+          return Ok((NumberLit(num), lexer))
+        }
+        _ => () // Fall through to decimal parsing
+      }
+    _ => ()
+  }
+
+  // Decimal number parsing
   while !lexer.is_at_end() {
     match lexer.peek() {
       Some(c) if is_digit(c) => {
@@ -483,6 +672,32 @@ fn is_ident_start(c : UInt16) -> Bool {
 /// Check if char code is valid identifier continue
 fn is_ident_continue(c : UInt16) -> Bool {
   is_ident_start(c) || is_digit(c) || c == '-'.to_int().to_uint16()
+}
+
+///|
+/// Check if char code is a hex digit (0-9, a-f, A-F)
+fn is_hex_digit(c : UInt16) -> Bool {
+  is_digit(c) ||
+  (c >= 'a'.to_int().to_uint16() && c <= 'f'.to_int().to_uint16()) ||
+  (c >= 'A'.to_int().to_uint16() && c <= 'F'.to_int().to_uint16())
+}
+
+///|
+/// Convert hex digit char code to its integer value
+fn hex_digit_value(c : UInt16) -> Int {
+  if c >= '0'.to_int().to_uint16() && c <= '9'.to_int().to_uint16() {
+    c.to_int() - '0'.to_int()
+  } else if c >= 'a'.to_int().to_uint16() && c <= 'f'.to_int().to_uint16() {
+    c.to_int() - 'a'.to_int() + 10
+  } else {
+    c.to_int() - 'A'.to_int() + 10
+  }
+}
+
+///|
+/// Check if char code is an octal digit (0-7)
+fn is_octal_digit(c : UInt16) -> Bool {
+  c >= '0'.to_int().to_uint16() && c <= '7'.to_int().to_uint16()
 }
 
 ///|

@@ -452,39 +452,87 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         Err(e) => Err(e)
       }
-    NumberLit(n) => {
-      // Parse as integer (simple implementation)
-      let value = 0
-      let is_negative = false
-
-      // Simple integer parsing
-      for c in n {
-        if c == '-' {
-          // Skip negative sign
-        } else if c >= '0' && c <= '9' {
-          // Parse digit
-        } else {
-          // Contains non-digit, treat as float
+    NumberLit(n) =>
+      // Detect prefix: 0x (hex), 0o (octal), 0b (binary)
+      if n.has_prefix("0x") || n.has_prefix("0X") {
+        // Hex parsing
+        let mut result = 0
+        for c in n[2:] {
+          if c == '_' {
+            // skip underscores
+          } else if c >= '0' && c <= '9' {
+            result = result * 16 + (c.to_int() - '0'.to_int())
+          } else if c >= 'a' && c <= 'f' {
+            result = result * 16 + (c.to_int() - 'a'.to_int() + 10)
+          } else if c >= 'A' && c <= 'F' {
+            result = result * 16 + (c.to_int() - 'A'.to_int() + 10)
+          }
+        }
+        match self.advance() {
+          Ok(p) => Ok((Int(result), p))
+          Err(e) => Err(e)
+        }
+      } else if n.has_prefix("0o") || n.has_prefix("0O") {
+        // Octal parsing
+        let mut result = 0
+        for c in n[2:] {
+          if c == '_' {
+            // skip underscores
+          } else if c >= '0' && c <= '7' {
+            result = result * 8 + (c.to_int() - '0'.to_int())
+          }
+        }
+        match self.advance() {
+          Ok(p) => Ok((Int(result), p))
+          Err(e) => Err(e)
+        }
+      } else if n.has_prefix("0b") || n.has_prefix("0B") {
+        // Binary parsing
+        let mut result = 0
+        for c in n[2:] {
+          if c == '_' {
+            // skip underscores
+          } else if c == '0' || c == '1' {
+            result = result * 2 + (c.to_int() - '0'.to_int())
+          }
+        }
+        match self.advance() {
+          Ok(p) => Ok((Int(result), p))
+          Err(e) => Err(e)
+        }
+      } else {
+        // Decimal parsing
+        let mut is_float = false
+        for c in n {
+          if c == '-' {
+            // Skip negative sign
+          } else if c >= '0' && c <= '9' {
+            // Parse digit
+          } else {
+            // Contains non-digit, treat as float
+            is_float = true
+            break
+          }
+        }
+        if is_float {
           match self.advance() {
-            Ok(p) => return Ok((Float(0.0), p)) // TODO: implement float parsing
-            Err(e) => return Err(e)
+            Ok(p) => Ok((Float(0.0), p)) // TODO: implement float parsing
+            Err(e) => Err(e)
+          }
+        } else {
+          // Parse integer value
+          let mut result = 0
+          for c in n {
+            if c >= '0' && c <= '9' {
+              result = result * 10 + (c.to_int() - '0'.to_int())
+            }
+          }
+          match self.advance() {
+            Ok(p) => Ok((Int(result), p))
+            Err(e) => Err(e)
           }
         }
       }
-
-      // Parse integer value
-      let mut result = 0
-      for c in n {
-        if c >= '0' && c <= '9' {
-          result = result * 10 + (c.to_int() - '0'.to_int())
-        }
-      }
-
-      match self.advance() {
-        Ok(p) => Ok((Int(result), p))
-        Err(e) => Err(e)
-      }
-    }
     BoolLit(b) =>
       match self.advance() {
         Ok(p) => Ok((Bool(b), p))
