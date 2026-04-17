@@ -109,10 +109,14 @@ test "validate_one returns first error" {
 ///|
 test "custom validator - string not empty" {
   let schema = {
-    "name": FieldSchemaEx::new(FieldSchema::required(TypeSchema::string()))
-      .add_validator(string_not_empty()),
+    "name": FieldSchemaEx::new(FieldSchema::required(TypeSchema::string())).add_validator(
+      string_not_empty(),
+    ),
   }
-  let errors = validate_ex(HCLValue::Object({"name": HCLValue::String("")}), schema)
+  let errors = validate_ex(
+    HCLValue::Object({ "name": HCLValue::String("") }),
+    schema,
+  )
   assert_eq(errors.length(), 1)
   assert_true(errors[0].message().contains("must not be empty"))
 }
@@ -120,31 +124,102 @@ test "custom validator - string not empty" {
 ///|
 test "custom validator - int in range" {
   let schema = {
-    "age": FieldSchemaEx::new(FieldSchema::required(TypeSchema::int()))
-      .add_validator(int_in_range(0, 150)),
+    "age": FieldSchemaEx::new(FieldSchema::required(TypeSchema::int())).add_validator(
+      int_in_range(0, 150),
+    ),
   }
-  assert_eq(validate_ex(HCLValue::Object({"age": HCLValue::Int(25)}), schema).length(), 0)
-  assert_eq(validate_ex(HCLValue::Object({"age": HCLValue::Int(-1)}), schema).length(), 1)
-  assert_eq(validate_ex(HCLValue::Object({"age": HCLValue::Int(200)}), schema).length(), 1)
+  assert_eq(
+    validate_ex(HCLValue::Object({ "age": HCLValue::Int(25) }), schema).length(),
+    0,
+  )
+  assert_eq(
+    validate_ex(HCLValue::Object({ "age": HCLValue::Int(-1) }), schema).length(),
+    1,
+  )
+  assert_eq(
+    validate_ex(HCLValue::Object({ "age": HCLValue::Int(200) }), schema).length(),
+    1,
+  )
 }
 
 ///|
 test "custom validator - string starts with" {
   let schema = {
-    "id": FieldSchemaEx::new(FieldSchema::required(TypeSchema::string()))
-      .add_validator(string_starts_with("usr_")),
+    "id": FieldSchemaEx::new(FieldSchema::required(TypeSchema::string())).add_validator(
+      string_starts_with("usr_"),
+    ),
   }
-  assert_eq(validate_ex(HCLValue::Object({"id": HCLValue::String("usr_123")}), schema).length(), 0)
-  assert_eq(validate_ex(HCLValue::Object({"id": HCLValue::String("abc")}), schema).length(), 1)
+  assert_eq(
+    validate_ex(HCLValue::Object({ "id": HCLValue::String("usr_123") }), schema).length(),
+    0,
+  )
+  assert_eq(
+    validate_ex(HCLValue::Object({ "id": HCLValue::String("abc") }), schema).length(),
+    1,
+  )
 }
 
 ///|
 test "multiple validators" {
   let schema = {
     "name": FieldSchemaEx::new(FieldSchema::required(TypeSchema::string()))
-      .add_validator(string_not_empty())
-      .add_validator(string_starts_with("A")),
+    .add_validator(string_not_empty())
+    .add_validator(string_starts_with("A")),
   }
-  assert_eq(validate_ex(HCLValue::Object({"name": HCLValue::String("Alice")}), schema).length(), 0)
-  assert_eq(validate_ex(HCLValue::Object({"name": HCLValue::String("")}), schema).length(), 2)
+  assert_eq(
+    validate_ex(HCLValue::Object({ "name": HCLValue::String("Alice") }), schema).length(),
+    0,
+  )
+  assert_eq(
+    validate_ex(HCLValue::Object({ "name": HCLValue::String("") }), schema).length(),
+    2,
+  )
+}
+
+///|
+test "from_hcl_with_schema - valid config" {
+  let hcl = "server {\n  host = \"localhost\"\n  port = 8080\n}"
+  let schema = TypeSchema::object({
+    "server": FieldSchema::required(
+      TypeSchema::object({
+        "host": FieldSchema::required(TypeSchema::string()),
+        "port": FieldSchema::required(TypeSchema::int()),
+      }),
+    ),
+  })
+  let result = from_hcl_with_schema(hcl, schema)
+  assert_true(result is Ok(_))
+}
+
+///|
+test "from_hcl_with_schema - invalid config" {
+  let hcl = "server {\n  host = \"localhost\"\n}"
+  let schema = TypeSchema::object({
+    "server": FieldSchema::required(
+      TypeSchema::object({
+        "host": FieldSchema::required(TypeSchema::string()),
+        "port": FieldSchema::required(TypeSchema::int()),
+      }),
+    ),
+  })
+  let result = from_hcl_with_schema(hcl, schema)
+  assert_true(result is Err(_))
+}
+
+///|
+test "from_hcl_with_schema_full - multiple errors" {
+  let hcl = "config {\n}"
+  let schema = TypeSchema::object({
+    "config": FieldSchema::required(
+      TypeSchema::object({
+        "name": FieldSchema::required(TypeSchema::string()),
+        "value": FieldSchema::required(TypeSchema::int()),
+      }),
+    ),
+  })
+  let result = from_hcl_with_schema_full(hcl, schema)
+  match result {
+    Err(errors) => assert_eq(errors.length(), 2)
+    _ => assert_true(false)
+  }
 }
