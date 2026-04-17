@@ -30,9 +30,17 @@ pub fn from_hcl_string(String) -> Result[String, HCLError]
 
 pub fn from_hcl_value(String) -> Result[HCLValue, HCLError]
 
+pub fn int_in_range(Int, Int) -> (HCLValue, String) -> Array[HCLError]
+
+pub fn is_valid(HCLValue, TypeSchema) -> Bool
+
 pub fn parse(String) -> Result[Body, HCLError]
 
 pub fn parse_template(String) -> Result[Template, HCLError]
+
+pub fn string_not_empty() -> (HCLValue, String) -> Array[HCLError]
+
+pub fn string_starts_with(String) -> (HCLValue, String) -> Array[HCLError]
 
 pub fn to_hcl_body(Body) -> String
 
@@ -43,6 +51,12 @@ pub fn to_hcl_int(Int) -> String
 pub fn to_hcl_string(String) -> String
 
 pub fn to_hcl_value(HCLValue) -> String
+
+pub fn validate(HCLValue, TypeSchema) -> Array[HCLError]
+
+pub fn validate_ex(HCLValue, Map[String, FieldSchemaEx]) -> Array[HCLError]
+
+pub fn validate_one(HCLValue, TypeSchema) -> Result[Unit, HCLError]
 
 // Errors
 
@@ -94,6 +108,13 @@ pub struct FieldSchema {
 pub fn FieldSchema::optional(TypeSchema) -> Self
 pub fn FieldSchema::required(TypeSchema) -> Self
 pub fn FieldSchema::with_description(Self, String) -> Self
+
+pub struct FieldSchemaEx {
+  base : FieldSchema
+  validators : Array[(HCLValue, String) -> Array[HCLError]]
+}
+pub fn FieldSchemaEx::add_validator(Self, (HCLValue, String) -> Array[HCLError]) -> Self
+pub fn FieldSchemaEx::new(FieldSchema) -> Self
 
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int)
@@ -251,6 +272,8 @@ pub fn TypeSchema::string() -> Self
 
 // Type aliases
 pub type HCLResult[T] = Result[T, HCLError]
+
+pub type Validator = (HCLValue, String) -> Array[HCLError]
 
 // Traits
 
