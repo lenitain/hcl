@@ -55,7 +55,9 @@ test "parse template with number interpolation" {
   let input = "Count: ${count}"
   match Template::from_string(input) {
     Ok(template) => {
-      let vars = { "count": HCLValue::Int(42, Decor::empty()) }
+      let vars = {
+        "count": HCLValue::Number(Number::from_int(42), Decor::empty()),
+      }
       let funcs = {}
       match template.evaluate(vars, funcs) {
         Ok(result) => assert_eq(result, "Count: 42")
@@ -146,7 +148,7 @@ test "parse template with complex structure" {
     Ok(template) => {
       let vars = {
         "name": HCLValue::String("John", Decor::empty()),
-        "age": HCLValue::Int(30, Decor::empty()),
+        "age": HCLValue::Number(Number::from_int(30), Decor::empty()),
         "active": HCLValue::Bool(true, Decor::empty()),
       }
       let funcs = {}

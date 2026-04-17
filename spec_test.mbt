@@ -214,24 +214,39 @@ test "spec operators arithmetic" {
           let arith = obj.get("arithmetic").unwrap()
           match arith {
             Object(m, _) => {
-              assert_true(m.get("add").unwrap() == Float(5.5, Decor::empty()))
-              assert_true(m.get("sub").unwrap() == Float(1.5, Decor::empty()))
               assert_true(
-                m.get("sub_neg").unwrap() == Float(-1.5, Decor::empty()),
+                m.get("add").unwrap() ==
+                Number(Number::from_finite_f64(5.5), Decor::empty()),
               )
-              assert_true(m.get("mul").unwrap() == Float(9.0, Decor::empty()))
-              assert_true(m.get("mod").unwrap() == Int(1, Decor::empty()))
+              assert_true(
+                m.get("sub").unwrap() ==
+                Number(Number::from_finite_f64(1.5), Decor::empty()),
+              )
+              assert_true(
+                m.get("sub_neg").unwrap() ==
+                Number(Number::from_finite_f64(-1.5), Decor::empty()),
+              )
+              assert_true(
+                m.get("mul").unwrap() ==
+                Number(Number::from_finite_f64(9.0), Decor::empty()),
+              )
+              assert_true(
+                m.get("mod").unwrap() ==
+                Number(Number::from_int(1), Decor::empty()),
+              )
               match m.get("add_big").unwrap() {
-                Float(f, _) => assert_true(f > 4.0 && f < 5.0)
+                Number(n, _) =>
+                  assert_true(n.as_float() > 4.0 && n.as_float() < 5.0)
                 _ => panic()
               }
               match m.get("div").unwrap() {
-                Float(f, _) => assert_true(f > 0.09 && f < 0.11)
-                Int(i, _) => assert_true(i == 0)
+                Number(n, _) =>
+                  assert_true(n.as_float() > 0.09 && n.as_float() < 0.11)
                 _ => panic()
               }
               match m.get("mod_frac").unwrap() {
-                Float(f, _) => assert_true(f > 0.7 && f < 0.9)
+                Number(n, _) =>
+                  assert_true(n.as_float() > 0.7 && n.as_float() < 0.9)
                 _ => panic()
               }
             }

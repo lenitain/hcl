@@ -24,6 +24,8 @@ pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn evaluate_template(String, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
 
+pub fn expr_to_string(Expression) -> String
+
 pub fn format_attr_with_decor(Attr) -> String
 
 pub fn format_body(Body) -> String
@@ -72,6 +74,12 @@ pub fn hcl_to_json_pretty(String) -> Result[String, HCLError]
 
 pub fn int_in_range(Int, Int) -> (HCLValue, String) -> Array[HCLError]
 
+pub fn is_id_continue(Char) -> Bool
+
+pub fn is_id_start(Char) -> Bool
+
+pub fn is_ident(String) -> Bool
+
 pub fn is_valid(HCLValue, TypeSchema) -> Bool
 
 pub fn parse(String) -> Result[Body, HCLError]
@@ -116,6 +124,28 @@ pub fn Attr::get_key(Self) -> String
 pub fn Attr::get_value(Self) -> HCLValue
 pub fn Attr::new(String, HCLValue) -> Self
 pub fn Attr::with_decor(Decorated[String], HCLValue, Decor) -> Self
+
+pub(all) struct BinaryOp {
+  left : Expression
+  op : BinaryOperator
+  right : Expression
+} derive(Eq)
+
+pub(all) enum BinaryOperator {
+  Plus
+  Minus
+  Mul
+  Div
+  Mod
+  Eq
+  Neq
+  Lt
+  Gt
+  Lte
+  Gte
+  And
+  Or
+} derive(Eq)
 
 pub struct Block {
   type_name : Decorated[String]
@@ -180,6 +210,12 @@ pub(all) enum BodyItem {
   Block(Block)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Conditional {
+  condition : Expression
+  true_expr : Expression
+  false_expr : Expression
+} derive(Eq)
+
 pub struct Decor {
   prefix : String?
   suffix : String?
@@ -202,6 +238,25 @@ pub fn[T] Decorated::get_value(Self[T]) -> T
 pub fn[T] Decorated::new(T, Decor) -> Self[T]
 pub fn[T] Decorated::set_decor(Self[T], Decor) -> Self[T]
 
+pub(all) enum Expression {
+  ExprNull
+  ExprBool(Bool)
+  ExprInt(Int)
+  ExprInt64(Int64)
+  ExprFloat(Double)
+  ExprString(String)
+  ExprArray(Array[Expression])
+  ExprObject(Array[(ObjectKey, Expression)])
+  ExprTemplate(TemplateExpr)
+  ExprVariable(Variable)
+  ExprTraversal(Traversal)
+  ExprFuncCall(FuncCall)
+  ExprParenthesis(Expression)
+  ExprConditional(Conditional)
+  ExprOperation(Operation)
+  ExprFor(ForExpr)
+} derive(Eq)
+
 pub struct FieldSchema {
   schema : TypeSchema
   required : Bool
@@ -217,6 +272,32 @@ pub struct FieldSchemaEx {
 }
 pub fn FieldSchemaEx::add_validator(Self, (HCLValue, String) -> Array[HCLError]) -> Self
 pub fn FieldSchemaEx::new(FieldSchema) -> Self
+
+pub(all) enum ForExpr {
+  List(ForListExpr)
+  Object(ForObjectExpr)
+} derive(Eq)
+
+pub(all) struct ForListExpr {
+  var_name : String
+  collection : Expression
+  value_expr : Expression
+  filter : Expression?
+} derive(Eq)
+
+pub(all) struct ForObjectExpr {
+  key_var : String
+  value_var : String
+  collection : Expression
+  key_expr : Expression
+  value_expr : Expression
+  filter : Expression?
+} derive(Eq)
+
+pub(all) struct FuncCall {
+  name : String
+  args : Array[Expression]
+} derive(Eq)
 
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int, String)
@@ -247,9 +328,7 @@ pub fn HCLError::validation_error(String, String) -> Self
 pub(all) enum HCLValue {
   Null(Decor)
   Bool(Bool, Decor)
-  Int(Int, Decor)
-  Int64(Int64, Decor)
-  Float(Double, Decor)
+  Number(Number, Decor)
   String(String, Decor)
   Array(Array[HCLValue], Decor)
   Object(Map[String, HCLValue], Decor)
@@ -260,11 +339,14 @@ pub fn HCLValue::as_bool(Self) -> Bool?
 pub fn HCLValue::as_float(Self) -> Double?
 pub fn HCLValue::as_int(Self) -> Int?
 pub fn HCLValue::as_int64(Self) -> Int64?
+pub fn HCLValue::as_number(Self) -> Number?
 pub fn HCLValue::as_object(Self) -> Map[String, Self]?
 pub fn HCLValue::as_string(Self) -> String?
 pub fn HCLValue::bool(Bool) -> Self
+pub fn HCLValue::float(Double) -> Self
 pub fn HCLValue::get_decor(Self) -> Decor
 pub fn HCLValue::int(Int) -> Self
+pub fn HCLValue::int64(Int64) -> Self
 pub fn HCLValue::is_array(Self) -> Bool
 pub fn HCLValue::is_bool(Self) -> Bool
 pub fn HCLValue::is_null(Self) -> Bool
@@ -276,6 +358,32 @@ pub fn HCLValue::object(Map[String, Self]) -> Self
 pub fn HCLValue::set_decor(Self, Decor) -> Self
 pub fn HCLValue::string(String) -> Self
 pub fn HCLValue::to_json_string(Self) -> String
+
+pub(all) struct Heredoc {
+  delimiter : String
+  content : String
+  strip_mode : HeredocStripMode
+} derive(Eq)
+
+pub(all) enum HeredocStripMode {
+  NoStrip
+  StripMode
+} derive(Eq)
+
+pub struct Ident {
+  inner : String
+} derive(Eq)
+pub fn Ident::as_str(Self) -> String
+pub fn Ident::hash(Self) -> Int
+pub fn Ident::into_string(Self) -> String
+pub fn Ident::is_empty(Self) -> Bool
+pub fn Ident::len(Self) -> Int
+pub fn Ident::new(String) -> Self
+pub fn Ident::new_sanitized(String) -> Self
+pub fn Ident::new_unchecked(String) -> Self
+pub fn Ident::output(Self) -> String
+pub fn Ident::to_string(Self) -> String
+pub fn Ident::try_new(String) -> Result[Self, HCLError]
 
 pub struct Lexer {
   input : String
@@ -291,6 +399,45 @@ pub fn Lexer::new(String) -> Self
 pub fn Lexer::next_token(Self) -> Result[(Token, Self), HCLError]
 pub fn Lexer::next_token_with_trivia(Self) -> Result[(Token, Self, String?), HCLError]
 pub fn Lexer::tokenize(Self) -> Result[Array[Token], HCLError]
+
+pub(all) enum N {
+  PosInt(UInt64)
+  NegInt(Int64)
+  Float(Double)
+}
+
+pub struct Number {
+  n : N
+}
+pub fn Number::as_f64(Self) -> Double
+pub fn Number::as_float(Self) -> Double
+pub fn Number::as_i64(Self) -> Int64?
+pub fn Number::as_int(Self) -> Int?
+pub fn Number::as_int64(Self) -> Int64?
+pub fn Number::as_u64(Self) -> UInt64?
+pub fn Number::from_double(Double) -> Self
+pub fn Number::from_f64(Double) -> Self?
+pub fn Number::from_finite_f64(Double) -> Self
+pub fn Number::from_int(Int) -> Self
+pub fn Number::from_int64(Int64) -> Self
+pub fn Number::from_uint64(UInt64) -> Self
+pub fn Number::is_f64(Self) -> Bool
+pub fn Number::is_float(Self) -> Bool
+pub fn Number::is_int(Self) -> Bool
+pub fn Number::is_int64(Self) -> Bool
+pub fn Number::is_neg_int(Self) -> Bool
+pub fn Number::is_pos_int(Self) -> Bool
+
+pub(all) enum ObjectKey {
+  Identifier(String)
+  Expression(Expression)
+} derive(Eq)
+pub fn ObjectKey::to_string(Self) -> String
+
+pub(all) enum Operation {
+  Binary(BinaryOp)
+  Unary(UnaryOp)
+} derive(Eq)
 
 pub struct Parser {
   lexer : Lexer
@@ -309,6 +456,11 @@ pub fn Template::evaluate(Self, Map[String, HCLValue], Map[String, (Array[HCLVal
 pub fn Template::from_heredoc(String, String, Bool) -> Result[Self, HCLError]
 pub fn Template::from_string(String) -> Result[Self, HCLError]
 pub fn Template::new() -> Self
+
+pub(all) enum TemplateExpr {
+  Heredoc(Heredoc)
+  InterpolatedString(String)
+} derive(Eq)
 
 pub(all) enum TemplatePart {
   Text(String)
@@ -364,6 +516,16 @@ pub fn Token::is_literal(Self) -> Bool
 pub fn Token::is_operator(Self) -> Bool
 pub fn Token::precedence(Self) -> Int
 
+pub(all) struct Traversal {
+  base : Expression
+  operators : Array[TraversalOperator]
+} derive(Eq)
+
+pub(all) enum TraversalOperator {
+  Attr(String)
+  Index(Expression)
+} derive(Eq)
+
 pub(all) enum TypeSchema {
   Any
   NullSchema
@@ -387,7 +549,23 @@ pub fn TypeSchema::number() -> Self
 pub fn TypeSchema::object(Map[String, FieldSchema]) -> Self
 pub fn TypeSchema::string() -> Self
 
+pub(all) struct UnaryOp {
+  op : UnaryOperator
+  operand : Expression
+} derive(Eq)
+
+pub(all) enum UnaryOperator {
+  Negate
+  Not
+} derive(Eq)
+
+pub(all) struct Variable {
+  name : String
+} derive(Eq)
+
 // Type aliases
+pub type ExprObject = Array[(ObjectKey, Expression)]
+
 pub type HCLResult[T] = Result[T, HCLError]
 
 pub type Validator = (HCLValue, String) -> Array[HCLError]

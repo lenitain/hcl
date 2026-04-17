@@ -16,9 +16,7 @@ fn type_name_of(value : HCLValue) -> String {
   match value {
     Null(_) => "null"
     Bool(_, _) => "bool"
-    Int(_, _) => "int"
-    Int64(_, _) => "int64"
-    Float(_, _) => "float"
+    Number(_, _) => "number"
     String(_, _) => "string"
     Array(_, _) => "array"
     Object(_, _) => "object"
@@ -55,14 +53,18 @@ impl FromHCL for HCLValue with from_hcl(value) {
 ///|
 /// ToHCL implementation for Int
 impl ToHCL for Int with to_hcl(self) {
-  Int(self, Decor::empty())
+  Number(Number::from_int(self), Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Int
 impl FromHCL for Int with from_hcl(value) {
   match value {
-    Int(i, _) => Ok(i)
+    Number(n, _) =>
+      match n.as_int() {
+        Some(i) => Ok(i)
+        None => Err(HCLError::type_mismatch("Int", type_name_of(value)))
+      }
     _ => Err(HCLError::type_mismatch("Int", type_name_of(value)))
   }
 }
@@ -70,15 +72,18 @@ impl FromHCL for Int with from_hcl(value) {
 ///|
 /// ToHCL implementation for Int64
 impl ToHCL for Int64 with to_hcl(self) {
-  Int64(self, Decor::empty())
+  Number(Number::from_int64(self), Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Int64
 impl FromHCL for Int64 with from_hcl(value) {
   match value {
-    Int64(i, _) => Ok(i)
-    Int(i, _) => Ok(i.to_int64())
+    Number(n, _) =>
+      match n.as_int64() {
+        Some(i) => Ok(i)
+        None => Err(HCLError::type_mismatch("Int64", type_name_of(value)))
+      }
     _ => Err(HCLError::type_mismatch("Int64", type_name_of(value)))
   }
 }
@@ -86,16 +91,14 @@ impl FromHCL for Int64 with from_hcl(value) {
 ///|
 /// ToHCL implementation for Double
 impl ToHCL for Double with to_hcl(self) {
-  Float(self, Decor::empty())
+  Number(Number::from_finite_f64(self), Decor::empty())
 }
 
 ///|
 /// FromHCL implementation for Double
 impl FromHCL for Double with from_hcl(value) {
   match value {
-    Float(f, _) => Ok(f)
-    Int(i, _) => Ok(i.to_double())
-    Int64(i, _) => Ok(i.to_double())
+    Number(n, _) => Ok(n.as_float())
     _ => Err(HCLError::type_mismatch("Double", type_name_of(value)))
   }
 }

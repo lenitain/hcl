@@ -10,7 +10,7 @@
 | 任务 | 状态 | 依赖 |
 |------|------|------|
 | Expression 独立枚举 | ✅ 完成 | - |
-| Value 统一 Number 类型 | ⏳ | - |
+| Value 统一 Number 类型 | ✅ 完成 | - |
 | Identifier 类型 | ⏳ | - |
 | ObjectKey 类型 | ✅ 已包含 | Expression |
 
@@ -60,10 +60,11 @@
 ## 已完成 ✅
 
 ### 核心数据结构
-- `value.mbt` - HCLValue 枚举（Null, Bool, Int, Int64, Float, String, Array, Object）
+- `value.mbt` - HCLValue 枚举（Null, Bool, Number, String, Array, Object）
 - `body.mbt` - Body, BodyItem, Attr, Block 结构体
 - `token.mbt` - Token 枚举（所有 token 类型）
 - `error.mbt` - HCLError 和 HCLResult 类型
+- `number.mbt` - Number 类型（PosInt/NegInt/Float 内部表示）
 
 ### 词法分析器 (lexer.mbt)
 - ✅ 基础 token 识别
@@ -106,7 +107,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 326 个测试全部通过
+- ✅ 438 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）

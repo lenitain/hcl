@@ -326,7 +326,7 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
     // Simple number parsing
     if trimmed.contains(".") {
       // Float - simplified
-      return Ok(Float(0.0, Decor::empty()))
+      return Ok(Number(Number::from_finite_f64(0.0), Decor::empty()))
     } else {
       // Integer
       let mut result = 0
@@ -344,7 +344,12 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
         }
         i += 1
       }
-      return Ok(Int(if negative { -result } else { result }, Decor::empty()))
+      return Ok(
+        Number(
+          Number::from_int(if negative { -result } else { result }),
+          Decor::empty(),
+        ),
+      )
     }
   }
 
@@ -753,9 +758,7 @@ fn value_to_string(value : HCLValue) -> String {
   match value {
     Null(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
-    Int(i, _) => i.to_string()
-    Int64(i, _) => i.to_string()
-    Float(f, _) => f.to_string()
+    Number(n, _) => n.to_string()
     String(s, _) => s
     Array(_, _) => "[array]"
     Object(_, _) => "[object]"

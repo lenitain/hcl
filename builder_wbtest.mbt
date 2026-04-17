@@ -2,7 +2,7 @@
 test "Body::builder basic" {
   let body = Body::builder()
     .attr("name", String("test", Decor::empty()))
-    .attr("port", Int(8080, Decor::empty()))
+    .attr("port", Number(Number::from_int(8080), Decor::empty()))
     .build()
   assert_eq(body.len(), 2)
   let name_attr = body.find_attr("name")
@@ -77,7 +77,7 @@ test "Block::builder basic" {
 ///|
 test "Block::builder no labels" {
   let blk = Block::builder("server")
-    .attr("port", Int(8080, Decor::empty()))
+    .attr("port", Number(Number::from_int(8080), Decor::empty()))
     .build()
   assert_eq(blk.get_type_name(), "server")
   assert_eq(blk.get_labels().length(), 0)
@@ -94,8 +94,8 @@ test "Block::builder attr_hcl" {
 ///|
 test "Block::builder with body" {
   let inner_body = Body::builder()
-    .attr("a", Int(1, Decor::empty()))
-    .attr("b", Int(2, Decor::empty()))
+    .attr("a", Number(Number::from_int(1), Decor::empty()))
+    .attr("b", Number(Number::from_int(2), Decor::empty()))
     .build()
   let blk = Block::builder("config").body(inner_body).build()
   assert_eq(blk.get_body().len(), 2)
@@ -104,8 +104,8 @@ test "Block::builder with body" {
 ///|
 test "builder chain" {
   let builder = Body::builder()
-  let b1 = builder.attr("a", Int(1, Decor::empty()))
-  let b2 = b1.attr("b", Int(2, Decor::empty()))
+  let b1 = builder.attr("a", Number(Number::from_int(1), Decor::empty()))
+  let b2 = b1.attr("b", Number(Number::from_int(2), Decor::empty()))
   let body = b2.build()
   assert_eq(body.len(), 2)
 }

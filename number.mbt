@@ -491,3 +491,10 @@ fn Number::to_string(self : Number) -> String {
 fn Number::to_debug(self : Number) -> String {
   "Number(" + N::to_string(self.n) + ")"
 }
+
+// Debug trait for Number
+
+///|
+impl @moonbitlang/core/debug.Debug for Number with to_repr(self) {
+  @moonbitlang/core/debug.Repr::integer(N::to_string(self.n))
+}

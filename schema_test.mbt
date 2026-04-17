@@ -3,7 +3,9 @@
 test "validate any schema" {
   let schema = TypeSchema::any()
   assert_true(is_valid(HCLValue::Null(Decor::empty()), schema))
-  assert_true(is_valid(HCLValue::Int(42, Decor::empty()), schema))
+  assert_true(
+    is_valid(HCLValue::Number(Number::from_int(42), Decor::empty()), schema),
+  )
   assert_true(is_valid(HCLValue::String("hello", Decor::empty()), schema))
 }
 
@@ -12,16 +14,27 @@ test "validate bool schema" {
   let schema = TypeSchema::bool()
   assert_true(is_valid(HCLValue::Bool(true, Decor::empty()), schema))
   assert_true(is_valid(HCLValue::Bool(false, Decor::empty()), schema))
-  assert_false(is_valid(HCLValue::Int(1, Decor::empty()), schema))
+  assert_false(
+    is_valid(HCLValue::Number(Number::from_int(1), Decor::empty()), schema),
+  )
   assert_false(is_valid(HCLValue::String("true", Decor::empty()), schema))
 }
 
 ///|
 test "validate int schema" {
   let schema = TypeSchema::int()
-  assert_true(is_valid(HCLValue::Int(42, Decor::empty()), schema))
-  assert_false(is_valid(HCLValue::Int64(42, Decor::empty()), schema))
-  assert_false(is_valid(HCLValue::Float(3.14, Decor::empty()), schema))
+  assert_true(
+    is_valid(HCLValue::Number(Number::from_int(42), Decor::empty()), schema),
+  )
+  assert_true(
+    is_valid(HCLValue::Number(Number::from_int64(42), Decor::empty()), schema),
+  )
+  assert_false(
+    is_valid(
+      HCLValue::Number(Number::from_finite_f64(3.14), Decor::empty()),
+      schema,
+    ),
+  )
   assert_false(is_valid(HCLValue::String("42", Decor::empty()), schema))
 }
 
@@ -29,7 +42,9 @@ test "validate int schema" {
 test "validate string schema" {
   let schema = TypeSchema::string()
   assert_true(is_valid(HCLValue::String("hello", Decor::empty()), schema))
-  assert_false(is_valid(HCLValue::Int(42, Decor::empty()), schema))
+  assert_false(
+    is_valid(HCLValue::Number(Number::from_int(42), Decor::empty()), schema),
+  )
 }
 
 ///|
@@ -39,9 +54,9 @@ test "validate array schema" {
     is_valid(
       HCLValue::Array(
         [
-          HCLValue::Int(1, Decor::empty()),
-          HCLValue::Int(2, Decor::empty()),
-          HCLValue::Int(3, Decor::empty()),
+          HCLValue::Number(Number::from_int(1), Decor::empty()),
+          HCLValue::Number(Number::from_int(2), Decor::empty()),
+          HCLValue::Number(Number::from_int(3), Decor::empty()),
         ],
         Decor::empty(),
       ),
@@ -52,7 +67,7 @@ test "validate array schema" {
     is_valid(
       HCLValue::Array(
         [
-          HCLValue::Int(1, Decor::empty()),
+          HCLValue::Number(Number::from_int(1), Decor::empty()),
           HCLValue::String("a", Decor::empty()),
         ],
         Decor::empty(),
@@ -60,7 +75,9 @@ test "validate array schema" {
       schema,
     ),
   )
-  assert_false(is_valid(HCLValue::Int(42, Decor::empty()), schema))
+  assert_false(
+    is_valid(HCLValue::Number(Number::from_int(42), Decor::empty()), schema),
+  )
 }
 
 ///|
@@ -83,7 +100,7 @@ test "validate object schema" {
       HCLValue::Object(
         {
           "name": HCLValue::String("Bob", Decor::empty()),
-          "age": HCLValue::Int(30, Decor::empty()),
+          "age": HCLValue::Number(Number::from_int(30), Decor::empty()),
         },
         Decor::empty(),
       ),
@@ -94,7 +111,7 @@ test "validate object schema" {
   assert_false(
     is_valid(
       HCLValue::Object(
-        { "name": HCLValue::Int(42, Decor::empty()) },
+        { "name": HCLValue::Number(Number::from_int(42), Decor::empty()) },
         Decor::empty(),
       ),
       schema,
@@ -126,10 +143,16 @@ test "validate nested array" {
   let value = HCLValue::Array(
     [
       HCLValue::Array(
-        [HCLValue::Int(1, Decor::empty()), HCLValue::Int(2, Decor::empty())],
+        [
+          HCLValue::Number(Number::from_int(1), Decor::empty()),
+          HCLValue::Number(Number::from_int(2), Decor::empty()),
+        ],
         Decor::empty(),
       ),
-      HCLValue::Array([HCLValue::Int(3, Decor::empty())], Decor::empty()),
+      HCLValue::Array(
+        [HCLValue::Number(Number::from_int(3), Decor::empty())],
+        Decor::empty(),
+      ),
     ],
     Decor::empty(),
   )
@@ -174,7 +197,7 @@ test "custom validator - int in range" {
   assert_eq(
     validate_ex(
       HCLValue::Object(
-        { "age": HCLValue::Int(25, Decor::empty()) },
+        { "age": HCLValue::Number(Number::from_int(25), Decor::empty()) },
         Decor::empty(),
       ),
       schema,
@@ -184,7 +207,7 @@ test "custom validator - int in range" {
   assert_eq(
     validate_ex(
       HCLValue::Object(
-        { "age": HCLValue::Int(-1, Decor::empty()) },
+        { "age": HCLValue::Number(Number::from_int(-1), Decor::empty()) },
         Decor::empty(),
       ),
       schema,
@@ -194,7 +217,7 @@ test "custom validator - int in range" {
   assert_eq(
     validate_ex(
       HCLValue::Object(
-        { "age": HCLValue::Int(200, Decor::empty()) },
+        { "age": HCLValue::Number(Number::from_int(200), Decor::empty()) },
         Decor::empty(),
       ),
       schema,

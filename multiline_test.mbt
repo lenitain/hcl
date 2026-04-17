@@ -83,7 +83,8 @@ test "multiline binary expression" {
           let value = attr.get_value()
           let eval_result = eval_expr_simple(value)
           match eval_result {
-            Ok(v) => assert_true(v == Int(3, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(3), Decor::empty()))
             Err(_) => panic()
           }
         }

@@ -147,17 +147,32 @@ fn validate_at(
       }
     IntSchema =>
       match value {
-        Int(_, _) => []
+        Number(n, _) =>
+          if n.is_int() {
+            []
+          } else {
+            [HCLError::validation_error(path, "expected int")]
+          }
         _ => [HCLError::validation_error(path, "expected int")]
       }
     Int64Schema =>
       match value {
-        Int64(_, _) => []
+        Number(n, _) =>
+          if n.is_int() {
+            []
+          } else {
+            [HCLError::validation_error(path, "expected int64")]
+          }
         _ => [HCLError::validation_error(path, "expected int64")]
       }
     FloatSchema =>
       match value {
-        Float(_, _) => []
+        Number(n, _) =>
+          if n.is_float() {
+            []
+          } else {
+            [HCLError::validation_error(path, "expected float")]
+          }
         _ => [HCLError::validation_error(path, "expected float")]
       }
     NumberSchema =>
@@ -355,19 +370,23 @@ pub fn string_not_empty() -> Validator {
 pub fn int_in_range(min : Int, max : Int) -> Validator {
   fn(value, path) {
     match value {
-      Int(i, _) if i < min || i > max =>
-        [
-          HCLError::validation_error(
-            path,
-            "value " +
-            i.to_string() +
-            " not in range [" +
-            min.to_string() +
-            ", " +
-            max.to_string() +
-            "]",
-          ),
-        ]
+      Number(n, _) =>
+        match n.as_int() {
+          Some(i) if i < min || i > max =>
+            [
+              HCLError::validation_error(
+                path,
+                "value " +
+                i.to_string() +
+                " not in range [" +
+                min.to_string() +
+                ", " +
+                max.to_string() +
+                "]",
+              ),
+            ]
+          _ => []
+        }
       _ => []
     }
   }

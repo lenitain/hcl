@@ -126,9 +126,7 @@ fn value_to_json(value : HCLValue) -> String {
   match value {
     Null(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
-    Int(i, _) => i.to_string()
-    Int64(i, _) => i.to_string()
-    Float(f, _) => f.to_string()
+    Number(n, _) => n.to_string()
     String(s, _) => escape_json_string(s)
     Array(arr, _) =>
       if arr.is_empty() {
@@ -161,9 +159,7 @@ fn value_to_json_pretty(value : HCLValue, indent : Int) -> String {
   match value {
     Null(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
-    Int(i, _) => i.to_string()
-    Int64(i, _) => i.to_string()
-    Float(f, _) => f.to_string()
+    Number(n, _) => n.to_string()
     String(s, _) => escape_json_string(s)
     Array(arr, _) =>
       if arr.is_empty() {

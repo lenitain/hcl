@@ -8,7 +8,12 @@ pub fn from_hcl_int(input : String) -> Result[Int, HCLError] {
     Ok(body) => {
       let value = body_to_value(body)
       match value {
-        Int(i, _) => Ok(i)
+        Number(n, _) =>
+          match n.as_int() {
+            Some(i) => Ok(i)
+            None =>
+              Err(HCLError::type_mismatch("Int", value_to_type_name(value)))
+          }
         _ => Err(HCLError::type_mismatch("Int", value_to_type_name(value)))
       }
     }
@@ -123,9 +128,7 @@ fn value_to_type_name(value : HCLValue) -> String {
   match value {
     Null(_) => "null"
     Bool(_, _) => "bool"
-    Int(_, _) => "int"
-    Int64(_, _) => "int64"
-    Float(_, _) => "float"
+    Number(_, _) => "number"
     String(_, _) => "string"
     Array(_, _) => "array"
     Object(_, _) => "object"

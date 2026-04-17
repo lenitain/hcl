@@ -41,11 +41,7 @@ pub fn eval_unary(op : String, operand : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate addition
 fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Int(a + b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Int64(a + b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Float(a + b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Float(a.to_double() + b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Float(a + b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Number(a + b, Decor::empty()))
     (String(a, _), String(b, _)) => Ok(String(a + b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for addition"))
   }
@@ -55,11 +51,7 @@ fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate subtraction
 fn eval_sub(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Int(a - b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Int64(a - b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Float(a - b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Float(a.to_double() - b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Float(a - b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Number(a - b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for subtraction"))
   }
 }
@@ -68,11 +60,7 @@ fn eval_sub(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate multiplication
 fn eval_mul(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Int(a * b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Int64(a * b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Float(a * b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Float(a.to_double() * b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Float(a * b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Number(a * b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for multiplication"))
   }
 }
@@ -81,36 +69,14 @@ fn eval_mul(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate division
 fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) =>
-      if b == 0 {
+    (Number(a, _), Number(b, _)) => {
+      let (fa, fb) = (a.as_f64(), b.as_f64())
+      if fb == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Int(a / b, Decor::empty()))
+        Ok(Number(a / b, Decor::empty()))
       }
-    (Int64(a, _), Int64(b, _)) =>
-      if b == 0L {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Int64(a / b, Decor::empty()))
-      }
-    (Float(a, _), Float(b, _)) =>
-      if b == 0.0 {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Float(a / b, Decor::empty()))
-      }
-    (Int(a, _), Float(b, _)) =>
-      if b == 0.0 {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Float(a.to_double() / b, Decor::empty()))
-      }
-    (Float(a, _), Int(b, _)) =>
-      if b == 0 {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Float(a / b.to_double(), Decor::empty()))
-      }
+    }
     _ => Err(HCLError::type_error("Invalid types for division"))
   }
 }
@@ -119,36 +85,14 @@ fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate modulo
 fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) =>
-      if b == 0 {
+    (Number(a, _), Number(b, _)) => {
+      let (fa, fb) = (a.as_f64(), b.as_f64())
+      if fb == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
-        Ok(Int(a % b, Decor::empty()))
+        Ok(Number(a % b, Decor::empty()))
       }
-    (Int64(a, _), Int64(b, _)) =>
-      if b == 0L {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Int64(a % b, Decor::empty()))
-      }
-    (Float(a, _), Float(b, _)) =>
-      if b == 0.0 {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Float(a % b, Decor::empty()))
-      }
-    (Int(a, _), Float(b, _)) =>
-      if b == 0.0 {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Float(a.to_double() % b, Decor::empty()))
-      }
-    (Float(a, _), Int(b, _)) =>
-      if b == 0 {
-        Err(HCLError::division_by_zero())
-      } else {
-        Ok(Float(a % b.to_double(), Decor::empty()))
-      }
+    }
     _ => Err(HCLError::type_error("Invalid types for modulo"))
   }
 }
@@ -169,11 +113,7 @@ fn eval_neq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate less than
 fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Bool(a < b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Bool(a < b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Bool(a < b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() < b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Bool(a < b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Bool(a < b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than"))
   }
 }
@@ -182,11 +122,7 @@ fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate greater than
 fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Bool(a > b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Bool(a > b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Bool(a > b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() > b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Bool(a > b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Bool(a > b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than"))
   }
 }
@@ -195,11 +131,7 @@ fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate less than or equal
 fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Bool(a <= b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Bool(a <= b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Bool(a <= b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() <= b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Bool(a <= b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Bool(a <= b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than or equal"))
   }
 }
@@ -208,11 +140,7 @@ fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate greater than or equal
 fn eval_gte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
-    (Int(a, _), Int(b, _)) => Ok(Bool(a >= b, Decor::empty()))
-    (Int64(a, _), Int64(b, _)) => Ok(Bool(a >= b, Decor::empty()))
-    (Float(a, _), Float(b, _)) => Ok(Bool(a >= b, Decor::empty()))
-    (Int(a, _), Float(b, _)) => Ok(Bool(a.to_double() >= b, Decor::empty()))
-    (Float(a, _), Int(b, _)) => Ok(Bool(a >= b.to_double(), Decor::empty()))
+    (Number(a, _), Number(b, _)) => Ok(Bool(a >= b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than or equal"))
   }
 }
@@ -239,9 +167,7 @@ fn eval_or(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 /// Evaluate negation
 fn eval_negate(operand : HCLValue) -> HCLResult[HCLValue] {
   match operand {
-    Int(i, _) => Ok(Int(-i, Decor::empty()))
-    Int64(i, _) => Ok(Int64(-i, Decor::empty()))
-    Float(f, _) => Ok(Float(-f, Decor::empty()))
+    Number(n, _) => Ok(Number(-n, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid type for negation"))
   }
 }
@@ -277,12 +203,7 @@ pub fn eval_expr(
 ) -> HCLResult[HCLValue] {
   match expr {
     // Basic values - return as-is
-    Null(_)
-    | Bool(_, _)
-    | Int(_, _)
-    | Int64(_, _)
-    | Float(_, _)
-    | String(_, _) => Ok(expr)
+    Null(_) | Bool(_, _) | Number(_, _) | String(_, _) => Ok(expr)
 
     // Array - evaluate each element
     Array(arr, _) => {
@@ -369,11 +290,15 @@ pub fn eval_expr(
               eval_expr(obj_value, variables, functions),
               eval_expr(index, variables, functions),
             ) {
-            (Ok(Array(arr, _)), Ok(Int(i, _))) =>
-              if i >= 0 && i < arr.length() {
-                Ok(arr[i])
-              } else {
-                Err(HCLError::invalid_value("Array index out of bounds"))
+            (Ok(Array(arr, _)), Ok(Number(n, _))) =>
+              match n.as_int() {
+                Some(i) =>
+                  if i >= 0 && i < arr.length() {
+                    Ok(arr[i])
+                  } else {
+                    Err(HCLError::invalid_value("Array index out of bounds"))
+                  }
+                None => Err(HCLError::type_error("Array index must be integer"))
               }
             (Ok(Object(target_obj, _)), Ok(String(key, _))) =>
               match target_obj.get(key) {

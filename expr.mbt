@@ -257,7 +257,7 @@ pub fn expr_to_string(expr : Expression) -> String {
       let items = arr.map(expr_to_string)
       "[" + items.join(", ") + "]"
     }
-    ExprObject(obj) => {
+    ExprObject(obj) =>
       if obj.is_empty() {
         "{}"
       } else {
@@ -267,7 +267,6 @@ pub fn expr_to_string(expr : Expression) -> String {
         })
         "{ " + items.join(", ") + " }"
       }
-    }
     ExprTemplate(_) => "<template>"
     ExprVariable(v) => v.name
     ExprTraversal(t) => {
@@ -280,7 +279,8 @@ pub fn expr_to_string(expr : Expression) -> String {
       }
       result
     }
-    ExprFuncCall(f) => f.name + "(" + f.args.map(expr_to_string).join(", ") + ")"
+    ExprFuncCall(f) =>
+      f.name + "(" + f.args.map(expr_to_string).join(", ") + ")"
     ExprParenthesis(e) => "(" + expr_to_string(e) + ")"
     ExprConditional(c) =>
       expr_to_string(c.condition) +
@@ -313,7 +313,11 @@ fn op_to_string(op : Operation) -> String {
         And => "&&"
         Or => "||"
       }
-      expr_to_string(binop.left) + " " + op_str + " " + expr_to_string(binop.right)
+      expr_to_string(binop.left) +
+      " " +
+      op_str +
+      " " +
+      expr_to_string(binop.right)
     }
     Unary(uop) => {
       let op_str = match uop.op {
@@ -330,7 +334,12 @@ fn op_to_string(op : Operation) -> String {
 fn for_expr_to_string(expr : ForExpr) -> String {
   match expr {
     List(list) => {
-      let mut result = "[for " + list.var_name + " in " + expr_to_string(list.collection) + ": " + expr_to_string(list.value_expr)
+      let mut result = "[for " +
+        list.var_name +
+        " in " +
+        expr_to_string(list.collection) +
+        ": " +
+        expr_to_string(list.value_expr)
       match list.filter {
         Some(f) => result = result + " if " + expr_to_string(f)
         None => ()
@@ -338,7 +347,16 @@ fn for_expr_to_string(expr : ForExpr) -> String {
       result + "]"
     }
     Object(obj) => {
-      let mut result = "{for " + obj.key_var + ", " + obj.value_var + " in " + expr_to_string(obj.collection) + ": " + expr_to_string(obj.key_expr) + " => " + expr_to_string(obj.value_expr)
+      let mut result = "{for " +
+        obj.key_var +
+        ", " +
+        obj.value_var +
+        " in " +
+        expr_to_string(obj.collection) +
+        ": " +
+        expr_to_string(obj.key_expr) +
+        " => " +
+        expr_to_string(obj.value_expr)
       match obj.filter {
         Some(f) => result = result + " if " + expr_to_string(f)
         None => ()

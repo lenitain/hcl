@@ -13,7 +13,10 @@ test "Attr with decoration" {
 
 ///|
 test "Attr basic constructor uses empty decor" {
-  let attr = Attr::new("name", HCLValue::Int(42, Decor::empty()))
+  let attr = Attr::new(
+    "name",
+    HCLValue::Number(Number::from_int(42), Decor::empty()),
+  )
   assert_eq(attr.get_key(), "name")
   assert_eq(attr.get_decorated_key().get_decor().get_prefix(), None)
   assert_eq(attr.get_decor().get_prefix(), None)

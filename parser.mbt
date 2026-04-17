@@ -527,7 +527,7 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
         match self.advance() {
-          Ok(p) => Ok((Int(result, Decor::empty()), p))
+          Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
           Err(e) => Err(e)
         }
       } else if n.has_prefix("0o") || n.has_prefix("0O") {
@@ -541,7 +541,7 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
         match self.advance() {
-          Ok(p) => Ok((Int(result, Decor::empty()), p))
+          Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
           Err(e) => Err(e)
         }
       } else if n.has_prefix("0b") || n.has_prefix("0B") {
@@ -555,7 +555,7 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
         match self.advance() {
-          Ok(p) => Ok((Int(result, Decor::empty()), p))
+          Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
           Err(e) => Err(e)
         }
       } else {
@@ -593,7 +593,8 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
             }
           }
           match self.advance() {
-            Ok(p) => Ok((Float(result, Decor::empty()), p))
+            Ok(p) =>
+              Ok((Number(Number::from_finite_f64(result), Decor::empty()), p))
             Err(e) => Err(e)
           }
         } else {
@@ -605,7 +606,7 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
             }
           }
           match self.advance() {
-            Ok(p) => Ok((Int(result, Decor::empty()), p))
+            Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
             Err(e) => Err(e)
           }
         }
@@ -1350,8 +1351,7 @@ fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
       match parser.parse_value() {
         Ok((value, parser)) =>
           match value {
-            Int(i, d) => Ok((Int(-i, d), parser))
-            Float(f, d) => Ok((Float(-f, d), parser))
+            Number(n, d) => Ok((Number(-n, d), parser))
             _ => {
               let (line, col, offset) = parser.lexer.location()
               Err(

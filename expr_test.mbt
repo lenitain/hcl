@@ -52,7 +52,8 @@ test "evaluate conditional with int result" {
           let value = attr.get_value()
           let eval_result = eval_expr_simple(value)
           match eval_result {
-            Ok(v) => assert_true(v == Int(42, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(42), Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -72,11 +73,12 @@ test "evaluate variable reference" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["var_name"] = Int(42, Decor::empty())
+          variables["var_name"] = Number(Number::from_int(42), Decor::empty())
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(v) => assert_true(v == Int(42, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(42), Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -121,7 +123,12 @@ test "evaluate function call" {
           let variables : Map[String, HCLValue] = Map::new()
           let add_func = fn(args : Array[HCLValue]) -> HCLResult[HCLValue] {
             match args {
-              [Int(a, _), Int(b, _)] => Ok(Int(a + b, Decor::empty()))
+              [Number(a_n, _), Number(b_n, _)] =>
+                match (a_n.as_int(), b_n.as_int()) {
+                  (Some(a), Some(b)) =>
+                    Ok(Number(Number::from_int(a + b), Decor::empty()))
+                  _ => Err(HCLError::type_error("expected int"))
+                }
               _ => Err(HCLError::type_error("add expects two integers"))
             }
           }
@@ -129,7 +136,8 @@ test "evaluate function call" {
           functions["add"] = add_func
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(v) => assert_true(v == Int(8, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(8), Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -173,7 +181,7 @@ test "evaluate property access dot notation" {
           let value = attr.get_value()
           let obj_map : Map[String, HCLValue] = Map::new()
           obj_map["name"] = String("test", Decor::empty())
-          obj_map["value"] = Int(123, Decor::empty())
+          obj_map["value"] = Number(Number::from_int(123), Decor::empty())
           let variables : Map[String, HCLValue] = Map::new()
           variables["obj"] = Object(obj_map, Decor::empty())
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
@@ -200,13 +208,14 @@ test "evaluate property access bracket notation" {
           let value = attr.get_value()
           let obj_map : Map[String, HCLValue] = Map::new()
           obj_map["name"] = String("test", Decor::empty())
-          obj_map["value"] = Int(123, Decor::empty())
+          obj_map["value"] = Number(Number::from_int(123), Decor::empty())
           let variables : Map[String, HCLValue] = Map::new()
           variables["obj"] = Object(obj_map, Decor::empty())
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(v) => assert_true(v == Int(123, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(123), Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -254,16 +263,17 @@ test "evaluate array index access" {
           let variables : Map[String, HCLValue] = Map::new()
           variables["items"] = Array(
             [
-              Int(10, Decor::empty()),
-              Int(20, Decor::empty()),
-              Int(30, Decor::empty()),
+              Number(Number::from_int(10), Decor::empty()),
+              Number(Number::from_int(20), Decor::empty()),
+              Number(Number::from_int(30), Decor::empty()),
             ],
             Decor::empty(),
           )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(v) => assert_true(v == Int(20, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(20), Decor::empty()))
             Err(_) => panic()
           }
         }
@@ -305,7 +315,7 @@ test "evaluate property access on non-object" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["num"] = Int(42, Decor::empty())
+          variables["num"] = Number(Number::from_int(42), Decor::empty())
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
@@ -331,7 +341,10 @@ test "evaluate array index out of bounds" {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
           variables["items"] = Array(
-            [Int(1, Decor::empty()), Int(2, Decor::empty())],
+            [
+              Number(Number::from_int(1), Decor::empty()),
+              Number(Number::from_int(2), Decor::empty()),
+            ],
             Decor::empty(),
           )
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
@@ -358,13 +371,18 @@ test "evaluate function call with variable args" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          variables["a"] = Int(6, Decor::empty())
-          variables["b"] = Int(7, Decor::empty())
+          variables["a"] = Number(Number::from_int(6), Decor::empty())
+          variables["b"] = Number(Number::from_int(7), Decor::empty())
           let multiply_func = fn(
             args : Array[HCLValue],
           ) -> HCLResult[HCLValue] {
             match args {
-              [Int(x, _), Int(y, _)] => Ok(Int(x * y, Decor::empty()))
+              [Number(x_n, _), Number(y_n, _)] =>
+                match (x_n.as_int(), y_n.as_int()) {
+                  (Some(x), Some(y)) =>
+                    Ok(Number(Number::from_int(x * y), Decor::empty()))
+                  _ => Err(HCLError::type_error("expected int"))
+                }
               _ => Err(HCLError::type_error("multiply expects two integers"))
             }
           }
@@ -372,7 +390,8 @@ test "evaluate function call with variable args" {
           functions["multiply"] = multiply_func
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
-            Ok(v) => assert_true(v == Int(42, Decor::empty()))
+            Ok(v) =>
+              assert_true(v == Number(Number::from_int(42), Decor::empty()))
             Err(_) => panic()
           }
         }

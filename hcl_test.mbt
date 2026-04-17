@@ -285,7 +285,9 @@ test "parse hex number" {
       match body.get_items()[0] {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "value")
-          assert_true(attr.get_value() == Int(255, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(255), Decor::empty()),
+          )
         }
         _ => panic()
       }
@@ -302,7 +304,9 @@ test "parse hex number uppercase" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(255, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(255), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -317,7 +321,9 @@ test "parse hex with underscore" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(255, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(255), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -332,7 +338,9 @@ test "parse hex mixed case" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(0xDead, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(0xDead), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -347,7 +355,9 @@ test "parse octal number" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(63, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(63), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -362,7 +372,9 @@ test "parse octal uppercase" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(63, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(63), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -377,7 +389,9 @@ test "parse octal with underscore" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(63, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(63), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -392,7 +406,9 @@ test "parse binary number" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(10, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(10), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -407,7 +423,9 @@ test "parse binary uppercase" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(10, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(10), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -422,7 +440,9 @@ test "parse binary with underscore" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(10, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(10), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -437,7 +457,9 @@ test "parse hex zero" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(0, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(0), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -452,7 +474,9 @@ test "parse octal zero" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(0, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(0), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()
@@ -467,7 +491,9 @@ test "parse binary zero" {
     Ok(body) =>
       match body.get_items()[0] {
         Attribute(attr) =>
-          assert_true(attr.get_value() == Int(0, Decor::empty()))
+          assert_true(
+            attr.get_value() == Number(Number::from_int(0), Decor::empty()),
+          )
         _ => panic()
       }
     Err(_) => panic()

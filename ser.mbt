@@ -4,7 +4,7 @@
 ///|
 /// Serialize Int to HCL string
 pub fn to_hcl_int(value : Int) -> String {
-  format_hcl_value(Int(value, Decor::empty()), 0)
+  format_hcl_value(Number(Number::from_int(value), Decor::empty()), 0)
 }
 
 ///|
@@ -39,9 +39,7 @@ fn format_hcl_value(value : HCLValue, indent : Int) -> String {
   match value {
     Null(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
-    Int(i, _) => i.to_string()
-    Int64(i, _) => i.to_string()
-    Float(f, _) => f.to_string()
+    Number(n, _) => n.to_string()
     String(s, _) => escape_hcl_string(s)
     Array(arr, _) =>
       if arr.is_empty() {
@@ -240,9 +238,7 @@ pub fn format_value_content(value : HCLValue) -> String {
   match value {
     Null(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
-    Int(i, _) => i.to_string()
-    Int64(i, _) => i.to_string()
-    Float(f, _) => f.to_string()
+    Number(n, _) => n.to_string()
     String(s, _) => escape_hcl_string(s)
     Array(arr, _) =>
       if arr.is_empty() {
@@ -296,19 +292,19 @@ fn repeat_string(s : String, n : Int) -> String {
 ///|
 /// Create Int HCLValue
 pub fn hcl_int(v : Int) -> HCLValue {
-  Int(v, Decor::empty())
+  Number(Number::from_int(v), Decor::empty())
 }
 
 ///|
 /// Create Int64 HCLValue
 pub fn hcl_int64(v : Int64) -> HCLValue {
-  Int64(v, Decor::empty())
+  Number(Number::from_int64(v), Decor::empty())
 }
 
 ///|
 /// Create Float HCLValue
 pub fn hcl_float(v : Double) -> HCLValue {
-  Float(v, Decor::empty())
+  Number(Number::from_finite_f64(v), Decor::empty())
 }
 
 ///|

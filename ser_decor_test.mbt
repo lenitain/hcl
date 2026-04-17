@@ -35,7 +35,10 @@ test "format value with decor" {
 test "format value content" {
   assert_eq(format_value_content(HCLValue::Null(Decor::empty())), "null")
   assert_eq(format_value_content(HCLValue::Bool(true, Decor::empty())), "true")
-  assert_eq(format_value_content(HCLValue::Int(42, Decor::empty())), "42")
+  assert_eq(
+    format_value_content(HCLValue::Number(Number::from_int(42), Decor::empty())),
+    "42",
+  )
   assert_eq(
     format_value_content(HCLValue::String("hi", Decor::empty())),
     "\"hi\"",

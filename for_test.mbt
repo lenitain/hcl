@@ -74,9 +74,9 @@ test "eval for expr simple" {
           let variables : Map[String, HCLValue] = Map::new()
           variables["numbers"] = Array(
             [
-              Int(1, Decor::empty()),
-              Int(2, Decor::empty()),
-              Int(3, Decor::empty()),
+              Number(Number::from_int(1), Decor::empty()),
+              Number(Number::from_int(2), Decor::empty()),
+              Number(Number::from_int(3), Decor::empty()),
             ],
             Decor::empty(),
           )
@@ -84,9 +84,9 @@ test "eval for expr simple" {
           match eval_expr(value, variables, functions) {
             Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 3)
-              assert_true(arr[0] == Int(2, Decor::empty()))
-              assert_true(arr[1] == Int(4, Decor::empty()))
-              assert_true(arr[2] == Int(6, Decor::empty()))
+              assert_true(arr[0] == Number(Number::from_int(2), Decor::empty()))
+              assert_true(arr[1] == Number(Number::from_int(4), Decor::empty()))
+              assert_true(arr[2] == Number(Number::from_int(6), Decor::empty()))
             }
             _ => panic()
           }
@@ -172,9 +172,9 @@ test "evaluate list comprehension" {
           let variables : Map[String, HCLValue] = Map::new()
           variables["numbers"] = Array(
             [
-              Int(1, Decor::empty()),
-              Int(2, Decor::empty()),
-              Int(3, Decor::empty()),
+              Number(Number::from_int(1), Decor::empty()),
+              Number(Number::from_int(2), Decor::empty()),
+              Number(Number::from_int(3), Decor::empty()),
             ],
             Decor::empty(),
           )
@@ -183,9 +183,9 @@ test "evaluate list comprehension" {
           match eval_result {
             Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 3)
-              assert_true(arr[0] == Int(2, Decor::empty()))
-              assert_true(arr[1] == Int(4, Decor::empty()))
-              assert_true(arr[2] == Int(6, Decor::empty()))
+              assert_true(arr[0] == Number(Number::from_int(2), Decor::empty()))
+              assert_true(arr[1] == Number(Number::from_int(4), Decor::empty()))
+              assert_true(arr[2] == Number(Number::from_int(6), Decor::empty()))
             }
             _ => panic()
           }
@@ -208,10 +208,10 @@ test "evaluate list comprehension with filter" {
           let variables : Map[String, HCLValue] = Map::new()
           variables["numbers"] = Array(
             [
-              Int(1, Decor::empty()),
-              Int(2, Decor::empty()),
-              Int(3, Decor::empty()),
-              Int(4, Decor::empty()),
+              Number(Number::from_int(1), Decor::empty()),
+              Number(Number::from_int(2), Decor::empty()),
+              Number(Number::from_int(3), Decor::empty()),
+              Number(Number::from_int(4), Decor::empty()),
             ],
             Decor::empty(),
           )
@@ -220,8 +220,8 @@ test "evaluate list comprehension with filter" {
           match eval_result {
             Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 2)
-              assert_true(arr[0] == Int(2, Decor::empty()))
-              assert_true(arr[1] == Int(4, Decor::empty()))
+              assert_true(arr[0] == Number(Number::from_int(2), Decor::empty()))
+              assert_true(arr[1] == Number(Number::from_int(4), Decor::empty()))
             }
             _ => panic()
           }
@@ -244,7 +244,7 @@ test "evaluate object comprehension" {
           let variables : Map[String, HCLValue] = Map::new()
           let config : Map[String, HCLValue] = Map::new()
           config["host"] = String("localhost", Decor::empty())
-          config["port"] = Int(8080, Decor::empty())
+          config["port"] = Number(Number::from_int(8080), Decor::empty())
           variables["config"] = Object(config, Decor::empty())
           let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
@@ -253,7 +253,10 @@ test "evaluate object comprehension" {
               assert_true(
                 obj.get("host") == Some(String("localhost", Decor::empty())),
               )
-              assert_true(obj.get("port") == Some(Int(8080, Decor::empty())))
+              assert_true(
+                obj.get("port") ==
+                Some(Number(Number::from_int(8080), Decor::empty())),
+              )
             }
             _ => panic()
           }
@@ -283,8 +286,12 @@ test "evaluate nested for expressions" {
               match arr[0] {
                 Array(inner, _) => {
                   assert_eq(inner.length(), 2)
-                  assert_true(inner[0] == Int(3, Decor::empty()))
-                  assert_true(inner[1] == Int(4, Decor::empty()))
+                  assert_true(
+                    inner[0] == Number(Number::from_int(3), Decor::empty()),
+                  )
+                  assert_true(
+                    inner[1] == Number(Number::from_int(4), Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
@@ -292,8 +299,12 @@ test "evaluate nested for expressions" {
               match arr[1] {
                 Array(inner, _) => {
                   assert_eq(inner.length(), 2)
-                  assert_true(inner[0] == Int(6, Decor::empty()))
-                  assert_true(inner[1] == Int(8, Decor::empty()))
+                  assert_true(
+                    inner[0] == Number(Number::from_int(6), Decor::empty()),
+                  )
+                  assert_true(
+                    inner[1] == Number(Number::from_int(8), Decor::empty()),
+                  )
                 }
                 _ => panic()
               }
@@ -371,9 +382,9 @@ test "for expression with conditional filter false" {
           let variables : Map[String, HCLValue] = Map::new()
           variables["numbers"] = Array(
             [
-              Int(1, Decor::empty()),
-              Int(2, Decor::empty()),
-              Int(3, Decor::empty()),
+              Number(Number::from_int(1), Decor::empty()),
+              Number(Number::from_int(2), Decor::empty()),
+              Number(Number::from_int(3), Decor::empty()),
             ],
             Decor::empty(),
           )

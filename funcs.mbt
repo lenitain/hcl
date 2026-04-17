@@ -66,9 +66,7 @@ pub fn builtin_functions() -> Map[
 /// Convert HCLValue to Double for numeric operations
 fn to_double(val : HCLValue) -> HCLResult[Double] {
   match val {
-    Int(i, _) => Ok(i.to_double())
-    Int64(i, _) => Ok(i.to_double())
-    Float(f, _) => Ok(f)
+    Number(n, _) => Ok(n.as_float())
     _ => Err(HCLError::type_error("Expected number"))
   }
 }
@@ -220,9 +218,10 @@ fn parse_double(s : String) -> HCLResult[Double] {
 fn fn_abs(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "abs") is Ok
   match args[0] {
-    Int(i, _) => Ok(Int(i.abs(), Decor::empty()))
-    Int64(i, _) => Ok(Int64(i.abs(), Decor::empty()))
-    Float(f, _) => Ok(Float(f.abs(), Decor::empty()))
+    Number(n, _) => {
+      let f = n.as_float()
+      Ok(Number(Number::from_finite_f64(f.abs()), Decor::empty()))
+    }
     _ => Err(HCLError::type_error("abs() requires a number"))
   }
 }
@@ -232,7 +231,7 @@ fn fn_abs(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_ceil(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "ceil") is Ok
   match to_double(args[0]) {
-    Ok(f) => Ok(Int(f.ceil().to_int(), Decor::empty()))
+    Ok(f) => Ok(Number(Number::from_int(f.ceil().to_int()), Decor::empty()))
     Err(e) => Err(e)
   }
 }
@@ -242,7 +241,7 @@ fn fn_ceil(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_floor(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "floor") is Ok
   match to_double(args[0]) {
-    Ok(f) => Ok(Int(f.floor().to_int(), Decor::empty()))
+    Ok(f) => Ok(Number(Number::from_int(f.floor().to_int()), Decor::empty()))
     Err(e) => Err(e)
   }
 }
@@ -260,7 +259,7 @@ fn fn_log(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else {
         // log_base(num) = ln(num) / ln(base)
         let result = @math.ln(num) / @math.ln(base)
-        Ok(Float(result, Decor::empty()))
+        Ok(Number(Number::from_finite_f64(result), Decor::empty()))
       }
     (Err(e), _) => Err(e)
     (_, Err(e)) => Err(e)
@@ -302,15 +301,14 @@ fn fn_min(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_parseint(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "parseint") is Ok
   match (args[0], args[1]) {
-    (String(s, _), Int(base, _)) =>
-      match parse_int_with_base(s, base) {
-        Ok(i) => Ok(Int(i, Decor::empty()))
-        Err(e) => Err(e)
-      }
-    (String(s, _), Int64(base, _)) =>
-      match parse_int_with_base(s, base.to_int()) {
-        Ok(i) => Ok(Int(i, Decor::empty()))
-        Err(e) => Err(e)
+    (String(s, _), Number(n, _)) =>
+      match n.as_int() {
+        Some(base) =>
+          match parse_int_with_base(s, base) {
+            Ok(i) => Ok(Number(Number::from_int(i), Decor::empty()))
+            Err(e) => Err(e)
+          }
+        None => Err(HCLError::type_error("parseint() base must be integer"))
       }
     _ => Err(HCLError::type_error("parseint() expects (string, number)"))
   }
@@ -321,7 +319,8 @@ fn fn_parseint(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_pow(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "pow") is Ok
   match (to_double(args[0]), to_double(args[1])) {
-    (Ok(base), Ok(exp)) => Ok(Float(@math.pow(base, exp), Decor::empty()))
+    (Ok(base), Ok(exp)) =>
+      Ok(Number(Number::from_finite_f64(@math.pow(base, exp)), Decor::empty()))
     (Err(e), _) => Err(e)
     (_, Err(e)) => Err(e)
   }
@@ -332,30 +331,16 @@ fn fn_pow(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "signum") is Ok
   match args[0] {
-    Int(i, _) =>
-      if i < 0 {
-        Ok(Int(-1, Decor::empty()))
-      } else if i > 0 {
-        Ok(Int(1, Decor::empty()))
-      } else {
-        Ok(Int(0, Decor::empty()))
-      }
-    Int64(i, _) =>
-      if i < 0L {
-        Ok(Int64(-1L, Decor::empty()))
-      } else if i > 0L {
-        Ok(Int64(1L, Decor::empty()))
-      } else {
-        Ok(Int64(0L, Decor::empty()))
-      }
-    Float(f, _) =>
+    Number(n, _) => {
+      let f = n.as_float()
       if f < 0.0 {
-        Ok(Int(-1, Decor::empty()))
+        Ok(Number(Number::from_int(-1), Decor::empty()))
       } else if f > 0.0 {
-        Ok(Int(1, Decor::empty()))
+        Ok(Number(Number::from_int(1), Decor::empty()))
       } else {
-        Ok(Int(0, Decor::empty()))
+        Ok(Number(Number::from_int(0), Decor::empty()))
       }
+    }
     _ => Err(HCLError::type_error("signum() requires a number"))
   }
 }
@@ -370,9 +355,9 @@ fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_length(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "length") is Ok
   match args[0] {
-    Array(a, _) => Ok(Int(a.length(), Decor::empty()))
-    Object(o, _) => Ok(Int(o.size(), Decor::empty()))
-    String(s, _) => Ok(Int(s.length(), Decor::empty()))
+    Array(a, _) => Ok(Number(Number::from_int(a.length()), Decor::empty()))
+    Object(o, _) => Ok(Number(Number::from_int(o.size()), Decor::empty()))
+    String(s, _) => Ok(Number(Number::from_int(s.length()), Decor::empty()))
     _ => Err(HCLError::type_error("length() requires array, object, or string"))
   }
 }
@@ -524,9 +509,7 @@ fn fn_sort(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       let result = arr.copy()
       result.sort_by(fn(a, b) {
         match (a, b) {
-          (Int(a, _), Int(b, _)) => a.compare(b)
-          (Int64(a, _), Int64(b, _)) => a.compare(b)
-          (Float(a, _), Float(b, _)) => a.compare(b)
+          (Number(a, _), Number(b, _)) => a.compare(b)
           (String(a, _), String(b, _)) => a.compare(b)
           _ => 0
         }
@@ -542,16 +525,20 @@ fn fn_sort(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 3, "slice") is Ok
   match (args[0], args[1], args[2]) {
-    (Array(arr, _), Int(from, _), Int(to, _)) => {
-      if from < 0 || to > arr.length() || from > to {
-        return Err(HCLError::invalid_value("slice() indices out of bounds"))
+    (Array(arr, _), Number(from_n, _), Number(to_n, _)) =>
+      match (from_n.as_int(), to_n.as_int()) {
+        (Some(from), Some(to)) => {
+          if from < 0 || to > arr.length() || from > to {
+            return Err(HCLError::invalid_value("slice() indices out of bounds"))
+          }
+          let result = []
+          for i in from..<to {
+            result.push(arr[i])
+          }
+          Ok(Array(result, Decor::empty()))
+        }
+        _ => Err(HCLError::type_error("slice() indices must be integers"))
       }
-      let result = []
-      for i in from..<to {
-        result.push(arr[i])
-      }
-      Ok(Array(result, Decor::empty()))
-    }
     _ => Err(HCLError::type_error("slice() requires (array, int, int)"))
   }
 }
@@ -561,13 +548,19 @@ fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "element") is Ok
   match (args[0], args[1]) {
-    (Array(arr, _), Int(idx, _)) => {
-      if arr.length() == 0 {
-        return Err(HCLError::invalid_value("element() called on empty list"))
+    (Array(arr, _), Number(idx_n, _)) =>
+      match idx_n.as_int() {
+        Some(idx) => {
+          if arr.length() == 0 {
+            return Err(
+              HCLError::invalid_value("element() called on empty list"),
+            )
+          }
+          let wrapped = (idx % arr.length() + arr.length()) % arr.length()
+          Ok(arr[wrapped])
+        }
+        None => Err(HCLError::type_error("element() index must be integer"))
       }
-      let wrapped = (idx % arr.length() + arr.length()) % arr.length()
-      Ok(arr[wrapped])
-    }
     _ => Err(HCLError::type_error("element() requires (array, int)"))
   }
 }
@@ -606,15 +599,19 @@ fn fn_chomp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_indent(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "indent") is Ok
   match (args[0], args[1]) {
-    (Int(spaces, _), String(s, _)) => {
-      let pad = " ".repeat(spaces)
-      let lines = s.split("\n")
-      let result = []
-      for line in lines {
-        result.push(pad + line.to_string())
+    (Number(spaces_n, _), String(s, _)) =>
+      match spaces_n.as_int() {
+        Some(spaces) => {
+          let pad = " ".repeat(spaces)
+          let lines = s.split("\n")
+          let result = []
+          for line in lines {
+            result.push(pad + line.to_string())
+          }
+          Ok(String(result.join("\n"), Decor::empty()))
+        }
+        None => Err(HCLError::type_error("indent() spaces must be integer"))
       }
-      Ok(String(result.join("\n"), Decor::empty()))
-    }
     _ => Err(HCLError::type_error("indent() requires (int, string)"))
   }
 }
@@ -711,17 +708,21 @@ fn fn_strrev(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_substr(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 3, "substr") is Ok
   match (args[0], args[1], args[2]) {
-    (String(s, _), Int(offset, _), Int(length, _)) => {
-      if offset < 0 || offset > s.length() {
-        return Err(HCLError::invalid_value("substr() offset out of bounds"))
+    (String(s, _), Number(offset_n, _), Number(length_n, _)) =>
+      match (offset_n.as_int(), length_n.as_int()) {
+        (Some(offset), Some(length)) => {
+          if offset < 0 || offset > s.length() {
+            return Err(HCLError::invalid_value("substr() offset out of bounds"))
+          }
+          let end = if offset + length > s.length() {
+            s.length()
+          } else {
+            offset + length
+          }
+          Ok(String(substring(s, offset, end), Decor::empty()))
+        }
+        _ => Err(HCLError::type_error("substr() indices must be integers"))
       }
-      let end = if offset + length > s.length() {
-        s.length()
-      } else {
-        offset + length
-      }
-      Ok(String(substring(s, offset, end), Decor::empty()))
-    }
     _ => Err(HCLError::type_error("substr() requires (string, int, int)"))
   }
 }
@@ -812,9 +813,7 @@ fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
             }
             let formatted = match args[arg_idx] {
               String(s, _) => s
-              Int(n, _) => n.to_string()
-              Int64(n, _) => n.to_string()
-              Float(f, _) => f.to_string()
+              Number(n, _) => n.to_string()
               Bool(b, _) => if b { "true" } else { "false" }
               Null(_) => "null"
               _ => args[arg_idx].to_json_string()
@@ -878,7 +877,10 @@ fn fn_tobool(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         Err(HCLError::invalid_value("Cannot convert '" + s + "' to bool"))
       }
     }
-    Int(i, _) => Ok(Bool(i != 0, Decor::empty()))
+    Number(n, _) => {
+      let f = n.as_float()
+      Ok(Bool(f != 0.0, Decor::empty()))
+    }
     _ => Err(HCLError::type_error("tobool() cannot convert this type"))
   }
 }
@@ -888,9 +890,7 @@ fn fn_tobool(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tonumber") is Ok
   match args[0] {
-    Int(i, _) => Ok(Int(i, Decor::empty()))
-    Int64(i, _) => Ok(Int64(i, Decor::empty()))
-    Float(f, _) => Ok(Float(f, Decor::empty()))
+    Number(_, _) => Ok(args[0])
     String(s, _) => {
       // Check if it looks like a float
       let mut is_float = false
@@ -902,17 +902,18 @@ fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       if is_float {
         match parse_double(s) {
-          Ok(f) => Ok(Float(f, Decor::empty()))
+          Ok(f) => Ok(Number(Number::from_finite_f64(f), Decor::empty()))
           Err(e) => Err(e)
         }
       } else {
         match parse_int_with_base(s, 10) {
-          Ok(i) => Ok(Int(i, Decor::empty()))
+          Ok(i) => Ok(Number(Number::from_int(i), Decor::empty()))
           Err(e) => Err(e)
         }
       }
     }
-    Bool(b, _) => Ok(Int(if b { 1 } else { 0 }, Decor::empty()))
+    Bool(b, _) =>
+      Ok(Number(Number::from_int(if b { 1 } else { 0 }), Decor::empty()))
     _ => Err(HCLError::type_error("tonumber() cannot convert this type"))
   }
 }
@@ -953,9 +954,7 @@ fn fn_tostring(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "tostring") is Ok
   match args[0] {
     String(s, _) => Ok(String(s, Decor::empty()))
-    Int(i, _) => Ok(String(i.to_string(), Decor::empty()))
-    Int64(i, _) => Ok(String(i.to_string(), Decor::empty()))
-    Float(f, _) => Ok(String(f.to_string(), Decor::empty()))
+    Number(n, _) => Ok(String(n.to_string(), Decor::empty()))
     Bool(b, _) => Ok(String(if b { "true" } else { "false" }, Decor::empty()))
     Null(_) => Ok(String("null", Decor::empty()))
     _ => Ok(String(args[0].to_json_string(), Decor::empty()))

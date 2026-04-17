@@ -1,43 +1,67 @@
 ///|
 /// Expression Evaluator Tests
 test "evaluate addition" {
-  let result = eval_binary(Int(5, Decor::empty()), "+", Int(3, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(5), Decor::empty()),
+    "+",
+    Number(Number::from_int(3), Decor::empty()),
+  )
   match result {
-    Ok(value) => assert_true(value == Int(8, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_int(8), Decor::empty()))
     Err(_) => panic()
   }
 }
 
 ///|
 test "evaluate subtraction" {
-  let result = eval_binary(Int(10, Decor::empty()), "-", Int(4, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(10), Decor::empty()),
+    "-",
+    Number(Number::from_int(4), Decor::empty()),
+  )
   match result {
-    Ok(value) => assert_true(value == Int(6, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_int(6), Decor::empty()))
     Err(_) => panic()
   }
 }
 
 ///|
 test "evaluate multiplication" {
-  let result = eval_binary(Int(6, Decor::empty()), "*", Int(7, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(6), Decor::empty()),
+    "*",
+    Number(Number::from_int(7), Decor::empty()),
+  )
   match result {
-    Ok(value) => assert_true(value == Int(42, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_int(42), Decor::empty()))
     Err(_) => panic()
   }
 }
 
 ///|
 test "evaluate division" {
-  let result = eval_binary(Int(15, Decor::empty()), "/", Int(3, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(15), Decor::empty()),
+    "/",
+    Number(Number::from_int(3), Decor::empty()),
+  )
   match result {
-    Ok(value) => assert_true(value == Int(5, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_int(5), Decor::empty()))
     Err(_) => panic()
   }
 }
 
 ///|
 test "evaluate division by zero" {
-  let result = eval_binary(Int(10, Decor::empty()), "/", Int(0, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(10), Decor::empty()),
+    "/",
+    Number(Number::from_int(0), Decor::empty()),
+  )
   match result {
     Ok(_) => panic()
     Err(e) => assert_true(e.message().contains("Division by zero"))
@@ -46,16 +70,25 @@ test "evaluate division by zero" {
 
 ///|
 test "evaluate modulo" {
-  let result = eval_binary(Int(10, Decor::empty()), "%", Int(3, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(10), Decor::empty()),
+    "%",
+    Number(Number::from_int(3), Decor::empty()),
+  )
   match result {
-    Ok(value) => assert_true(value == Int(1, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_int(1), Decor::empty()))
     Err(_) => panic()
   }
 }
 
 ///|
 test "evaluate equality" {
-  let result = eval_binary(Int(5, Decor::empty()), "==", Int(5, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(5), Decor::empty()),
+    "==",
+    Number(Number::from_int(5), Decor::empty()),
+  )
   match result {
     Ok(value) => assert_true(value == Bool(true, Decor::empty()))
     Err(_) => panic()
@@ -64,7 +97,11 @@ test "evaluate equality" {
 
 ///|
 test "evaluate inequality" {
-  let result = eval_binary(Int(5, Decor::empty()), "!=", Int(3, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(5), Decor::empty()),
+    "!=",
+    Number(Number::from_int(3), Decor::empty()),
+  )
   match result {
     Ok(value) => assert_true(value == Bool(true, Decor::empty()))
     Err(_) => panic()
@@ -73,7 +110,11 @@ test "evaluate inequality" {
 
 ///|
 test "evaluate less than" {
-  let result = eval_binary(Int(3, Decor::empty()), "<", Int(5, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(3), Decor::empty()),
+    "<",
+    Number(Number::from_int(5), Decor::empty()),
+  )
   match result {
     Ok(value) => assert_true(value == Bool(true, Decor::empty()))
     Err(_) => panic()
@@ -82,7 +123,11 @@ test "evaluate less than" {
 
 ///|
 test "evaluate greater than" {
-  let result = eval_binary(Int(5, Decor::empty()), ">", Int(3, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(5), Decor::empty()),
+    ">",
+    Number(Number::from_int(3), Decor::empty()),
+  )
   match result {
     Ok(value) => assert_true(value == Bool(true, Decor::empty()))
     Err(_) => panic()
@@ -91,7 +136,11 @@ test "evaluate greater than" {
 
 ///|
 test "evaluate less than or equal" {
-  let result = eval_binary(Int(3, Decor::empty()), "<=", Int(3, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(3), Decor::empty()),
+    "<=",
+    Number(Number::from_int(3), Decor::empty()),
+  )
   match result {
     Ok(value) => assert_true(value == Bool(true, Decor::empty()))
     Err(_) => panic()
@@ -100,7 +149,11 @@ test "evaluate less than or equal" {
 
 ///|
 test "evaluate greater than or equal" {
-  let result = eval_binary(Int(5, Decor::empty()), ">=", Int(5, Decor::empty()))
+  let result = eval_binary(
+    Number(Number::from_int(5), Decor::empty()),
+    ">=",
+    Number(Number::from_int(5), Decor::empty()),
+  )
   match result {
     Ok(value) => assert_true(value == Bool(true, Decor::empty()))
     Err(_) => panic()
@@ -135,9 +188,10 @@ test "evaluate logical or" {
 
 ///|
 test "evaluate negation" {
-  let result = eval_unary("-", Int(5, Decor::empty()))
+  let result = eval_unary("-", Number(Number::from_int(5), Decor::empty()))
   match result {
-    Ok(value) => assert_true(value == Int(-5, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_int(-5), Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -167,12 +221,13 @@ test "evaluate string concatenation" {
 ///|
 test "evaluate float addition" {
   let result = eval_binary(
-    Float(1.5, Decor::empty()),
+    Number(Number::from_finite_f64(1.5), Decor::empty()),
     "+",
-    Float(2.5, Decor::empty()),
+    Number(Number::from_finite_f64(2.5), Decor::empty()),
   )
   match result {
-    Ok(value) => assert_true(value == Float(4.0, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_finite_f64(4.0), Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -180,12 +235,13 @@ test "evaluate float addition" {
 ///|
 test "evaluate mixed int and float" {
   let result = eval_binary(
-    Int(2, Decor::empty()),
+    Number(Number::from_int(2), Decor::empty()),
     "+",
-    Float(3.5, Decor::empty()),
+    Number(Number::from_finite_f64(3.5), Decor::empty()),
   )
   match result {
-    Ok(value) => assert_true(value == Float(5.5, Decor::empty()))
+    Ok(value) =>
+      assert_true(value == Number(Number::from_finite_f64(5.5), Decor::empty()))
     Err(_) => panic()
   }
 }
