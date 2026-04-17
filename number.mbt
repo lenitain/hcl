@@ -41,14 +41,12 @@ fn N::to_f64(self : N) -> Double {
 /// Try to convert N to i64
 fn N::to_i64(self : N) -> Int64? {
   match self {
-    PosInt(n) => {
-      let i = n.reinterpret_as_int64()
-      if i >= 0L {
-        Some(i)
+    PosInt(n) =>
+      if n <= 9223372036854775807UL {
+        Some(n.reinterpret_as_int64())
       } else {
         None
       }
-    }
     NegInt(n) => Some(n)
     Float(_) => None
   }
@@ -97,9 +95,15 @@ fn N::from_finite_f64(value : Double) -> N {
   let int_part = value.floor()
   if int_part == value {
     if value < 0.0 {
-      NegInt(int_part.to_int64())
-    } else {
+      if int_part >= -9223372036854775808.0 {
+        NegInt(int_part.to_int64())
+      } else {
+        Float(value)
+      }
+    } else if int_part <= 9223372036854775807.0 {
       PosInt(int_part.to_uint64())
+    } else {
+      Float(value)
     }
   } else {
     Float(value)
@@ -151,8 +155,20 @@ impl Compare for N with compare(self, rhs) {
 ///|
 impl Neg for N with neg(self) {
   match self {
-    PosInt(value) => NegInt(-value.reinterpret_as_int64())
-    NegInt(value) => N::from_i64(-value)
+    PosInt(value) =>
+      if value == 0UL {
+        PosInt(0UL)
+      } else if value <= 9223372036854775807UL {
+        NegInt(-value.reinterpret_as_int64())
+      } else {
+        Float(-value.to_double())
+      }
+    NegInt(value) =>
+      if value == -9223372036854775808L {
+        Float(9223372036854775808.0)
+      } else {
+        N::from_i64(-value)
+      }
     Float(value) => Float(-value)
   }
 }
@@ -178,7 +194,12 @@ impl Sub for N with sub(self, rhs) {
   match (self, rhs) {
     (PosInt(a), PosInt(b)) =>
       if b > a {
-        NegInt(a.reinterpret_as_int64() - b.reinterpret_as_int64())
+        let mag = b - a
+        if mag <= 9223372036854775807UL {
+          NegInt(-mag.reinterpret_as_int64())
+        } else {
+          Float(-mag.to_double())
+        }
       } else {
         PosInt(a - b)
       }
@@ -208,8 +229,19 @@ impl Mul for N with mul(self, rhs) {
 
 ///|
 impl Div for N with div(self, rhs) {
-  let (fa, fb) = coerce(self, rhs)
-  N::from_finite_f64(fa / fb)
+  match (self, rhs) {
+    (PosInt(_a), PosInt(b)) =>
+      if b == 0UL {
+        Float(0.0 / 0.0)
+      } else {
+        let (fa, fb) = coerce(self, rhs)
+        N::from_finite_f64(fa / fb)
+      }
+    _ => {
+      let (fa, fb) = coerce(self, rhs)
+      N::from_finite_f64(fa / fb)
+    }
+  }
 }
 
 // Mod for N
@@ -217,8 +249,18 @@ impl Div for N with div(self, rhs) {
 ///|
 impl Mod for N with mod(self, rhs) {
   match (self, rhs) {
-    (PosInt(a), PosInt(b)) => PosInt(a % b)
-    (NegInt(a), NegInt(b)) => NegInt(a % b)
+    (PosInt(a), PosInt(b)) =>
+      if b == 0UL {
+        Float(0.0 / 0.0)
+      } else {
+        PosInt(a % b)
+      }
+    (NegInt(a), NegInt(b)) =>
+      if b == 0L {
+        Float(0.0 / 0.0)
+      } else {
+        NegInt(a % b)
+      }
     (a, b) => {
       let (fa, fb) = coerce(a, b)
       N::from_finite_f64(fa % fb)

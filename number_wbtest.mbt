@@ -395,3 +395,93 @@ test "number to_debug" {
   let n = Number::from_uint64(42UL)
   assert_true(n.to_debug() == "Number(42)")
 }
+
+// --- Edge case tests ---
+
+///|
+test "number neg zero" {
+  let a = Number::from_uint64(0UL)
+  let b = -a
+  assert_true(b == Number::from_uint64(0UL))
+  assert_true(b.is_u64())
+}
+
+///|
+test "number neg large posint exceeds i64" {
+  let big = 9223372036854775807UL + 1UL
+  let a = Number::from_uint64(big)
+  let b = -a
+  assert_true(b.is_f64())
+  assert_true(b.as_f64() == -big.to_double())
+}
+
+///|
+test "number sub 0 minus 1" {
+  let a = Number::from_uint64(0UL)
+  let b = Number::from_uint64(1UL)
+  let c = a - b
+  assert_true(c == Number::from_int64(-1L))
+  assert_true(c.is_i64())
+}
+
+///|
+test "number sub large posint underflow" {
+  let small = Number::from_uint64(1UL)
+  let big = Number::from_uint64(9223372036854775807UL)
+  let c = small - big
+  assert_true(c.is_i64())
+  assert_true(c.as_i64() == Some(-9223372036854775806L))
+}
+
+///|
+test "number to_i64 large posint returns none" {
+  let big = 9223372036854775807UL + 1UL
+  let n = Number::from_uint64(big)
+  assert_true(n.as_i64() == None)
+  assert_true(n.is_u64())
+}
+
+///|
+test "number from_finite_f64 very large stays float" {
+  let n = Number::from_double(1.0e100)
+  assert_true(n.is_f64())
+  assert_true(n.as_u64() == None)
+  assert_true(n.as_i64() == None)
+}
+
+///|
+test "number from_finite_f64 very large negative stays float" {
+  let n = Number::from_double(-1.0e100)
+  assert_true(n.is_f64())
+}
+
+///|
+test "number neg Int64::MIN edge" {
+  let n = Number::from_int64(-9223372036854775808L)
+  let b = -n
+  assert_true(b.is_f64())
+  assert_true(b.as_f64() == 9223372036854775808.0)
+}
+
+///|
+test "number div by zero" {
+  let a = Number::from_uint64(1UL)
+  let b = Number::from_uint64(0UL)
+  let c = a / b
+  assert_true(c.is_f64())
+}
+
+///|
+test "number mod by zero" {
+  let a = Number::from_uint64(1UL)
+  let b = Number::from_uint64(0UL)
+  let c = a % b
+  assert_true(c.is_f64())
+}
+
+///|
+test "number Int64::MIN direct construction" {
+  let n = Number::from_int64(-9223372036854775808L)
+  assert_true(n.is_i64())
+  assert_true(n.as_i64() == Some(-9223372036854775808L))
+}
