@@ -7,6 +7,7 @@ HCL parser, formatter, and serialization library for MoonBit.
 - Parse HCL syntax
 - Serialize/deserialize to/from MoonBit types
 - Format HCL with proper indentation
+- Preserve whitespace and comments through parse-modify-serialize cycles
 - Terraform-compatible
 
 ## Installation
@@ -96,6 +97,38 @@ let invalid = "name = John" // missing quotes
 println("Valid: " + hcl.is_valid_hcl(valid).to_string())
 println("Invalid: " + hcl.is_valid_hcl(invalid).to_string())
 ```
+
+### Preserve Comments and Whitespace (Decor)
+
+The decor system preserves whitespace and comments through parse-modify-serialize
+round-trips. Every `HCLValue`, `Body`, `Attr`, and `Block` carries a `Decor` with
+`prefix` and `suffix` fields that store surrounding whitespace and comments.
+
+```moonbit nocheck
+let input = "// Configure server\nhost = \"localhost\"\nport = 8080"
+let result = hcl.parse(input)
+match result {
+  Ok(body) => {
+    // Comments are preserved in decor
+    let attr = body.find_attr("host")
+    match attr {
+      Some(a) => {
+        let prefix = a.get_decor().get_prefix()
+        // prefix contains "// Configure server\n"
+        println("Has comment: " + prefix.is_some().to_string())
+      }
+      None => ()
+    }
+
+    // Serialize back preserves comments
+    let output = hcl.format_body_with_decor(body)
+    println(output)
+  }
+  Err(e) => println("Error: " + e.message())
+}
+```
+
+See [docs/decor-usage.md](docs/decor-usage.md) for detailed examples.
 
 ## HCL Syntax
 

@@ -1,6 +1,6 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：内置函数和 Spec 测试完成 (约 98% 功能覆盖)
+## 当前状态：装饰系统完成，全部功能就绪 (326 测试通过)
 
 ## 已完成 ✅
 
@@ -51,7 +51,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 289 个测试全部通过
+- ✅ 326 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -62,6 +62,7 @@
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
 - 覆盖：内置函数（数字、集合、字符串、类型转换，共45个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
+- 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -126,7 +127,7 @@
   - [x] 使用说明
 
 ### 低优先级
-- [ ] 保留空白和注释的编辑（类似 hcl-edit）
+- [x] 保留空白和注释的编辑（类似 hcl-edit）- 已完成
 - [ ] 性能优化
 - [x] 完整的 spec test suite (已完成基础操作符和 heredoc 测试)
 
@@ -187,7 +188,12 @@
 
 ### 阶段 5：高级功能（部分完成）
 ```
-1. 保留空白和注释的编辑（类似 hcl-edit）
+1. 保留空白和注释的编辑（类似 hcl-edit）✅
+   - Decor 和 Decorated 类型 ✅
+   - Body/Attr/Block 装饰支持 ✅
+   - HCLValue 装饰支持 ✅
+   - 解析器收集空白和注释 ✅
+   - 序列化器输出装饰 ✅
 2. 性能优化
 3. 完整的 spec test suite
 4. 更多 CLI 功能（文件读取、批量处理）
@@ -236,6 +242,10 @@ hcl/
 ├── trait_wbtest.mbt   # trait 白盒测试
 ├── builder_wbtest.mbt # builder 白盒测试
 ├── derive_wbtest.mbt  # derive 白盒测试
+├── decor.mbt          # Decor/Decorated 类型（新增）
+├── decor_test.mbt     # Decor 单元测试（新增）
+├── decor_wbtest.mbt   # Decor 白盒测试（新增）
+├── parser_decor_test.mbt # 解析器装饰集成测试（新增）
 └── cmd/
     └── main/
         ├── main.mbt   # CLI 入口
