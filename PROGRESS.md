@@ -11,7 +11,7 @@
 |------|------|------|
 | Expression 独立枚举 | ✅ 完成 | - |
 | Value 统一 Number 类型 | ✅ 完成 | - |
-| Identifier 类型 | ⏳ | - |
+| Identifier 类型 | ✅ 完成 | - |
 | ObjectKey 类型 | ✅ 已包含 | Expression |
 
 ### 第二阶段：表达式类型
@@ -65,11 +65,12 @@
 - `token.mbt` - Token 枚举（所有 token 类型）
 - `error.mbt` - HCLError 和 HCLResult 类型
 - `number.mbt` - Number 类型（PosInt/NegInt/Float 内部表示）
+- `ident.mbt` - Ident 类型（标识符验证和构造）
 
 ### 词法分析器 (lexer.mbt)
 - ✅ 基础 token 识别
 - ✅ 字符串字面量（带转义序列）
-- ✅ 数字字面量（整数、浮点数、十六进制0x、八进制0o、二进制0b）
+- ✅ 数字字面量（整数、浮点数、十六进制0x、八进制0o、二进制0b、科学计数法）
 - ✅ 标识符和关键字（true, false, null, for, in, if）
 - ✅ 行注释 (//)
 - ✅ 块注释 (/* */)
@@ -107,7 +108,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 438 个测试全部通过
+- ✅ 442 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
