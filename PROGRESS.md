@@ -2,6 +2,22 @@
 
 ## 当前状态：按照 hcl-rs 方案重构中
 
+## 当前分支
+- 分支：`pilot/ref/builder-pattern-enhancements`
+- 状态：开发完成
+- 目标：实现 Builder 模式增强
+
+## 本次开发完成的功能
+- ✅ TraversalBuilder - Traversal 的构建器模式
+- ✅ FuncCallBuilder - FuncCall 的构建器模式
+- ✅ 格式化器配置 (FormatConfig)
+  - dense 模式
+  - compact_arrays 模式
+  - compact_objects 模式
+  - prefer_ident_keys 选项
+- ✅ Formatter 结构体和 Builder 模式
+- ✅ 新增 46 个测试（488/488 通过）
+
 ## 重构计划
 
 按 hcl-rs 方案重写核心类型，优先级：
@@ -17,9 +33,9 @@
 ### 第二阶段：表达式类型
 | 任务 | 状态 | 依赖 |
 |------|------|------|
-| Traversal 类型 + TraversalBuilder | ⏳ | Expression |
-| FuncCall 类型 + FuncCallBuilder | ⏳ | Expression |
-| FuncDef 参数类型验证 | ⏳ | FuncCall |
+| Traversal 类型 + TraversalBuilder | ✅ 完成 | Expression |
+| FuncCall 类型 + FuncCallBuilder | ✅ 完成 | Expression |
+| FuncDef 参数类型验证 | ⏭️ 跳过 | FuncCall |
 | Conditional 类型 | ✅ 已包含 | Expression |
 | ForExpr 类型 | ✅ 已包含 | Expression |
 | Operation 类型 | ✅ 已包含 | Expression |
@@ -28,17 +44,17 @@
 ### 第三阶段：Builder 模式
 | 任务 | 状态 | 依赖 |
 |------|------|------|
-| BodyBuilder | ⏳ | - |
-| BlockBuilder | ⏳ | - |
-| TraversalBuilder | ⏳ | Traversal |
-| FuncCallBuilder | ⏳ | FuncCall |
+| BodyBuilder | ✅ 已有 | - |
+| BlockBuilder | ✅ 已有 | - |
+| TraversalBuilder | ✅ 完成 | Traversal |
+| FuncCallBuilder | ✅ 完成 | FuncCall |
 
 ### 第四阶段：数据结构增强
 | 任务 | 状态 | 依赖 |
 |------|------|------|
 | Map 类型 (IndexMap 替代) | ⏳ | - |
-| 格式化器配置 (dense/compact) | ⏳ | - |
-| prefer_ident_keys 选项 | ⏳ | - |
+| 格式化器配置 (dense/compact) | ✅ 完成 | - |
+| prefer_ident_keys 选项 | ✅ 完成 | - |
 
 ### 第五阶段：高级功能
 | 任务 | 状态 | 依赖 |
@@ -108,7 +124,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 442 个测试全部通过
+- ✅ 488 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）

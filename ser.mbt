@@ -290,6 +290,247 @@ fn repeat_string(s : String, n : Int) -> String {
 }
 
 ///|
+/// Check if string is a valid HCL identifier (no quoting needed)
+fn is_valid_ident_key(s : String) -> Bool {
+  is_ident(s)
+}
+
+///|
+/// Format configuration for HCL output
+pub struct FormatConfig {
+  indent : String
+  dense : Bool
+  compact_arrays : Bool
+  compact_objects : Bool
+  prefer_ident_keys : Bool
+} derive(Debug, Eq)
+
+///|
+/// Create default FormatConfig (2-space indent, all options false)
+pub fn FormatConfig::default() -> FormatConfig {
+  {
+    indent: "  ",
+    dense: false,
+    compact_arrays: false,
+    compact_objects: false,
+    prefer_ident_keys: false,
+  }
+}
+
+///|
+/// Create compact FormatConfig (inline arrays/objects)
+pub fn FormatConfig::compact() -> FormatConfig {
+  {
+    indent: "  ",
+    dense: true,
+    compact_arrays: true,
+    compact_objects: true,
+    prefer_ident_keys: true,
+  }
+}
+
+///|
+/// Create dense FormatConfig (no empty lines between blocks)
+pub fn FormatConfig::dense() -> FormatConfig {
+  {
+    indent: "  ",
+    dense: true,
+    compact_arrays: false,
+    compact_objects: false,
+    prefer_ident_keys: false,
+  }
+}
+
+///|
+/// Formatter for HCL output with configuration
+pub struct Formatter {
+  config : FormatConfig
+}
+
+///|
+/// Create Formatter with default config
+pub fn Formatter::new() -> Formatter {
+  { config: FormatConfig::default() }
+}
+
+///|
+/// Create Formatter with given config
+pub fn Formatter::with_config(config : FormatConfig) -> Formatter {
+  { config, }
+}
+
+///|
+/// Set indent string
+pub fn Formatter::set_indent(self : Formatter, indent : String) -> Formatter {
+  { config: { ..self.config, indent, } }
+}
+
+///|
+/// Set dense mode
+pub fn Formatter::set_dense(self : Formatter, dense : Bool) -> Formatter {
+  { config: { ..self.config, dense, } }
+}
+
+///|
+/// Set compact arrays mode
+pub fn Formatter::set_compact_arrays(
+  self : Formatter,
+  compact_arrays : Bool,
+) -> Formatter {
+  { config: { ..self.config, compact_arrays, } }
+}
+
+///|
+/// Set compact objects mode
+pub fn Formatter::set_compact_objects(
+  self : Formatter,
+  compact_objects : Bool,
+) -> Formatter {
+  { config: { ..self.config, compact_objects, } }
+}
+
+///|
+/// Set prefer ident keys mode
+pub fn Formatter::set_prefer_ident_keys(
+  self : Formatter,
+  prefer_ident_keys : Bool,
+) -> Formatter {
+  { config: { ..self.config, prefer_ident_keys, } }
+}
+
+///|
+/// Get the formatter config
+pub fn Formatter::get_config(self : Formatter) -> FormatConfig {
+  self.config
+}
+
+///|
+/// Format HCLValue using formatter config
+pub fn Formatter::format_value(self : Formatter, value : HCLValue) -> String {
+  self.format_hcl_value_impl(value, 0)
+}
+
+///|
+/// Format Body using formatter config
+pub fn Formatter::format_body(self : Formatter, body : Body) -> String {
+  self.format_body_impl(body, 0)
+}
+
+///|
+/// Format key for object/attribute (respecting prefer_ident_keys)
+fn Formatter::format_key(self : Formatter, key : String) -> String {
+  if self.config.prefer_ident_keys && is_valid_ident_key(key) {
+    key
+  } else {
+    escape_hcl_string(key)
+  }
+}
+
+///|
+/// Internal: format HCLValue with config and indent level
+fn Formatter::format_hcl_value_impl(
+  self : Formatter,
+  value : HCLValue,
+  indent_level : Int,
+) -> String {
+  let prefix = repeat_string(self.config.indent, indent_level)
+
+  match value {
+    Null(_) => "null"
+    Bool(b, _) => if b { "true" } else { "false" }
+    Number(n, _) => n.to_string()
+    String(s, _) => escape_hcl_string(s)
+    Array(arr, _) =>
+      if arr.is_empty() {
+        "[]"
+      } else if self.config.compact_arrays {
+        let items = arr.map(fn(v) {
+          self.format_hcl_value_impl(v, indent_level)
+        })
+        "[" + items.join(", ") + "]"
+      } else {
+        let items = arr.map(fn(v) {
+          self.format_hcl_value_impl(v, indent_level + 1)
+        })
+        "[\n" +
+        prefix +
+        self.config.indent +
+        items.join(",\n" + prefix + self.config.indent) +
+        "\n" +
+        prefix +
+        "]"
+      }
+    Object(obj, _) =>
+      if obj.is_empty() {
+        "{}"
+      } else if self.config.compact_objects {
+        let items = []
+        for k, v in obj {
+          items.push(
+            self.format_key(k) +
+            " = " +
+            self.format_hcl_value_impl(v, indent_level),
+          )
+        }
+        "{ " + items.join(", ") + " }"
+      } else {
+        let items = []
+        for k, v in obj {
+          items.push(
+            prefix +
+            self.config.indent +
+            self.format_key(k) +
+            " = " +
+            self.format_hcl_value_impl(v, indent_level + 1),
+          )
+        }
+        "{\n" + items.join("\n") + "\n" + prefix + "}"
+      }
+  }
+}
+
+///|
+/// Internal: format Body with config and indent level
+fn Formatter::format_body_impl(
+  self : Formatter,
+  body : Body,
+  indent_level : Int,
+) -> String {
+  let prefix = repeat_string(self.config.indent, indent_level)
+  let lines = []
+
+  for item in body.get_items() {
+    match item {
+      Attribute(attr) =>
+        lines.push(
+          prefix +
+          self.format_key(attr.get_key()) +
+          " = " +
+          self.format_hcl_value_impl(attr.get_value(), indent_level),
+        )
+      Block(block) => {
+        let labels = block.get_labels()
+        let block_header = if labels.is_empty() {
+          block.get_type_name()
+        } else {
+          block.get_type_name() +
+          " " +
+          labels.map(fn(l) { escape_hcl_string(l) }).join(" ")
+        }
+        let inner = self.format_body_impl(block.get_body(), indent_level + 1)
+        lines.push(prefix + block_header + " {\n" + inner + "\n" + prefix + "}")
+      }
+    }
+  }
+
+  if self.config.dense {
+    lines.join("\n")
+  } else {
+    lines.join("\n\n")
+  }
+}
+
+///|
 /// Create Int HCLValue
 pub fn hcl_int(v : Int) -> HCLValue {
   Number(Number::from_int(v), Decor::empty())

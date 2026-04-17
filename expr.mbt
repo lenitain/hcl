@@ -107,6 +107,51 @@ pub(all) enum TraversalOperator {
 } derive(Eq)
 
 ///|
+/// Builder for constructing Traversal expressions incrementally
+pub struct TraversalBuilder {
+  base : Expression
+  operators : Array[TraversalOperator]
+}
+
+///|
+/// Create a new TraversalBuilder from a base expression
+pub fn TraversalBuilder::new(base : Expression) -> TraversalBuilder {
+  { base, operators: [] }
+}
+
+///|
+/// Add an attribute access operator (.attr)
+pub fn TraversalBuilder::attr(
+  self : TraversalBuilder,
+  name : String,
+) -> TraversalBuilder {
+  self.operators.push(Attr(name))
+  self
+}
+
+///|
+/// Add an index access operator ([expr])
+pub fn TraversalBuilder::index(
+  self : TraversalBuilder,
+  expr : Expression,
+) -> TraversalBuilder {
+  self.operators.push(Index(expr))
+  self
+}
+
+///|
+/// Build the Traversal expression
+pub fn TraversalBuilder::build(self : TraversalBuilder) -> Traversal {
+  { base: self.base, operators: self.operators }
+}
+
+///|
+/// Create a TraversalBuilder starting from this Traversal
+pub fn Traversal::builder(base : Expression) -> TraversalBuilder {
+  TraversalBuilder::new(base)
+}
+
+///|
 /// Function call
 pub(all) struct FuncCall {
   /// Function name
@@ -114,6 +159,41 @@ pub(all) struct FuncCall {
   /// Arguments
   args : Array[Expression]
 } derive(Eq)
+
+///|
+/// Builder for constructing FuncCall expressions incrementally
+pub struct FuncCallBuilder {
+  name : String
+  args : Array[Expression]
+}
+
+///|
+/// Create a new FuncCallBuilder with a function name
+pub fn FuncCallBuilder::new(name : String) -> FuncCallBuilder {
+  { name, args: [] }
+}
+
+///|
+/// Add an argument expression
+pub fn FuncCallBuilder::arg(
+  self : FuncCallBuilder,
+  expr : Expression,
+) -> FuncCallBuilder {
+  self.args.push(expr)
+  self
+}
+
+///|
+/// Build the FuncCall expression
+pub fn FuncCallBuilder::build(self : FuncCallBuilder) -> FuncCall {
+  { name: self.name, args: self.args }
+}
+
+///|
+/// Create a FuncCallBuilder for this function name
+pub fn FuncCall::builder(name : String) -> FuncCallBuilder {
+  FuncCallBuilder::new(name)
+}
 
 ///|
 /// Conditional expression (cond ? true_expr : false_expr)

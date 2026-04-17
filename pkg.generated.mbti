@@ -294,10 +294,44 @@ pub(all) struct ForObjectExpr {
   filter : Expression?
 } derive(Eq)
 
+pub struct FormatConfig {
+  indent : String
+  dense : Bool
+  compact_arrays : Bool
+  compact_objects : Bool
+  prefer_ident_keys : Bool
+} derive(Eq, @debug.Debug)
+pub fn FormatConfig::compact() -> Self
+pub fn FormatConfig::default() -> Self
+pub fn FormatConfig::dense() -> Self
+
+pub struct Formatter {
+  config : FormatConfig
+}
+pub fn Formatter::format_body(Self, Body) -> String
+pub fn Formatter::format_value(Self, HCLValue) -> String
+pub fn Formatter::get_config(Self) -> FormatConfig
+pub fn Formatter::new() -> Self
+pub fn Formatter::set_compact_arrays(Self, Bool) -> Self
+pub fn Formatter::set_compact_objects(Self, Bool) -> Self
+pub fn Formatter::set_dense(Self, Bool) -> Self
+pub fn Formatter::set_indent(Self, String) -> Self
+pub fn Formatter::set_prefer_ident_keys(Self, Bool) -> Self
+pub fn Formatter::with_config(FormatConfig) -> Self
+
 pub(all) struct FuncCall {
   name : String
   args : Array[Expression]
 } derive(Eq)
+pub fn FuncCall::builder(String) -> FuncCallBuilder
+
+pub struct FuncCallBuilder {
+  name : String
+  args : Array[Expression]
+}
+pub fn FuncCallBuilder::arg(Self, Expression) -> Self
+pub fn FuncCallBuilder::build(Self) -> FuncCall
+pub fn FuncCallBuilder::new(String) -> Self
 
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int, String)
@@ -520,6 +554,16 @@ pub(all) struct Traversal {
   base : Expression
   operators : Array[TraversalOperator]
 } derive(Eq)
+pub fn Traversal::builder(Expression) -> TraversalBuilder
+
+pub struct TraversalBuilder {
+  base : Expression
+  operators : Array[TraversalOperator]
+}
+pub fn TraversalBuilder::attr(Self, String) -> Self
+pub fn TraversalBuilder::build(Self) -> Traversal
+pub fn TraversalBuilder::index(Self, Expression) -> Self
+pub fn TraversalBuilder::new(Expression) -> Self
 
 pub(all) enum TraversalOperator {
   Attr(String)
