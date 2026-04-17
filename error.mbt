@@ -2,7 +2,7 @@
 /// HCL Error types
 pub(all) enum HCLError {
   /// Parse error with location info
-  ParseError(String, Int, Int, Int)
+  ParseError(String, Int, Int, Int, String)
   /// Type mismatch error
   TypeError(String, String)
   /// Missing field error
@@ -31,7 +31,19 @@ pub fn HCLError::parse_error(
   column : Int,
   offset : Int,
 ) -> HCLError {
-  ParseError(msg, line, column, offset)
+  ParseError(msg, line, column, offset, "")
+}
+
+///|
+/// Create a parse error with context line
+pub fn HCLError::parse_error_with_context(
+  msg : String,
+  line : Int,
+  column : Int,
+  offset : Int,
+  context : String,
+) -> HCLError {
+  ParseError(msg, line, column, offset, context)
 }
 
 ///|
@@ -98,13 +110,19 @@ pub fn HCLError::validation_error(path : String, msg : String) -> HCLError {
 /// Get error message
 pub fn HCLError::message(self : HCLError) -> String {
   match self {
-    ParseError(msg, line, column, _) =>
-      "Parse error at line " +
-      line.to_string() +
-      ", column " +
-      column.to_string() +
-      ": " +
-      msg
+    ParseError(msg, line, column, _, context) => {
+      let base = "Parse error at line " +
+        line.to_string() +
+        ", column " +
+        column.to_string() +
+        ": " +
+        msg
+      if context == "" {
+        base
+      } else {
+        base + "\n" + context
+      }
+    }
     TypeError(expected, got) =>
       "Type error: expected " + expected + ", got " + got
     MissingField(field) => "Missing field: " + field

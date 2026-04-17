@@ -121,7 +121,7 @@ pub fn FieldSchemaEx::add_validator(Self, (HCLValue, String) -> Array[HCLError])
 pub fn FieldSchemaEx::new(FieldSchema) -> Self
 
 pub(all) enum HCLError {
-  ParseError(String, Int, Int, Int)
+  ParseError(String, Int, Int, Int, String)
   TypeError(String, String)
   MissingField(String)
   InvalidValue(String)
@@ -138,6 +138,7 @@ pub fn HCLError::io_error(String) -> Self
 pub fn HCLError::message(Self) -> String
 pub fn HCLError::missing_field(String) -> Self
 pub fn HCLError::parse_error(String, Int, Int, Int) -> Self
+pub fn HCLError::parse_error_with_context(String, Int, Int, Int, String) -> Self
 pub fn HCLError::type_error(String) -> Self
 pub fn HCLError::type_mismatch(String, String) -> Self
 pub fn HCLError::undefined_function(String) -> Self
