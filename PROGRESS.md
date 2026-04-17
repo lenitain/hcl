@@ -1,17 +1,21 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：hcl2json CLI 批量处理功能已完成
+## 当前状态：hcl2json CLI 增强功能已完成
 
 ## 当前分支
-- 分支：`lenitain/feat/hcl2json-batch`
+- 分支：`lenitain/feat/hcl2json-enhance`
 - 状态：开发完成
-- 目标：实现 hcl2json CLI 批量处理功能
+- 目标：实现 hcl2json CLI 增强功能（simplify、文件读取）
 
 ## 本次开发完成的功能
-- ✅ hcl2json CLI 基础框架
+- ✅ hcl2json CLI 基础框架（重构）
 - ✅ HCL 到 JSON 转换功能
 - ✅ 支持 --pretty 选项（格式化 JSON 输出）
-- ✅ 支持基础示例（从字符串读取 HCL）
+- ✅ 支持 --simplify 选项（简化常量表达式）
+- ✅ 支持从文件读取 HCL
+- ✅ 环境变量配置（HCL2JSON_PRETTY、HCL2JSON_SIMPLIFY、HCL2JSON_FILE）
+- ✅ simplify_body() 函数实现
+- ✅ 8 个新测试用例（simplify_test.mbt）
 - ✅ 错误处理和消息显示
 - ✅ 帮助信息显示
 
@@ -67,7 +71,7 @@
 | Decorated\<Expression\> 包装 | ✅ 完成 | Decor |
 | hcl2json CLI 批量处理 | ✅ 完成 | - |
 | hcl2json glob 模式 | ⏳ | - |
-| hcl2json --simplify 选项 | ⏳ | eval |
+| hcl2json --simplify 选项 | ✅ 完成 | eval |
 | specsuite 完整测试套件 | ⏳ | - |
 
 ### 第六阶段：适配
@@ -130,7 +134,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 521 个测试全部通过
+- ✅ 529 个测试全部通过（新增 8 个 simplify 测试）
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -143,6 +147,7 @@
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
+- 覆盖：simplify 功能（二元运算、比较、条件、一元运算、数组、嵌套表达式）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)

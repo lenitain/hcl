@@ -505,3 +505,73 @@ pub fn eval_expr_simple(expr : HCLValue) -> HCLResult[HCLValue] {
   let empty_funcs = {}
   eval_expr(expr, empty_vars, empty_funcs)
 }
+
+///|
+/// Simplify a value by evaluating constant expressions
+fn simplify_value(value : HCLValue) -> HCLValue {
+  match value {
+    // Try to evaluate expressions
+    Object(obj, _) =>
+      match obj.get("type") {
+        Some(String("binary_expr", _))
+        | Some(String("unary_expr", _))
+        | Some(String("conditional", _)) =>
+          // Try to evaluate the expression
+          match eval_expr_simple(value) {
+            Ok(simplified) => simplified
+            Err(_) => value // Keep original if evaluation fails
+          }
+        _ => {
+          // Regular object - simplify each value
+          let result = {}
+          for k, v in obj {
+            result[k] = simplify_value(v)
+          }
+          Object(result, Decor::empty())
+        }
+      }
+    // Array - simplify each element
+    Array(arr, _) => {
+      let result = []
+      for item in arr {
+        result.push(simplify_value(item))
+      }
+      Array(result, Decor::empty())
+    }
+    // Basic values - return as-is
+    _ => value
+  }
+}
+
+///|
+/// Simplify all values in a Body by evaluating constant expressions
+pub fn simplify_body(body : Body) -> Body {
+  let items = body.get_items()
+  let simplified_items = []
+
+  for item in items {
+    match item {
+      Attribute(attr) => {
+        let simplified_value = simplify_value(attr.get_value())
+        let new_attr = Attr::with_decor(
+          attr.get_decorated_key(),
+          simplified_value,
+          attr.get_decor(),
+        )
+        simplified_items.push(Attribute(new_attr))
+      }
+      Block(block) => {
+        let simplified_body = simplify_body(block.get_body())
+        let new_block = Block::with_decor(
+          block.get_decorated_type_name(),
+          block.get_decorated_labels(),
+          simplified_body,
+          block.get_decor(),
+        )
+        simplified_items.push(Block(new_block))
+      }
+    }
+  }
+
+  Body::with_decor(simplified_items, body.get_decor())
+}

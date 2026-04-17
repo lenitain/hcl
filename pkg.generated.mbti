@@ -102,6 +102,8 @@ pub fn parse(String) -> Result[Body, HCLError]
 
 pub fn parse_template(String) -> Result[Template, HCLError]
 
+pub fn simplify_body(Body) -> Body
+
 pub fn string_not_empty() -> (HCLValue, String) -> Array[HCLError]
 
 pub fn string_starts_with(String) -> (HCLValue, String) -> Array[HCLError]
