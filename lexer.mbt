@@ -46,7 +46,13 @@ pub fn Lexer::get_line(self : Lexer, line_number : Int) -> String {
 ///|
 /// Extract substring from input[start:end] as String
 fn extract_line(input : String, start : Int, end : Int) -> String {
-  input[start:end].to_string()
+  let line = input[start:end].to_string()
+  if line.length() > 0 &&
+    line.code_unit_at(line.length() - 1) == '\r'.to_int().to_uint16() {
+    input[start:end - 1].to_string()
+  } else {
+    line
+  }
 }
 
 ///|

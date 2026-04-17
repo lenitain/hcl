@@ -136,9 +136,17 @@ fn parse_interpolation(
   }
 
   if depth > 0 {
-    Err(HCLError::parse_error("Unclosed interpolation ${", 0, 0, start))
+    Err(
+      HCLError::parse_error_with_context(
+        "Unclosed interpolation ${", 0, 0, start, "",
+      ),
+    )
   } else {
-    Err(HCLError::parse_error("Unexpected end of interpolation", 0, 0, i))
+    Err(
+      HCLError::parse_error_with_context(
+        "Unexpected end of interpolation", 0, 0, i, "",
+      ),
+    )
   }
 }
 
@@ -174,9 +182,17 @@ fn parse_directive(
   }
 
   if depth > 0 {
-    Err(HCLError::parse_error("Unclosed directive %{", 0, 0, start))
+    Err(
+      HCLError::parse_error_with_context(
+        "Unclosed directive %{", 0, 0, start, "",
+      ),
+    )
   } else {
-    Err(HCLError::parse_error("Unexpected end of directive", 0, 0, i))
+    Err(
+      HCLError::parse_error_with_context(
+        "Unexpected end of directive", 0, 0, i, "",
+      ),
+    )
   }
 }
 
@@ -205,7 +221,15 @@ fn parse_directive_content(content : String) -> HCLResult[TemplatePart] {
     // %{endfor}
     Ok(ForEnd)
   } else {
-    Err(HCLError::parse_error("Unknown directive: " + trimmed, 0, 0, 0))
+    Err(
+      HCLError::parse_error_with_context(
+        "Unknown directive: " + trimmed,
+        0,
+        0,
+        0,
+        "",
+      ),
+    )
   }
 }
 
@@ -230,7 +254,11 @@ fn parse_for_directive(content : String) -> HCLResult[(String, HCLValue)] {
   }
 
   if parts.length() < 4 || parts[0] != "for" || parts[2] != "in" {
-    return Err(HCLError::parse_error("Invalid for directive format", 0, 0, 0))
+    return Err(
+      HCLError::parse_error_with_context(
+        "Invalid for directive format", 0, 0, 0, "",
+      ),
+    )
   }
 
   let var_name = parts[1]
@@ -469,7 +497,9 @@ fn evaluate_conditional_body(
     }
   }
 
-  Err(HCLError::parse_error("Unclosed conditional", 0, 0, start))
+  Err(
+    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
+  )
 }
 
 ///|
@@ -496,7 +526,9 @@ fn skip_conditional_body(
     i += 1
   }
 
-  Err(HCLError::parse_error("Unclosed conditional", 0, 0, start))
+  Err(
+    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
+  )
 }
 
 ///|
@@ -514,7 +546,9 @@ fn evaluate_for_body(
   // Find end of for loop
   let end_pos = find_for_end(parts, start)
   if end_pos < 0 {
-    return Err(HCLError::parse_error("Unclosed for loop", 0, 0, start))
+    return Err(
+      HCLError::parse_error_with_context("Unclosed for loop", 0, 0, start, ""),
+    )
   }
 
   // Evaluate for each item
