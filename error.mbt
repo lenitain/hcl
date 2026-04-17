@@ -19,6 +19,8 @@ pub(all) enum HCLError {
   UndefinedFunction(String)
   /// Undefined property error
   UndefinedProperty(String)
+  /// Validation error with path
+  ValidationError(String, String)
 } derive(Debug, Eq)
 
 ///|
@@ -87,6 +89,12 @@ pub fn HCLError::undefined_property(name : String) -> HCLError {
 }
 
 ///|
+/// Create a validation error
+pub fn HCLError::validation_error(path : String, msg : String) -> HCLError {
+  ValidationError(path, msg)
+}
+
+///|
 /// Get error message
 pub fn HCLError::message(self : HCLError) -> String {
   match self {
@@ -106,6 +114,8 @@ pub fn HCLError::message(self : HCLError) -> String {
     UndefinedVariable(name) => "Undefined variable: " + name
     UndefinedFunction(name) => "Undefined function: " + name
     UndefinedProperty(name) => "Undefined property: " + name
+    ValidationError(path, msg) =>
+      "Validation error at " + path + ": " + msg
   }
 }
 
