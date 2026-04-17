@@ -20,6 +20,40 @@ pub fn Lexer::location(self : Lexer) -> (Int, Int, Int) {
 }
 
 ///|
+/// Get a specific line from input (line number starts at 1)
+pub fn Lexer::get_line(self : Lexer, line_number : Int) -> String {
+  let mut current_line = 1
+  let mut start = 0
+  let len = self.input.length()
+  let newline_code = '\n'.to_int().to_uint16()
+
+  for i in 0..<len {
+    if self.input[i] == newline_code {
+      if current_line == line_number {
+        return extract_line(self.input, start, i)
+      }
+      current_line = current_line + 1
+      start = i + 1
+    }
+  }
+
+  if current_line == line_number {
+    return extract_line(self.input, start, len)
+  }
+  ""
+}
+
+///|
+/// Extract substring from input[start:end] as String
+fn extract_line(input : String, start : Int, end : Int) -> String {
+  let mut result = ""
+  for i in start..<end {
+    result = result + input[i].to_int().unsafe_to_char().to_string()
+  }
+  result
+}
+
+///|
 /// Check if at end of input
 fn Lexer::is_at_end(self : Lexer) -> Bool {
   self.pos >= self.input.length()
@@ -118,11 +152,12 @@ fn Lexer::skip_block_comment(self : Lexer) -> HCLResult[Lexer] {
   }
 
   Err(
-    HCLError::parse_error(
+    HCLError::parse_error_with_context(
       "Unterminated block comment",
       start_line,
       start_col,
       self.pos,
+      self.get_line(start_line),
     ),
   )
 }
@@ -145,11 +180,12 @@ fn Lexer::read_string(self : Lexer) -> HCLResult[(Token, Lexer)] {
         lexer = lexer.advance()
         if lexer.is_at_end() {
           return Err(
-            HCLError::parse_error(
+            HCLError::parse_error_with_context(
               "Unterminated string",
               start_line,
               start_col,
               self.pos,
+              self.get_line(start_line),
             ),
           )
         }
@@ -167,22 +203,24 @@ fn Lexer::read_string(self : Lexer) -> HCLResult[(Token, Lexer)] {
       }
       None =>
         return Err(
-          HCLError::parse_error(
+          HCLError::parse_error_with_context(
             "Unterminated string",
             start_line,
             start_col,
             self.pos,
+            self.get_line(start_line),
           ),
         )
     }
   }
 
   Err(
-    HCLError::parse_error(
+    HCLError::parse_error_with_context(
       "Unterminated string",
       start_line,
       start_col,
       self.pos,
+      self.get_line(start_line),
     ),
   )
 }
@@ -201,11 +239,12 @@ fn Lexer::read_escape_sequence(self : Lexer) -> HCLResult[(Char, Lexer)] {
     Some(c) if c == 'f'.to_int().to_uint16() => Ok(('\f', self.advance()))
     _ =>
       Err(
-        HCLError::parse_error(
+        HCLError::parse_error_with_context(
           "Invalid escape sequence",
           self.line,
           self.col,
           self.pos,
+          self.get_line(self.line),
         ),
       )
   }
@@ -256,7 +295,13 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
 
   if num.is_empty() {
     return Err(
-      HCLError::parse_error("Invalid number", self.line, self.col, self.pos),
+      HCLError::parse_error_with_context(
+        "Invalid number",
+        self.line,
+        self.col,
+        self.pos,
+        self.get_line(self.line),
+      ),
     )
   }
 
@@ -355,11 +400,12 @@ pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
         Ok((AndAnd, lexer.advance().advance()))
       } else {
         Err(
-          HCLError::parse_error(
+          HCLError::parse_error_with_context(
             "Unexpected character '&'",
             lexer.line,
             lexer.col,
             lexer.pos,
+            lexer.get_line(lexer.line),
           ),
         )
       }
@@ -368,11 +414,12 @@ pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
         Ok((OrOr, lexer.advance().advance()))
       } else {
         Err(
-          HCLError::parse_error(
+          HCLError::parse_error_with_context(
             "Unexpected character '|'",
             lexer.line,
             lexer.col,
             lexer.pos,
+            lexer.get_line(lexer.line),
           ),
         )
       }
@@ -385,11 +432,12 @@ pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
     _ => {
       let ch = c.to_int().unsafe_to_char().to_string()
       Err(
-        HCLError::parse_error(
+        HCLError::parse_error_with_context(
           "Unexpected character '" + ch + "'",
           lexer.line,
           lexer.col,
           lexer.pos,
+          lexer.get_line(lexer.line),
         ),
       )
     }

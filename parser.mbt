@@ -57,7 +57,7 @@ fn Parser::expect(self : Parser, expected : Token) -> HCLResult[Parser] {
   } else {
     let (line, col, offset) = self.lexer.location()
     Err(
-      HCLError::parse_error(
+      HCLError::parse_error_with_context(
         "Expected " +
         token_to_string(expected) +
         ", got " +
@@ -65,6 +65,7 @@ fn Parser::expect(self : Parser, expected : Token) -> HCLResult[Parser] {
         line,
         col,
         offset,
+        self.lexer.get_line(line),
       ),
     )
   }
@@ -122,11 +123,12 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              HCLError::parse_error(
+              HCLError::parse_error_with_context(
                 "Unexpected token: " + token_to_string(parser.current),
                 line,
                 col,
                 offset,
+                parser.lexer.get_line(line),
               ),
             )
           }
@@ -151,7 +153,13 @@ fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
     _ => {
       let (line, col, offset) = self.lexer.location()
       return Err(
-        HCLError::parse_error("Expected identifier", line, col, offset),
+        HCLError::parse_error_with_context(
+          "Expected identifier",
+          line,
+          col,
+          offset,
+          self.lexer.get_line(line),
+        ),
       )
     }
   }
@@ -178,7 +186,13 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
     _ => {
       let (line, col, offset) = self.lexer.location()
       return Err(
-        HCLError::parse_error("Expected block type name", line, col, offset),
+        HCLError::parse_error_with_context(
+          "Expected block type name",
+          line,
+          col,
+          offset,
+          self.lexer.get_line(line),
+        ),
       )
     }
   }
@@ -209,8 +223,12 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
       _ => {
         let (line, col, offset) = result.lexer.location()
         return Err(
-          HCLError::parse_error(
-            "Expected block label or '{'", line, col, offset,
+          HCLError::parse_error_with_context(
+            "Expected block label or '{'",
+            line,
+            col,
+            offset,
+            result.lexer.get_line(line),
           ),
         )
       }
@@ -257,11 +275,12 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              HCLError::parse_error(
+              HCLError::parse_error_with_context(
                 "Unexpected token: " + token_to_string(parser.current),
                 line,
                 col,
                 offset,
+                parser.lexer.get_line(line),
               ),
             )
           }
@@ -470,11 +489,12 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
     _ => {
       let (line, col, offset) = self.lexer.location()
       Err(
-        HCLError::parse_error(
+        HCLError::parse_error_with_context(
           "Unexpected token: " + token_to_string(self.current),
           line,
           col,
           offset,
+          self.lexer.get_line(line),
         ),
       )
     }
@@ -548,7 +568,13 @@ fn Parser::parse_function_call(
         } else if !p.check(RParen) {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            HCLError::parse_error("Expected ',' or ')'", line, col, offset),
+            HCLError::parse_error_with_context(
+              "Expected ',' or ')'",
+              line,
+              col,
+              offset,
+              p.lexer.get_line(line),
+            ),
           )
         }
       }
@@ -586,7 +612,13 @@ fn Parser::parse_property_access(
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              HCLError::parse_error("Expected property name", line, col, offset),
+              HCLError::parse_error_with_context(
+                "Expected property name",
+                line,
+                col,
+                offset,
+                parser.lexer.get_line(line),
+              ),
             )
           }
         }
@@ -678,7 +710,13 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         } else if !parser.check(RBracket) {
           let (line, col, offset) = parser.lexer.location()
           return Err(
-            HCLError::parse_error("Expected ',' or ']'", line, col, offset),
+            HCLError::parse_error_with_context(
+              "Expected ',' or ']'",
+              line,
+              col,
+              offset,
+              parser.lexer.get_line(line),
+            ),
           )
         }
       }
@@ -713,8 +751,12 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         _ => {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            HCLError::parse_error(
-              "Expected identifier after 'for'", line, col, offset,
+            HCLError::parse_error_with_context(
+              "Expected identifier after 'for'",
+              line,
+              col,
+              offset,
+              p.lexer.get_line(line),
             ),
           )
         }
@@ -737,8 +779,12 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           _ => {
             let (line, col, offset) = p.lexer.location()
             return Err(
-              HCLError::parse_error(
-                "Expected identifier after ','", line, col, offset,
+              HCLError::parse_error_with_context(
+                "Expected identifier after ','",
+                line,
+                col,
+                offset,
+                p.lexer.get_line(line),
               ),
             )
           }
@@ -891,8 +937,12 @@ fn Parser::parse_for_expr_for_object(
         _ => {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            HCLError::parse_error(
-              "Expected identifier after 'for'", line, col, offset,
+            HCLError::parse_error_with_context(
+              "Expected identifier after 'for'",
+              line,
+              col,
+              offset,
+              p.lexer.get_line(line),
             ),
           )
         }
@@ -916,8 +966,12 @@ fn Parser::parse_for_expr_for_object(
         _ => {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            HCLError::parse_error(
-              "Expected identifier after ','", line, col, offset,
+            HCLError::parse_error_with_context(
+              "Expected identifier after ','",
+              line,
+              col,
+              offset,
+              p.lexer.get_line(line),
             ),
           )
         }
@@ -1040,7 +1094,13 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              HCLError::parse_error("Expected object key", line, col, offset),
+              HCLError::parse_error_with_context(
+                "Expected object key",
+                line,
+                col,
+                offset,
+                parser.lexer.get_line(line),
+              ),
             )
           }
         }
@@ -1064,7 +1124,13 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         } else {
           let (line, col, offset) = parser.lexer.location()
           return Err(
-            HCLError::parse_error("Expected '=' or ':'", line, col, offset),
+            HCLError::parse_error_with_context(
+              "Expected '=' or ':'",
+              line,
+              col,
+              offset,
+              parser.lexer.get_line(line),
+            ),
           )
         }
 
@@ -1094,7 +1160,13 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         } else if !parser.check(RBrace) {
           let (line, col, offset) = parser.lexer.location()
           return Err(
-            HCLError::parse_error("Expected ',' or '}'", line, col, offset),
+            HCLError::parse_error_with_context(
+              "Expected ',' or '}'",
+              line,
+              col,
+              offset,
+              parser.lexer.get_line(line),
+            ),
           )
         }
       }
@@ -1138,8 +1210,12 @@ fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
             _ => {
               let (line, col, offset) = parser.lexer.location()
               Err(
-                HCLError::parse_error(
-                  "Expected number after '-'", line, col, offset,
+                HCLError::parse_error_with_context(
+                  "Expected number after '-'",
+                  line,
+                  col,
+                  offset,
+                  parser.lexer.get_line(line),
                 ),
               )
             }
