@@ -96,6 +96,11 @@ impl Visit for VarCollector with visit_heredoc(self, heredoc) {
 }
 
 ///|
+impl Visit for VarCollector with visit_decorated_expr(self, de) {
+  visit_decorated_expr_default(self, de)
+}
+
+///|
 /// Counter helper
 struct Counter {
   mut count : Int
@@ -185,6 +190,11 @@ impl Visit for Counter with visit_template_expr(self, tmpl) {
 ///|
 impl Visit for Counter with visit_heredoc(self, heredoc) {
   visit_heredoc_default(self, heredoc)
+}
+
+///|
+impl Visit for Counter with visit_decorated_expr(self, de) {
+  visit_decorated_expr_default(self, de)
 }
 
 ///|
@@ -280,6 +290,11 @@ impl Visit for BlockCollector with visit_heredoc(self, heredoc) {
 }
 
 ///|
+impl Visit for BlockCollector with visit_decorated_expr(self, de) {
+  visit_decorated_expr_default(self, de)
+}
+
+///|
 test "visit collects variable names" {
   // Variables in expressions are parsed as identifiers, not ExprVariable
   // For now, test that visit traverses without error
@@ -307,4 +322,12 @@ test "visit handles blocks" {
   assert_eq(collector.block_types.length(), 2)
   assert_eq(collector.block_types[0], "server")
   assert_eq(collector.block_types[1], "database")
+}
+
+///|
+test "visit decorated expression" {
+  let parsed = parse("x = 42").unwrap()
+  let counter : Counter = { count: 0 }
+  Visit::visit_body(counter, parsed)
+  assert_true(counter.count >= 0)
 }

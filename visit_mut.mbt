@@ -22,6 +22,7 @@ pub(open) trait VisitMut {
   visit_for_expr_mut(Self, ForExpr) -> Unit
   visit_template_expr_mut(Self, TemplateExpr) -> Unit
   visit_heredoc_mut(Self, Heredoc) -> Unit
+  visit_decorated_expr_mut(Self, Decorated[Expression]) -> Unit
 }
 
 ///|
@@ -235,4 +236,13 @@ pub fn[V : VisitMut] visit_heredoc_mut_default(
   _heredoc : Heredoc,
 ) -> Unit {
   ()
+}
+
+///|
+/// Default decorated expression visitor mutably
+pub fn[V : VisitMut] visit_decorated_expr_mut_default(
+  v : V,
+  de : Decorated[Expression],
+) -> Unit {
+  v.visit_expr_mut(de.get_value())
 }

@@ -26,6 +26,7 @@ pub(open) trait Visit {
   visit_for_expr(Self, ForExpr) -> Unit
   visit_template_expr(Self, TemplateExpr) -> Unit
   visit_heredoc(Self, Heredoc) -> Unit
+  visit_decorated_expr(Self, Decorated[Expression]) -> Unit
 }
 
 ///|
@@ -215,4 +216,13 @@ pub fn[V : Visit] visit_template_expr_default(
 /// Default heredoc visitor (no-op)
 pub fn[V : Visit] visit_heredoc_default(_v : V, _heredoc : Heredoc) -> Unit {
   ()
+}
+
+///|
+/// Default decorated expression visitor
+pub fn[V : Visit] visit_decorated_expr_default(
+  v : V,
+  de : Decorated[Expression],
+) -> Unit {
+  v.visit_expr(de.get_value())
 }

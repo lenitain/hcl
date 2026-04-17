@@ -12,6 +12,8 @@ pub fn body_to_json_pretty(Body) -> String
 
 pub fn builtin_functions() -> Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]
 
+pub fn decorated_expr_to_string(Decorated[Expression]) -> String
+
 pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]
@@ -147,6 +149,10 @@ pub fn[V : VisitMut] visit_body_mut_default(V, Body) -> Unit
 pub fn[V : Visit] visit_conditional_default(V, Conditional) -> Unit
 
 pub fn[V : VisitMut] visit_conditional_mut_default(V, Conditional) -> Unit
+
+pub fn[V : Visit] visit_decorated_expr_default(V, Decorated[Expression]) -> Unit
+
+pub fn[V : VisitMut] visit_decorated_expr_mut_default(V, Decorated[Expression]) -> Unit
 
 pub fn[V : Visit] visit_expr_default(V, Expression) -> Unit
 
@@ -315,7 +321,10 @@ pub struct Decorated[T] {
   decor : Decor
 } derive(Eq, @debug.Debug)
 pub fn[T] Decorated::bare(T) -> Self[T]
+pub fn Decorated::expr(Expression) -> Self[Expression]
+pub fn Decorated::expr_with_decor(Expression, Decor) -> Self[Expression]
 pub fn[T] Decorated::get_decor(Self[T]) -> Decor
+pub fn Decorated::get_expr(Self[Expression]) -> Expression
 pub fn[T] Decorated::get_value(Self[T]) -> T
 pub fn[T] Decorated::new(T, Decor) -> Self[T]
 pub fn[T] Decorated::set_decor(Self[T], Decor) -> Self[T]
@@ -736,6 +745,7 @@ pub(open) trait Visit {
   visit_for_expr(Self, ForExpr) -> Unit
   visit_template_expr(Self, TemplateExpr) -> Unit
   visit_heredoc(Self, Heredoc) -> Unit
+  visit_decorated_expr(Self, Decorated[Expression]) -> Unit
 }
 
 pub(open) trait VisitMut {
@@ -756,5 +766,6 @@ pub(open) trait VisitMut {
   visit_for_expr_mut(Self, ForExpr) -> Unit
   visit_template_expr_mut(Self, TemplateExpr) -> Unit
   visit_heredoc_mut(Self, Heredoc) -> Unit
+  visit_decorated_expr_mut(Self, Decorated[Expression]) -> Unit
 }
 

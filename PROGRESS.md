@@ -3,16 +3,17 @@
 ## 当前状态：按照 hcl-rs 方案重构中
 
 ## 当前分支
-- 分支：`xt-zhu/feat/hcl-edit-visit`
+- 分支：`xt-zhu/feat/decorated-expression`
 - 状态：开发完成
-- 目标：实现 visit/visit_mut AST 遍历
+- 目标：实现 Decorated[Expression] 包装
 
 ## 本次开发完成的功能
-- ✅ Visit trait — 不可变遍历接口，定义 17 个 visit 方法
-- ✅ VisitMut trait — 可变遍历接口，定义 17 个 visit_mut 方法
-- ✅ 默认遍历函数 — visit_*_default/visit_*_mut_default 辅助函数
-- ✅ visit.mbt — 不可变遍历实现（400+ 行）
-- ✅ visit_mut.mbt — 可变遍历实现（400+ 行）
+- ✅ Decorated[Expression] 辅助函数 — expr, expr_with_decor, get_expr, decorated_expr_to_string
+- ✅ visit_decorated_expr — Visit trait 新增方法 + default 辅助函数
+- ✅ visit_decorated_expr_mut — VisitMut trait 新增方法 + default 辅助函数
+- ✅ decorated_expr_test.mbt — 7 个测试用例（全部通过）
+- ✅ visit_test.mbt — 新增 Decorated[Expression] 遍历测试
+- ✅ 总测试：521/521 通过
 - ✅ visit_test.mbt — 3 个测试用例（全部通过）
 - ✅ 总测试：513/513 通过
 
@@ -64,7 +65,7 @@
 | 任务 | 状态 | 依赖 |
 |------|------|------|
 | hcl-edit (visit/visit_mut) | ✅ 完成 | Expression |
-| Decorated\<Expression\> 包装 | ⏳ | Decor |
+| Decorated\<Expression\> 包装 | ✅ 完成 | Decor |
 | hcl2json CLI 批量处理 | ⏳ | - |
 | hcl2json glob 模式 | ⏳ | - |
 | hcl2json --simplify 选项 | ⏳ | eval |
@@ -328,6 +329,8 @@ hcl/
 ├── visit.mbt           # AST 不可变遍历（新增）
 ├── visit_mut.mbt       # AST 可变遍历（新增）
 ├── visit_test.mbt      # 遍历测试（新增）
+├── decorated_expr.mbt  # Decorated[Expression] 辅助函数（新增）
+├── decorated_expr_test.mbt # Decorated[Expression] 测试（新增）
 └── cmd/
     └── main/
         ├── main.mbt   # CLI 入口
