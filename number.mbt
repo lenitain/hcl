@@ -1,8 +1,8 @@
 ///|
-/// HCL Number type - represents numeric values in HCL
+/// HCL Number internal representation.
 ///
-/// Follows hcl-rs Number design: PosInt(UInt64), NegInt(Int64), Float(Double)
-/// with automatic coercion during arithmetic operations.
+/// WARNING: This is an internal implementation detail. Use the Number type
+/// and its public API instead of matching on N directly.
 pub(all) enum N {
   PosInt(UInt64)
   /// Always less than zero
@@ -72,8 +72,8 @@ fn N::is_f64(self : N) -> Bool {
 }
 
 ///|
-/// Check if N is a negative integer
-fn N::is_i64(self : N) -> Bool {
+/// Check if N is a negative integer (NegInt variant)
+fn N::is_neg_int(self : N) -> Bool {
   match self {
     NegInt(_) => true
     PosInt(_) | Float(_) => false
@@ -81,8 +81,8 @@ fn N::is_i64(self : N) -> Bool {
 }
 
 ///|
-/// Check if N is a positive integer
-fn N::is_u64(self : N) -> Bool {
+/// Check if N is a positive integer (PosInt variant)
+fn N::is_pos_int(self : N) -> Bool {
   match self {
     PosInt(_) => true
     NegInt(_) | Float(_) => false
@@ -90,23 +90,29 @@ fn N::is_u64(self : N) -> Bool {
 }
 
 ///|
-/// Create N from finite f64, converting to int if no fractional part
+/// Create N from finite f64, converting to int if no fractional part.
+/// If value is NaN or Infinity, stores as Float as-is (internal callers
+/// like div-by-zero may produce NaN intentionally).
 fn N::from_finite_f64(value : Double) -> N {
-  let int_part = value.floor()
-  if int_part == value {
-    if value < 0.0 {
-      if int_part >= -9223372036854775808.0 {
-        NegInt(int_part.to_int64())
+  if value != value || value == 1.0 / 0.0 || value == -(1.0 / 0.0) {
+    Float(value)
+  } else {
+    let int_part = value.floor()
+    if int_part == value {
+      if value < 0.0 {
+        if int_part >= -9223372036854775808.0 {
+          NegInt(int_part.to_int64())
+        } else {
+          Float(value)
+        }
+      } else if int_part <= 9223372036854775807.0 {
+        PosInt(int_part.to_uint64())
       } else {
         Float(value)
       }
-    } else if int_part <= 9223372036854775807.0 {
-      PosInt(int_part.to_uint64())
     } else {
       Float(value)
     }
-  } else {
-    Float(value)
   }
 }
 
@@ -323,14 +329,14 @@ pub fn Number::is_f64(self : Number) -> Bool {
 
 ///|
 /// Check if Number is a negative integer
-pub fn Number::is_i64(self : Number) -> Bool {
-  N::is_i64(self.n)
+pub fn Number::is_neg_int(self : Number) -> Bool {
+  N::is_neg_int(self.n)
 }
 
 ///|
 /// Check if Number is a positive integer
-pub fn Number::is_u64(self : Number) -> Bool {
-  N::is_u64(self.n)
+pub fn Number::is_pos_int(self : Number) -> Bool {
+  N::is_pos_int(self.n)
 }
 
 ///|
@@ -343,9 +349,9 @@ pub fn Number::is_int(self : Number) -> Bool {
 }
 
 ///|
-/// Check if Number is a negative integer (alias for is_i64)
+/// Check if Number is a negative integer (alias for is_neg_int)
 pub fn Number::is_int64(self : Number) -> Bool {
-  N::is_i64(self.n)
+  N::is_neg_int(self.n)
 }
 
 ///|
@@ -358,14 +364,7 @@ pub fn Number::is_float(self : Number) -> Bool {
 /// If Number fits in Int (32-bit), return as Int
 pub fn Number::as_int(self : Number) -> Int? {
   match self.n {
-    PosInt(n) => {
-      let i = n.to_int()
-      if i >= 0 {
-        Some(i)
-      } else {
-        None
-      }
-    }
+    PosInt(n) => if n <= 2147483647UL { Some(n.to_int()) } else { None }
     NegInt(n) => {
       let i = n.to_int()
       if i.to_int64() == n {

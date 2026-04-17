@@ -5,8 +5,8 @@
 
 test "number from_int positive" {
   let n = Number::from_int(42)
-  assert_true(n.is_u64())
-  assert_false(n.is_i64())
+  assert_true(n.is_pos_int())
+  assert_false(n.is_neg_int())
   assert_false(n.is_f64())
   assert_true(n.as_u64() == Some(42UL))
   assert_true(n.as_i64() == Some(42L))
@@ -15,15 +15,15 @@ test "number from_int positive" {
 ///|
 test "number from_int zero" {
   let n = Number::from_int(0)
-  assert_true(n.is_u64())
+  assert_true(n.is_pos_int())
   assert_true(n.as_u64() == Some(0UL))
 }
 
 ///|
 test "number from_int negative" {
   let n = Number::from_int(-5)
-  assert_true(n.is_i64())
-  assert_false(n.is_u64())
+  assert_true(n.is_neg_int())
+  assert_false(n.is_pos_int())
   assert_false(n.is_f64())
   assert_true(n.as_i64() == Some(-5L))
   assert_true(n.as_u64() == None)
@@ -32,21 +32,21 @@ test "number from_int negative" {
 ///|
 test "number from_int64 positive" {
   let n = Number::from_int64(100L)
-  assert_true(n.is_u64())
+  assert_true(n.is_pos_int())
   assert_true(n.as_u64() == Some(100UL))
 }
 
 ///|
 test "number from_int64 negative" {
   let n = Number::from_int64(-100L)
-  assert_true(n.is_i64())
+  assert_true(n.is_neg_int())
   assert_true(n.as_i64() == Some(-100L))
 }
 
 ///|
 test "number from_uint64" {
   let n = Number::from_uint64(999UL)
-  assert_true(n.is_u64())
+  assert_true(n.is_pos_int())
   assert_true(n.as_u64() == Some(999UL))
 }
 
@@ -54,15 +54,15 @@ test "number from_uint64" {
 test "number from_double with fraction" {
   let n = Number::from_double(3.14)
   assert_true(n.is_f64())
-  assert_false(n.is_u64())
-  assert_false(n.is_i64())
+  assert_false(n.is_pos_int())
+  assert_false(n.is_neg_int())
   assert_true(n.as_f64() == 3.14)
 }
 
 ///|
 test "number from_double whole number" {
   let n = Number::from_double(42.0)
-  assert_true(n.is_u64())
+  assert_true(n.is_pos_int())
   assert_false(n.is_f64())
   assert_true(n.as_u64() == Some(42UL))
 }
@@ -70,7 +70,7 @@ test "number from_double whole number" {
 ///|
 test "number from_double negative whole" {
   let n = Number::from_double(-3.0)
-  assert_true(n.is_i64())
+  assert_true(n.is_neg_int())
   assert_false(n.is_f64())
   assert_true(n.as_i64() == Some(-3L))
 }
@@ -183,7 +183,7 @@ test "number add posint" {
   let b = Number::from_uint64(2UL)
   let c = a + b
   assert_true(c == Number::from_uint64(3UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -192,7 +192,7 @@ test "number add negint" {
   let b = Number::from_int64(-2L)
   let c = a + b
   assert_true(c == Number::from_int64(-3L))
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
 }
 
 ///|
@@ -201,7 +201,7 @@ test "number add float" {
   let b = Number::from_double(1.5)
   let c = a + b
   assert_true(c == Number::from_uint64(3UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -219,7 +219,7 @@ test "number sub posint" {
   let b = Number::from_uint64(3UL)
   let c = a - b
   assert_true(c == Number::from_uint64(2UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -228,7 +228,7 @@ test "number sub posint underflow" {
   let b = Number::from_uint64(2UL)
   let c = a - b
   assert_true(c == Number::from_int64(-1L))
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
 }
 
 ///|
@@ -237,7 +237,7 @@ test "number sub negint" {
   let b = Number::from_int64(-2L)
   let c = a - b
   assert_true(c == Number::from_uint64(1UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -246,7 +246,7 @@ test "number sub float" {
   let b = Number::from_double(1.5)
   let c = a - b
   assert_true(c == Number::from_uint64(0UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -255,7 +255,7 @@ test "number mul neg times pos" {
   let b = Number::from_uint64(2UL)
   let c = a * b
   assert_true(c == Number::from_int64(-2L))
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
 }
 
 ///|
@@ -264,7 +264,7 @@ test "number mul neg times neg" {
   let b = Number::from_int64(-2L)
   let c = a * b
   assert_true(c == Number::from_uint64(2UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -291,7 +291,7 @@ test "number div even" {
   let b = Number::from_uint64(2UL)
   let c = a / b
   assert_true(c == Number::from_uint64(2UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -300,7 +300,7 @@ test "number div neg" {
   let b = Number::from_uint64(2UL)
   let c = a / b
   assert_true(c == Number::from_int64(-2L))
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
 }
 
 ///|
@@ -318,7 +318,7 @@ test "number mod posint" {
   let b = Number::from_uint64(2UL)
   let c = a % b
   assert_true(c == Number::from_uint64(1UL))
-  assert_true(c.is_u64())
+  assert_true(c.is_pos_int())
 }
 
 ///|
@@ -327,7 +327,7 @@ test "number mod neg" {
   let b = Number::from_uint64(3UL)
   let c = a % b
   assert_true(c == Number::from_int64(-1L))
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
 }
 
 ///|
@@ -343,7 +343,7 @@ test "number neg posint" {
   let a = Number::from_uint64(1UL)
   let b = -a
   assert_true(b == Number::from_int64(-1L))
-  assert_true(b.is_i64())
+  assert_true(b.is_neg_int())
 }
 
 ///|
@@ -351,7 +351,7 @@ test "number neg negint" {
   let a = Number::from_int64(-1L)
   let b = -a
   assert_true(b == Number::from_uint64(1UL))
-  assert_true(b.is_u64())
+  assert_true(b.is_pos_int())
 }
 
 ///|
@@ -403,7 +403,7 @@ test "number neg zero" {
   let a = Number::from_uint64(0UL)
   let b = -a
   assert_true(b == Number::from_uint64(0UL))
-  assert_true(b.is_u64())
+  assert_true(b.is_pos_int())
 }
 
 ///|
@@ -421,7 +421,7 @@ test "number sub 0 minus 1" {
   let b = Number::from_uint64(1UL)
   let c = a - b
   assert_true(c == Number::from_int64(-1L))
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
 }
 
 ///|
@@ -429,7 +429,7 @@ test "number sub large posint underflow" {
   let small = Number::from_uint64(1UL)
   let big = Number::from_uint64(9223372036854775807UL)
   let c = small - big
-  assert_true(c.is_i64())
+  assert_true(c.is_neg_int())
   assert_true(c.as_i64() == Some(-9223372036854775806L))
 }
 
@@ -438,7 +438,7 @@ test "number to_i64 large posint returns none" {
   let big = 9223372036854775807UL + 1UL
   let n = Number::from_uint64(big)
   assert_true(n.as_i64() == None)
-  assert_true(n.is_u64())
+  assert_true(n.is_pos_int())
 }
 
 ///|
@@ -482,6 +482,6 @@ test "number mod by zero" {
 ///|
 test "number Int64::MIN direct construction" {
   let n = Number::from_int64(-9223372036854775808L)
-  assert_true(n.is_i64())
+  assert_true(n.is_neg_int())
   assert_true(n.as_i64() == Some(-9223372036854775808L))
 }
