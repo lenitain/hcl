@@ -33,7 +33,7 @@ pub fn Template::new() -> Template {
 
 ///|
 /// Extract substring from string
-fn substring(s : String, start : Int, end : Int) -> String {
+pub fn substring(s : String, start : Int, end : Int) -> String {
   let mut result = ""
   let mut i = start
   while i < end && i < s.length() {
@@ -623,32 +623,29 @@ pub fn Template::from_heredoc(
   delimiter : String,
   strip : Bool,
 ) -> HCLResult[Template] {
+  let processed_input = if strip { strip_heredoc_indent(input) } else { input }
+
   let template = Template::new()
   let mut i = 0
-  let len = input.length()
+  let len = processed_input.length()
   let mut text_start = 0
 
   // Parse content directly (input is already the content between delimiters)
   while i < len {
-    let c = input.code_unit_at(i)
+    let c = processed_input.code_unit_at(i)
 
     // Handle interpolation in heredoc
     if c == '$'.to_int().to_uint16() &&
       i + 1 < len &&
-      input.code_unit_at(i + 1) == '{'.to_int().to_uint16() {
+      processed_input.code_unit_at(i + 1) == '{'.to_int().to_uint16() {
       // Add text before interpolation
       if i > text_start {
-        let text = substring(input, text_start, i)
-        let processed = if strip {
-          strip_leading_whitespace(text)
-        } else {
-          text
-        }
-        template.parts.push(Text(processed))
+        let text = substring(processed_input, text_start, i)
+        template.parts.push(Text(text))
       }
 
       // Parse interpolation
-      match parse_interpolation(input, i + 2) {
+      match parse_interpolation(processed_input, i + 2) {
         Ok((expr, end_pos)) => {
           template.parts.push(Interpolation(expr))
           i = end_pos
@@ -663,36 +660,79 @@ pub fn Template::from_heredoc(
 
   // Add remaining text
   if text_start < len {
-    let text = substring(input, text_start, len)
-    let processed = if strip { strip_leading_whitespace(text) } else { text }
-    template.parts.push(Text(processed))
+    let text = substring(processed_input, text_start, len)
+    template.parts.push(Text(text))
   }
 
   Ok(template)
 }
 
 ///|
-/// Strip leading whitespace from a line
-fn strip_leading_whitespace(text : String) -> String {
-  let mut result = ""
-  let mut i = 0
+/// Compute minimum indentation across all lines and strip it
+fn strip_heredoc_indent(text : String) -> String {
   let len = text.length()
-  let mut line_start = true
+  if len == 0 {
+    return text
+  }
 
+  // Pass 1: Find minimum indentation across non-empty lines
+  let mut min_indent = -1
+  let mut line_indent = 0
+  let mut line_has_content = false
+  let mut at_line_start = true
+
+  let mut i = 0
   while i < len {
     let c = text.code_unit_at(i)
+    if c == '\n'.to_int().to_uint16() {
+      if line_has_content {
+        if min_indent < 0 || line_indent < min_indent {
+          min_indent = line_indent
+        }
+      }
+      line_indent = 0
+      line_has_content = false
+      at_line_start = true
+    } else if at_line_start &&
+      (c == ' '.to_int().to_uint16() || c == '\t'.to_int().to_uint16()) {
+      line_indent += 1
+    } else {
+      at_line_start = false
+      line_has_content = true
+    }
+    i += 1
+  }
+  // Handle last line (no trailing newline)
+  if line_has_content {
+    if min_indent < 0 || line_indent < min_indent {
+      min_indent = line_indent
+    }
+  }
 
+  if min_indent <= 0 {
+    return text
+  }
+
+  // Pass 2: Strip min_indent characters from beginning of each line
+  let mut result = ""
+  let mut chars_stripped = 0
+  let mut is_start_of_line = true
+
+  i = 0
+  while i < len {
+    let c = text.code_unit_at(i)
     if c == '\n'.to_int().to_uint16() {
       result = result + "\n"
-      line_start = true
-    } else if line_start &&
+      is_start_of_line = true
+      chars_stripped = 0
+    } else if is_start_of_line &&
+      chars_stripped < min_indent &&
       (c == ' '.to_int().to_uint16() || c == '\t'.to_int().to_uint16()) {
-      // Skip leading whitespace
+      chars_stripped += 1
     } else {
+      is_start_of_line = false
       result = result + c.to_int().unsafe_to_char().to_string()
-      line_start = false
     }
-
     i += 1
   }
 

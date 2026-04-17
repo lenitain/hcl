@@ -131,6 +131,24 @@ fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
       } else {
         Ok(Int64(a % b))
       }
+    (Float(a), Float(b)) =>
+      if b == 0.0 {
+        Err(HCLError::division_by_zero())
+      } else {
+        Ok(Float(a % b))
+      }
+    (Int(a), Float(b)) =>
+      if b == 0.0 {
+        Err(HCLError::division_by_zero())
+      } else {
+        Ok(Float(a.to_double() % b))
+      }
+    (Float(a), Int(b)) =>
+      if b == 0 {
+        Err(HCLError::division_by_zero())
+      } else {
+        Ok(Float(a % b.to_double()))
+      }
     _ => Err(HCLError::type_error("Invalid types for modulo"))
   }
 }
@@ -379,6 +397,19 @@ pub fn eval_expr(
               }
             (Err(e), _) => Err(e)
             (_, Err(e)) => Err(e)
+          }
+        }
+        Some(String("unary_expr")) => {
+          let op = obj.get("op").unwrap()
+          let operand = obj.get("operand").unwrap()
+
+          match eval_expr(operand, variables, functions) {
+            Ok(operand_val) =>
+              match op {
+                String(op_str) => eval_unary(op_str, operand_val)
+                _ => Err(HCLError::type_error("Operator must be string"))
+              }
+            Err(e) => Err(e)
           }
         }
         Some(String("for_expr")) => {

@@ -318,10 +318,18 @@ fn Parser::parse_binary_expr(
   min_prec : Int,
 ) -> HCLResult[(HCLValue, Parser)] {
   let mut result = left
-  let mut parser = self
+  let mut parser = match self.skip_newlines() {
+    Ok(p) => p
+    Err(e) => return Err(e)
+  }
   let mut continue_loop = true
 
   while continue_loop {
+    match parser.skip_newlines() {
+      Ok(p) => parser = p
+      Err(e) => return Err(e)
+    }
+
     let prec = parser.current.precedence()
     if prec == 0 || prec < min_prec {
       continue_loop = false
@@ -398,24 +406,31 @@ fn Parser::parse_conditional_expr(
   self : Parser,
   condition : HCLValue,
 ) -> HCLResult[(HCLValue, Parser)] {
-  if self.check(Question) {
-    match self.advance() {
+  let parser = match self.skip_newlines() {
+    Ok(p) => p
+    Err(e) => return Err(e)
+  }
+  if parser.check(Question) {
+    match parser.advance() {
       Ok(parser) =>
         match parser.parse_value() {
           Ok((true_expr, parser)) =>
-            match parser.expect(Colon) {
+            match parser.skip_newlines() {
               Ok(parser) =>
-                match parser.parse_value() {
-                  Ok((false_expr, parser)) => {
-                    // Create a conditional expression as an object
-                    let cond_obj = {
-                      "type": String("conditional"),
-                      "condition": condition,
-                      "true_expr": true_expr,
-                      "false_expr": false_expr,
+                match parser.expect(Colon) {
+                  Ok(parser) =>
+                    match parser.parse_value() {
+                      Ok((false_expr, parser)) => {
+                        let cond_obj = {
+                          "type": String("conditional"),
+                          "condition": condition,
+                          "true_expr": true_expr,
+                          "false_expr": false_expr,
+                        }
+                        Ok((Object(cond_obj), parser))
+                      }
+                      Err(e) => Err(e)
                     }
-                    Ok((Object(cond_obj), parser))
-                  }
                   Err(e) => Err(e)
                 }
               Err(e) => Err(e)
@@ -425,7 +440,7 @@ fn Parser::parse_conditional_expr(
       Err(e) => Err(e)
     }
   } else {
-    Ok((condition, self))
+    Ok((condition, parser))
   }
 }
 
@@ -566,6 +581,7 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
     LBrace => self.parse_object()
     LParen => self.parse_paren_expr()
     Minus => self.parse_negative()
+    Bang => self.parse_not()
     Ident(name) => self.parse_ident_expr(name)
     _ => {
       let (line, col, offset) = self.lexer.location()
@@ -1301,6 +1317,26 @@ fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
               )
             }
           }
+        Err(e) => Err(e)
+      }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse logical not
+fn Parser::parse_not(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+  match self.expect(Bang) {
+    Ok(parser) =>
+      match parser.parse_value() {
+        Ok((value, parser)) => {
+          let not_obj = {
+            "type": String("unary_expr"),
+            "op": String("!"),
+            "operand": value,
+          }
+          Ok((Object(not_obj), parser))
+        }
         Err(e) => Err(e)
       }
     Err(e) => Err(e)

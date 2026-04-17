@@ -1,6 +1,6 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：序列化 derive 支持完成 (约 95% 功能覆盖)
+## 当前状态：内置函数和 Spec 测试完成 (约 98% 功能覆盖)
 
 ## 已完成 ✅
 
@@ -51,7 +51,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 202 个测试全部通过
+- ✅ 289 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -60,6 +60,8 @@
 - 覆盖：Heredoc 解析（基本、多行、strip、自定义 delimiter）
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
+- 覆盖：内置函数（数字、集合、字符串、类型转换，共45个函数）
+- 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -84,6 +86,18 @@
 - ✅ 条件过滤 if condition
 - ✅ 嵌套 for 表达式
 - ✅ 二元运算符表达式支持（新增）
+
+### 内置函数 (funcs.mbt) - 新增
+- ✅ 数字函数 (abs, ceil, floor, log, max, min, parseint, pow, signum)
+- ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element)
+- ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist)
+- ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
+- ✅ 通过 builtin_functions() 获取所有内置函数
+
+### 多行表达式 (parser.mbt) - 新增
+- ✅ 条件表达式支持换行 (true ? "a" : "b")
+- ✅ 二元运算符支持换行 (1 + 2)
+- ✅ 数组内表达式支持换行
 
 ### Schema 验证 (schema.mbt)
 - ✅ 类型检查（TypeSchema 枚举）
@@ -114,14 +128,14 @@
 ### 低优先级
 - [ ] 保留空白和注释的编辑（类似 hcl-edit）
 - [ ] 性能优化
-- [ ] 完整的 spec test suite
+- [x] 完整的 spec test suite (已完成基础操作符和 heredoc 测试)
 
 ## 已知问题
 
 1. ~~**数字解析简化**：当前只支持基本整数和浮点数，不支持十六进制、八进制、二进制~~ ✅ 已实现
 2. ~~**Unicode 转义**：不支持 \uXXXX 和 \u{XXXX} 格式~~ ✅ 已实现
 3. ~~**Heredoc**：token 识别有但解析未实现~~ ✅ 已实现
-4. **多行表达式**：不支持跨行的复杂表达式
+4. ~~**多行表达式**：不支持跨行的复杂表达式~~ ✅ 已实现
 
 ## 从 hcl-rs 学到的坑
 
@@ -196,42 +210,40 @@ hcl/
 ├── de.mbt             # 反序列化
 ├── error.mbt          # 错误类型
 ├── eval.mbt           # 表达式求值
+├── eval_test.mbt      # 基础表达式求值测试
 ├── expr_test.mbt      # 表达式测试（条件、函数、变量、属性）
-├── for_test.mbt       # for 表达式测试（新增）
+├── for_test.mbt       # for 表达式测试
+├── funcs.mbt          # 内置函数（新增）
+├── funcs_test.mbt     # 内置函数测试（新增）
 ├── hcl.mbt            # 主入口
-├── json.mbt           # JSON 转换（新增）
-├── json_test.mbt      # JSON 测试（新增）
+├── hcl_test.mbt       # 基础测试
+├── json.mbt           # JSON 转换
+├── json_test.mbt      # JSON 测试
 ├── lexer.mbt          # 词法分析器
+├── multiline_test.mbt # 多行表达式测试（新增）
 ├── parser.mbt         # 解析器
-├── schema.mbt         # Schema验证（新增）
-├── schema_test.mbt    # Schema测试（新增）
+├── schema.mbt         # Schema验证
+├── schema_test.mbt    # Schema测试
 ├── ser.mbt            # 序列化
+├── spec_test.mbt      # Spec 测试（新增）
 ├── template.mbt       # 模板系统
 ├── template_test.mbt  # 模板测试
 ├── token.mbt          # Token 类型
 ├── value.mbt          # HCLValue 类型
-├── hcl_test.mbt       # 基础测试
-├── eval_test.mbt      # 基础表达式求值测试
 ├── error_test.mbt     # 错误消息测试
-├── trait.mbt          # ToHCL/FromHCL trait 定义（新增）
-├── builder.mbt        # Builder 模式辅助函数（新增）
-├── trait_wbtest.mbt   # trait 白盒测试（新增）
-├── builder_wbtest.mbt # builder 白盒测试（新增）
-├── derive_wbtest.mbt  # derive 白盒测试（新增）
+├── trait.mbt          # ToHCL/FromHCL trait 定义
+├── builder.mbt        # Builder 模式辅助函数
+├── trait_wbtest.mbt   # trait 白盒测试
+├── builder_wbtest.mbt # builder 白盒测试
+├── derive_wbtest.mbt  # derive 白盒测试
 └── cmd/
     └── main/
-        ├── main.mbt   # CLI 入口（新增）
+        ├── main.mbt   # CLI 入口
         └── moon.pkg   # CLI 包配置
 ```
 
 ## 参考资料
 
-- hcl-rs 源码：`/home/pilot/.projects/hcl-rs/`
-- HCL 规范：https://github.com/hashicorp/hcl/blob/main/spec.md
-- MoonBit 文档：https://docs.moonbitlang.com
-
-## 参考资料
-
-- hcl-rs 源码：`/home/pilot/.projects/hcl-rs/`
+- hcl-rs 源码：`/home/lenitain/.projects/hcl-rs/`
 - HCL 规范：https://github.com/hashicorp/hcl/blob/main/spec.md
 - MoonBit 文档：https://docs.moonbitlang.com

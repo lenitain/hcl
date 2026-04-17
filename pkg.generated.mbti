@@ -10,6 +10,8 @@ pub fn body_to_json(Body) -> String
 
 pub fn body_to_json_pretty(Body) -> String
 
+pub fn builtin_functions() -> Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]
+
 pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]
@@ -71,6 +73,8 @@ pub fn parse_template(String) -> Result[Template, HCLError]
 pub fn string_not_empty() -> (HCLValue, String) -> Array[HCLError]
 
 pub fn string_starts_with(String) -> (HCLValue, String) -> Array[HCLError]
+
+pub fn substring(String, Int, Int) -> String
 
 pub fn to_hcl_body(Body) -> String
 
