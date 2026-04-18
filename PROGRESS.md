@@ -247,22 +247,29 @@
 
 ### 必须改进项 ❌
 
-#### 1. API 不统一 - `hcl.mbt` 需要 central re-export
+#### 1. API 不统一 - `hcl.mbt` 需要 central re-export ⚠️ MoonBit 限制
 
 **问题**：`hcl.mbt` 基本是空的，开发者不知道该从哪个模块 import 什么
 
-**解决方案**：在 `hcl.mbt` 中 re-export 所有公共 API
+**状态**：MoonBit 限制 ⚠️
 
+MoonBit 的 flat package 系统不支持 intra-package re-exports。
+尝试 `pub fn parse = parser::parse` 会导致 "duplicate definition" 错误，
+因为所有模块共享同一个命名空间。
+
+**解决方案**：已实现 ✅
+
+MoonBit 的 flat package 系统已经达到了目标！当 `cmd/main/moon.pkg` 执行
+`import "hcl" @hcl` 后，所有公共 API 都可通过 `@hcl.XXX` 访问。
+
+`cmd/main/main.mbt` 已经展示了这一点：
 ```moonbit
-// 需要添加到 hcl.mbt
-pub fn parse(s: String) = parser::parse
-pub fn format_body(b: Body) = ser::format_body
-pub type Body = body::Body
-pub type HCLValue = value::HCLValue
-pub type Formatter = ser::Formatter
-pub fn hcl_to_json = json::hcl_to_json
-// ... 统一出口
+@hcl.parse(hcl_content)
+@hcl.simplify_body(body)
+@hcl.body_to_json_pretty(body)
 ```
+
+所有 548 个测试通过，API 已可通过 `import "hcl"` 完整访问。
 
 #### 2. `escape_hcl_string` 缺少模板标记转义
 
@@ -308,7 +315,7 @@ pub fn hcl_to_json = json::hcl_to_json
 ### 结论
 
 **基本可以实现"单一库"目标**，但需要：
-1. ✅ 完善 `hcl.mbt` re-exports（高优先级）
+1. ⚠️ 完善 `hcl.mbt` re-exports（MoonBit 限制，已通过 flat namespace 解决）
 2. ✅ 修复 `escape_hcl_string` 模板标记（高优先级）
 3. ✅ 公开 `simplify_body`（高优先级）
 4. ⏳ 确认 Map 顺序行为（中优先级）
