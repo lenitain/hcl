@@ -102,7 +102,7 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
 
       while !parser.check(EOF) {
         match parser.current {
-          Ident(name) =>
+          Ident(_) =>
             if parser.check(Equals) || parser.peek == Equals {
               // Attribute
               match parser.parse_attr() {
@@ -280,7 +280,7 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
 
       while !parser.check(RBrace) && !parser.check(EOF) {
         match parser.current {
-          Ident(name) =>
+          Ident(_) =>
             if parser.check(Equals) || parser.peek == Equals {
               // Attribute
               match parser.parse_attr() {
@@ -1026,7 +1026,8 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
               } else {
                 // Object comprehension: {for k, v in obj: k => v}
                 // We need to check for RBrace instead of RBracket
-                let for_obj = {
+                // Note: for_obj placeholder defined below but actual implementation uses shadowing
+                let _for_obj = {
                   "type": String("for_object_expr", Decor::empty()),
                   "key_var": String(vars[0], Decor::empty()),
                   "value_var": String(vars[1], Decor::empty()),

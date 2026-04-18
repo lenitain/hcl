@@ -231,10 +231,7 @@ pub fn[V : VisitMut] visit_template_expr_mut_default(
 
 ///|
 /// Default heredoc visitor mutably (no-op)
-pub fn[V : VisitMut] visit_heredoc_mut_default(
-  _v : V,
-  _heredoc : Heredoc,
-) -> Unit {
+pub fn[V] visit_heredoc_mut_default(_v : V, _heredoc : Heredoc) -> Unit {
   ()
 }
 

@@ -43,7 +43,7 @@ test "to_hcl_str with Map" {
 test "from_hcl_str to Map" {
   let input = "host = \"localhost\"\nport = 8080"
   let result : HCLResult[Map[String, HCLValue]] = from_hcl_str(input)
-  assert_true(result is Ok)
+  assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_true(m["host"] == String("localhost", Decor::empty()))
   assert_true(m["port"] == Number(Number::from_int(8080), Decor::empty()))
@@ -59,7 +59,7 @@ test "optional fields in builder" {
     .attr_option("timeout", timeout)
     .build()
   assert_eq(body.len(), 2)
-  assert_true(body.find_attr("debug") is None)
+  assert_true(body.find_attr("debug") is None(_))
   assert_true(body.find_attr("timeout") is Some(_))
 }
 
@@ -95,7 +95,7 @@ test "roundtrip Body serialization" {
     .build()
   let hcl = to_hcl_body(original)
   let parsed = from_hcl_body(hcl)
-  assert_true(parsed is Ok)
+  assert_true(parsed is Ok(_))
   let body = parsed.unwrap()
   assert_eq(body.len(), 2)
   assert_true(
@@ -160,7 +160,7 @@ test "Block::builder attr_if conditional" {
     .build()
   assert_true(blk.find_attr("required") is Some(_))
   assert_true(blk.find_attr("optional") is Some(_))
-  assert_true(blk.find_attr("skipped") is None)
+  assert_true(blk.find_attr("skipped") is None(_))
 }
 
 ///|
@@ -206,7 +206,7 @@ test "roundtrip body serialization" {
     .build()
   let hcl = to_hcl_body(original)
   let parsed = from_hcl_body(hcl)
-  assert_true(parsed is Ok)
+  assert_true(parsed is Ok(_))
   let body = parsed.unwrap()
   assert_eq(body.len(), 2)
   let host_attr = body.find_attr("host")
@@ -256,7 +256,7 @@ test "attr_if on BodyBuilder" {
     .build()
   assert_eq(body.len(), 2)
   assert_true(body.find_attr("a") is Some(_))
-  assert_true(body.find_attr("b") is None)
+  assert_true(body.find_attr("b") is None(_))
   assert_true(body.find_attr("c") is Some(_))
 }
 
@@ -273,7 +273,7 @@ test "roundtrip with nested block" {
     .build()
   let hcl = to_hcl_body(original)
   let parsed = from_hcl_body(hcl)
-  assert_true(parsed is Ok)
+  assert_true(parsed is Ok(_))
   let body = parsed.unwrap()
   assert_true(body.find_attr("app") is Some(_))
   let db_blocks = body.find_blocks("database")

@@ -214,7 +214,7 @@ pub fn[V : Visit] visit_template_expr_default(
 
 ///|
 /// Default heredoc visitor (no-op)
-pub fn[V : Visit] visit_heredoc_default(_v : V, _heredoc : Heredoc) -> Unit {
+pub fn[V] visit_heredoc_default(_v : V, _heredoc : Heredoc) -> Unit {
   ()
 }
 

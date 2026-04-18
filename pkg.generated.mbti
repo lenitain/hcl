@@ -170,9 +170,9 @@ pub fn[V : Visit] visit_func_call_default(V, FuncCall) -> Unit
 
 pub fn[V : VisitMut] visit_func_call_mut_default(V, FuncCall) -> Unit
 
-pub fn[V : Visit] visit_heredoc_default(V, Heredoc) -> Unit
+pub fn[V] visit_heredoc_default(V, Heredoc) -> Unit
 
-pub fn[V : VisitMut] visit_heredoc_mut_default(V, Heredoc) -> Unit
+pub fn[V] visit_heredoc_mut_default(V, Heredoc) -> Unit
 
 pub fn[V : Visit] visit_object_key_default(V, ObjectKey) -> Unit
 

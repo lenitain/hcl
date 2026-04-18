@@ -57,7 +57,7 @@ test "preserve trailing comment on value" {
   let body = parse(input).unwrap()
   let attr = body.find_attr("name").unwrap()
   let value = attr.get_value()
-  let decor = value.get_decor()
+  let _decor = value.get_decor()
 
   // Just check that parsing works - trailing comments might not be preserved on values
   assert_true(value.is_string())
@@ -81,8 +81,8 @@ test "empty decor preserved" {
   let attr = body.find_attr("name").unwrap()
   let decor = attr.get_decor()
 
-  assert_true(decor.get_prefix() is None)
-  assert_true(decor.get_suffix() is None)
+  assert_true(decor.get_prefix() is None(_))
+  assert_true(decor.get_suffix() is None(_))
 }
 
 ///|

@@ -71,7 +71,7 @@ test "Body find_attr works with decorated keys" {
     HCLValue::String("test", Decor::empty()),
   )
   let attr = body.find_attr("name")
-  assert_eq(attr is Some, true)
+  assert_eq(attr is Some(_), true)
   assert_eq(attr.unwrap().get_key(), "name")
 }
 
@@ -81,7 +81,7 @@ test "Body find_block works with decorated type names" {
     Block::new("resource", ["aws_instance"], Body::new()),
   )
   let block = body.find_block("resource")
-  assert_eq(block is Some, true)
+  assert_eq(block is Some(_), true)
   assert_eq(block.unwrap().get_type_name(), "resource")
 }
 

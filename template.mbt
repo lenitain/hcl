@@ -633,7 +633,7 @@ fn find_for_end(parts : Array[TemplatePart], start : Int) -> Int {
 /// Parse heredoc content
 pub fn Template::from_heredoc(
   input : String,
-  delimiter : String,
+  _delimiter : String,
   strip : Bool,
 ) -> HCLResult[Template] {
   let processed_input = if strip { strip_heredoc_indent(input) } else { input }

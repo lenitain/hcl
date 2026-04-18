@@ -70,7 +70,7 @@ fn eval_mul(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => {
-      let (fa, fb) = (a.as_f64(), b.as_f64())
+      let fb = b.as_f64()
       if fb == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
@@ -86,7 +86,7 @@ fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => {
-      let (fa, fb) = (a.as_f64(), b.as_f64())
+      let fb = b.as_f64()
       if fb == 0.0 {
         Err(HCLError::division_by_zero())
       } else {
