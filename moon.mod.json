@@ -1,11 +1,11 @@
 {
-  "name": "hcl",
+  "name": "lenitain/hcl",
   "version": "0.1.0",
   "deps": {
     "moonbitlang/x": "0.4.43"
   },
   "readme": "README.mbt.md",
-  "repository": "https://github.com/opencode/hcl",
+  "repository": "https://github.com/lenitain/hcl",
   "license": "MIT",
   "keywords": [
     "hcl",
