@@ -14,6 +14,8 @@ pub fn builtin_functions() -> Map[String, (Array[HCLValue]) -> Result[HCLValue, 
 
 pub fn decorated_expr_to_string(Decorated[Expression]) -> String
 
+pub fn escape_hcl_string(String) -> String
+
 pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]

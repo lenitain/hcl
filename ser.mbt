@@ -262,18 +262,52 @@ pub fn format_value_content(value : HCLValue) -> String {
 
 ///|
 /// Escape a string for HCL
-fn escape_hcl_string(s : String) -> String {
+pub fn escape_hcl_string(s : String) -> String {
   let mut result = "\""
-  for c in s {
-    match c {
-      '"' => result = result + "\\\""
-      '\\' => result = result + "\\\\"
-      '\n' => result = result + "\\n"
-      '\r' => result = result + "\\r"
-      '\t' => result = result + "\\t"
-      '\b' => result = result + "\\b"
-      '\f' => result = result + "\\f"
-      _ => result = result + c.to_string()
+  let len = s.length()
+  let mut i = 0
+  while i < len {
+    let c = s[i]
+    if c == '$'.to_int().to_uint16() {
+      if i + 1 < len && s[i + 1] == '{'.to_int().to_uint16() {
+        result = result + "$${"
+        i = i + 2
+      } else {
+        result = result + "$"
+        i = i + 1
+      }
+    } else if c == '%'.to_int().to_uint16() {
+      if i + 1 < len && s[i + 1] == '{'.to_int().to_uint16() {
+        result = result + "%%{"
+        i = i + 2
+      } else {
+        result = result + "%"
+        i = i + 1
+      }
+    } else if c == '"'.to_int().to_uint16() {
+      result = result + "\\\""
+      i = i + 1
+    } else if c == '\\'.to_int().to_uint16() {
+      result = result + "\\\\"
+      i = i + 1
+    } else if c == '\n'.to_int().to_uint16() {
+      result = result + "\\n"
+      i = i + 1
+    } else if c == '\r'.to_int().to_uint16() {
+      result = result + "\\r"
+      i = i + 1
+    } else if c == '\t'.to_int().to_uint16() {
+      result = result + "\\t"
+      i = i + 1
+    } else if c == '\b'.to_int().to_uint16() {
+      result = result + "\\b"
+      i = i + 1
+    } else if c == '\f'.to_int().to_uint16() {
+      result = result + "\\f"
+      i = i + 1
+    } else {
+      result = result + c.to_int().unsafe_to_char().to_string()
+      i = i + 1
     }
   }
   result + "\""
