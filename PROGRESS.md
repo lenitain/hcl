@@ -223,6 +223,97 @@
 3. ~~**Heredoc**：token 识别有但解析未实现~~ ✅ 已实现
 4. ~~**多行表达式**：不支持跨行的复杂表达式~~ ✅ 已实现
 
+---
+
+## 单一库目标：缺失项和改进
+
+**目标**：让 MoonBit 开发者只需要 `import "hcl"` 就能完成所有 HCL 工作。
+
+### 当前已具备的核心能力 ✅
+
+| 模块 | 功能 | 状态 |
+|------|------|------|
+| 解析 | `parse(String) -> HCLResult[Body]` | ✅ |
+| 序列化 | `to_hcl_body`, `to_hcl_value`, `Formatter` | ✅ |
+| 反序列化 | `from_hcl_body`, `from_hcl_with_schema` | ✅ |
+| Trait 系统 | `ToHCL`, `FromHCL` | ✅ |
+| 表达式求值 | `eval_binary/unary`, 45 个内置函数 | ✅ |
+| Schema 验证 | `TypeSchema`, `FieldSchema`, `validate` | ✅ |
+| JSON 转换 | `hcl_to_json`, `body_to_json_pretty` | ✅ |
+| Decor 系统 | `Decor`, `Decorated[T]` | ✅ |
+| Visit 遍历 | `Visit`, `VisitMut` | ✅ |
+| 模板 | `TemplateExpr`, heredoc, 插值 | ✅ |
+| CLI | hcl2json, --pretty, --simplify | ✅ |
+
+### 必须改进项 ❌
+
+#### 1. API 不统一 - `hcl.mbt` 需要 central re-export
+
+**问题**：`hcl.mbt` 基本是空的，开发者不知道该从哪个模块 import 什么
+
+**解决方案**：在 `hcl.mbt` 中 re-export 所有公共 API
+
+```moonbit
+// 需要添加到 hcl.mbt
+pub fn parse(s: String) = parser::parse
+pub fn format_body(b: Body) = ser::format_body
+pub type Body = body::Body
+pub type HCLValue = value::HCLValue
+pub type Formatter = ser::Formatter
+pub fn hcl_to_json = json::hcl_to_json
+// ... 统一出口
+```
+
+#### 2. `escape_hcl_string` 缺少模板标记转义
+
+**问题**：没有转义 `${` 和 `%{}`，这些是 HCL 的模板标记
+
+**对比 hcl-rs**：`escape_markers()` 函数转义 `${` → `$${`
+
+**解决方案**：在 `ser.mbt` 的 `escape_hcl_string` 中添加模板标记处理
+
+#### 3. `simplify_body` 需要公开为公共 API
+
+**问题**：`simplify_body` 只在 CLI 内部使用
+
+**解决方案**：在 `eval.mbt` 或 `hcl.mbt` 中添加 `pub fn simplify_body`
+
+#### 4. Map 顺序保证
+
+**问题**：`HCLObject = Map[String, HCLValue]` - HCL 规范要求属性保持定义顺序
+
+**解决方案**：确认 MoonBit `Map` 是否保证插入顺序；如不保证，需改用 `Array[(String, HCLValue)]`
+
+#### 5. CLI 改进
+
+| 功能 | 状态 | 优先级 |
+|------|------|--------|
+| stdin 支持 | ❌ | 高 |
+| glob 模式 | ❌ | 中 |
+| `hcl format` 命令 | ❌ | 中 |
+| `--validate` 选项 | ❌ | 中 |
+
+### 与 hcl-rs 功能对比
+
+| 功能 | hcl-rs | MoonBit HCL | 差异来源 |
+|------|--------|-------------|----------|
+| Serde 集成 | `#[derive(Serialize, Deserialize)]` | 手动 trait | **语言因素** |
+| Span 字节偏移 | ✅ | ❌ | 语言因素 |
+| Formatted<T> 精确回环 | ✅ | ❌ | 语言因素 |
+| winnow 组合子 | ✅ | ❌ | **生态因素**（无等价库） |
+| perf feature | ✅ | ❌ | 生态因素 |
+| indexmap/vecmap | ✅ | ❌ | **生态因素** |
+| benchmarks | ✅ | ❌ | 生态因素 |
+
+### 结论
+
+**基本可以实现"单一库"目标**，但需要：
+1. ✅ 完善 `hcl.mbt` re-exports（高优先级）
+2. ✅ 修复 `escape_hcl_string` 模板标记（高优先级）
+3. ✅ 公开 `simplify_body`（高优先级）
+4. ⏳ 确认 Map 顺序行为（中优先级）
+5. ⏳ CLI 改进（glob、stdin、format 命令）（中优先级）
+
 ## 从 hcl-rs 学到的坑
 
 1. ✅ **二元运算符优先级** - 需要 pratt parser
