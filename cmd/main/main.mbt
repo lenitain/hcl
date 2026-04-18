@@ -13,7 +13,7 @@
 ///|
 /// Show help message
 fn show_help(program_name : String) -> Unit {
-  println("HCL CLI Tool - converts HCL to JSON")
+  println("HCL CLI Tool - converts HCL to JSON or formats HCL")
   println("")
   println("Usage: " + program_name + " [OPTIONS]")
   println("")
@@ -22,16 +22,18 @@ fn show_help(program_name : String) -> Unit {
   println("  -p, --pretty       Pretty-print JSON output")
   println("  -s, --simplify     Simplify constant expressions")
   println("  -f, --file PATH    Read HCL from file (default: use example HCL)")
+  println("  -F, --format       Output formatted HCL instead of JSON")
   println("  -v, --validate     Validate HCL and exit with code 0 or 1")
 }
 
 ///|
 /// Parse CLI arguments
-/// Returns (help, pretty, simplify, validate, file_path)
-fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, String?) {
+/// Returns (help, pretty, simplify, format, validate, file_path)
+fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, Bool, String?) {
   let mut help = false
   let mut pretty = false
   let mut simplify = false
+  let mut format = false
   let mut validate = false
   let mut file_path : String? = None
   let mut i = 1
@@ -43,6 +45,8 @@ fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, String?) {
       pretty = true
     } else if arg == "-s" || arg == "--simplify" {
       simplify = true
+    } else if arg == "-F" || arg == "--format" {
+      format = true
     } else if arg == "-v" || arg == "--validate" {
       validate = true
     } else if arg == "-f" || arg == "--file" {
@@ -59,7 +63,7 @@ fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, String?) {
     }
     i = i + 1
   }
-  (help, pretty, simplify, validate, file_path)
+  (help, pretty, simplify, format, validate, file_path)
 }
 
 ///|
@@ -88,6 +92,20 @@ fn hcl_to_json_string(
 }
 
 ///|
+/// Convert HCL string to formatted HCL string
+fn hcl_to_format_string(hcl_content : String, simplify : Bool) -> String {
+  match @hcl.parse(hcl_content) {
+    Ok(body) =>
+      if simplify {
+        @hcl.to_hcl_body(@hcl.simplify_body(body))
+      } else {
+        @hcl.to_hcl_body(body)
+      }
+    Err(e) => "Error: " + e.message()
+  }
+}
+
+///|
 /// Get example HCL
 fn get_example_hcl() -> String {
   "name = \"hcl2json\"\nversion = \"1.0.0\"\nfeatures = [\"parse\", \"format\", \"convert\"]\n\nserver {\n  host = \"localhost\"\n  port = 8080\n}"
@@ -98,7 +116,7 @@ fn get_example_hcl() -> String {
 fn main {
   let args = @sys.get_cli_args()
   let program_name = if args.length() > 0 { args[0] } else { "hcl" }
-  let (help, pretty, simplify, validate, file_path) = parse_args(args)
+  let (help, pretty, simplify, format, validate, file_path) = parse_args(args)
 
   if help {
     show_help(program_name)
@@ -129,6 +147,10 @@ fn main {
     }
   }
 
-  let json = hcl_to_json_string(hcl_content, pretty, simplify)
-  println(json)
+  let output : String = if format {
+    hcl_to_format_string(hcl_content, simplify)
+  } else {
+    hcl_to_json_string(hcl_content, pretty, simplify)
+  }
+  println(output)
 }
