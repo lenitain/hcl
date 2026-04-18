@@ -294,22 +294,6 @@ EOF
 - `hcl.Visit` trait - Immutable AST traversal
 - `hcl.VisitMut` trait - Mutable AST traversal
 
-## Comparison with hcl-rs
-
-This library aims to provide the same functionality as [hcl-rs](https://github.com/nicholascalderon/hcl-rs) for MoonBit. Key differences:
-
-| Feature | hcl-rs | MoonBit HCL | Note |
-|---------|--------|-------------|------|
-| Parse | ✅ | ✅ | Same API |
-| Serialize | ✅ | ✅ | Same API |
-| Deserialize | ✅ | ✅ | Manual traits instead of derive |
-| Expression eval | ✅ | ✅ | Same built-in functions |
-| Schema validation | ✅ | ✅ | Same API |
-| Decor/Edit | ✅ | ✅ | Same API |
-| Serde derive | ✅ | ❌ | No proc macros |
-| Span tracking | ✅ | ❌ | No span in AST |
-| Formatted round-trip | ✅ | ❌ | No custom format traits |
-| perf features | ✅ | ❌ | No benchmarking infra |
 
 ## License
 
