@@ -129,7 +129,7 @@ fn parse_int_with_base(s : String, base : Int) -> HCLResult[Int] {
   let mut started = false
 
   for c in s {
-    if not(started) && c == '-' {
+    if !started && c == '-' {
       negative = true
     } else if c == '_' {
       // skip underscores
@@ -155,7 +155,7 @@ fn parse_int_with_base(s : String, base : Int) -> HCLResult[Int] {
     }
   }
 
-  if not(started) {
+  if !started {
     return Err(HCLError::invalid_value("Empty number string"))
   }
 
@@ -176,7 +176,7 @@ fn parse_double(s : String) -> HCLResult[Double] {
   let mut started = false
 
   for c in s {
-    if not(started) && c == '-' {
+    if !started && c == '-' {
       negative = true
     } else if c == '.' {
       in_decimal = true
@@ -197,7 +197,7 @@ fn parse_double(s : String) -> HCLResult[Double] {
     }
   }
 
-  if not(started) {
+  if !started {
     return Err(HCLError::invalid_value("Empty number string"))
   }
 
@@ -356,7 +356,7 @@ fn fn_length(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 1, "length") is Ok
   match args[0] {
     Array(a, _) => Ok(Number(Number::from_int(a.length()), Decor::empty()))
-    Object(o, _) => Ok(Number(Number::from_int(o.size()), Decor::empty()))
+    Object(o, _) => Ok(Number(Number::from_int(o.length()), Decor::empty()))
     String(s, _) => Ok(Number(Number::from_int(s.length()), Decor::empty()))
     _ => Err(HCLError::type_error("length() requires array, object, or string"))
   }
@@ -489,7 +489,7 @@ fn fn_distinct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       let seen = Set::new()
       for item in arr {
         let key = item.to_json_string()
-        if not(seen.contains(key)) {
+        if !seen.contains(key) {
           seen.add(key)
           result.push(item)
         }
@@ -753,7 +753,7 @@ fn fn_trimprefix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "trimprefix") is Ok
   match (args[0], args[1]) {
     (String(s, _), String(prefix, _)) =>
-      if s.starts_with(prefix) {
+      if s.has_prefix(prefix) {
         Ok(String(substring(s, prefix.length(), s.length()), Decor::empty()))
       } else {
         Ok(String(s, Decor::empty()))
@@ -768,7 +768,7 @@ fn fn_trimsuffix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   guard check_args(args, 2, "trimsuffix") is Ok
   match (args[0], args[1]) {
     (String(s, _), String(suffix, _)) =>
-      if s.ends_with(suffix) {
+      if s.has_suffix(suffix) {
         Ok(
           String(substring(s, 0, s.length() - suffix.length()), Decor::empty()),
         )

@@ -72,8 +72,8 @@ test "formatter compact object" {
     .set_prefer_ident_keys(true)
   let result = fmt.format_value(value)
   // compact: { a = 1, b = 2 }
-  assert_true(result.starts_with("{ "))
-  assert_true(result.ends_with(" }"))
+  assert_true(result.has_prefix("{ "))
+  assert_true(result.has_suffix(" }"))
   assert_true(result.contains(", "))
 }
 
