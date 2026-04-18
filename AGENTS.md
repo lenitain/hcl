@@ -8,9 +8,9 @@ HCL (HashiCorp Configuration Language) parser, formatter, and serialization libr
 - `moon test --update` — update snapshots
 - `moon fmt` — format code
 - `moon check` — typecheck (pre-commit hook runs this)
-- `moon info && moon fmt` — regenerate `.mbti` interface + format (do last)
+- `moon info` — regenerate `.mbti` interface
 - `moon coverage analyze > uncovered.log` — find untested lines
-- `moon run cmd/main` — run CLI stub
+- `moon run cmd/main` — run CLI (`-- --help` for options)
 
 After editing, always run: `moon check && moon test && moon info && moon fmt`
 
@@ -29,8 +29,10 @@ Pipeline: `lexer.mbt` → `token.mbt` → `parser.mbt` → `body.mbt` / `value.m
 - `ser.mbt` — serialize MoonBit values → HCL string (`to_hcl_value`, `format_body`)
 - `de.mbt` — deserialize HCL string → MoonBit types (`from_hcl_*`)
 - `hcl.mbt` — module doc only
+- `eval.mbt` — expression evaluation, `simplify_body` function
+- `funcs.mbt` — 45 built-in functions
 
-`cmd/main/` — empty CLI entrypoint (`moon run cmd/main`), imports are commented out.
+CLI: `cmd/main/main.mbt` — hcl2json with `--help`, `--pretty`, `--simplify`, `--file`
 
 ## MoonBit conventions
 
@@ -45,4 +47,13 @@ Pipeline: `lexer.mbt` → `token.mbt` → `parser.mbt` → `body.mbt` / `value.m
 - Pre-commit hook (`.githooks/pre-commit`) runs `moon check`. Activate with: `git config core.hooksPath .githooks`
 - `HCLResult[T]` is `Result[T, HCLError]` — use this alias, not raw `Result`
 - Parser uses immutable-style (`advance` returns new parser). `Lexer` is also value-based
-- Float parsing is stubbed (`TODO` in `parser.mbt:319`) — returns `Float(0.0)` for non-integer numbers
+- MoonBit flat package: all modules share namespace, no intra-package re-exports
+
+## Branch naming
+
+Format: `lenitain/feat/<feature-name>` or `lenitain/fix/<bug-name>`
+
+## Reference
+
+- hcl-rs source: `/home/pilot/.projects/hcl-rs/`
+- HCL spec: https://github.com/hashicorp/hcl/blob/main/spec.md
