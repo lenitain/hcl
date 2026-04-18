@@ -22,15 +22,17 @@ fn show_help(program_name : String) -> Unit {
   println("  -p, --pretty       Pretty-print JSON output")
   println("  -s, --simplify     Simplify constant expressions")
   println("  -f, --file PATH    Read HCL from file (default: use example HCL)")
+  println("  -v, --validate     Validate HCL and exit with code 0 or 1")
 }
 
 ///|
 /// Parse CLI arguments
-/// Returns (help, pretty, simplify, file_path)
-fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, String?) {
+/// Returns (help, pretty, simplify, validate, file_path)
+fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, String?) {
   let mut help = false
   let mut pretty = false
   let mut simplify = false
+  let mut validate = false
   let mut file_path : String? = None
   let mut i = 1
   while i < args.length() {
@@ -41,6 +43,8 @@ fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, String?) {
       pretty = true
     } else if arg == "-s" || arg == "--simplify" {
       simplify = true
+    } else if arg == "-v" || arg == "--validate" {
+      validate = true
     } else if arg == "-f" || arg == "--file" {
       if i + 1 < args.length() {
         file_path = Some(args[i + 1])
@@ -55,7 +59,7 @@ fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, String?) {
     }
     i = i + 1
   }
-  (help, pretty, simplify, file_path)
+  (help, pretty, simplify, validate, file_path)
 }
 
 ///|
@@ -94,28 +98,37 @@ fn get_example_hcl() -> String {
 fn main {
   let args = @sys.get_cli_args()
   let program_name = if args.length() > 0 { args[0] } else { "hcl" }
-  let (help, pretty, simplify, file_path) = parse_args(args)
+  let (help, pretty, simplify, validate, file_path) = parse_args(args)
 
   if help {
     show_help(program_name)
     return
   }
 
-  match file_path {
-    Some(path) => {
-      let content = @fs.read_file_to_string(path) catch {
+  let hcl_content : String = match file_path {
+    Some(path) =>
+      @fs.read_file_to_string(path) catch {
         _ => {
           println("Error: Failed to read file: " + path)
           return
         }
       }
-      let json = hcl_to_json_string(content, pretty, simplify)
-      println(json)
-    }
-    None => {
-      let example_hcl = get_example_hcl()
-      let json = hcl_to_json_string(example_hcl, pretty, simplify)
-      println(json)
+    None => get_example_hcl()
+  }
+
+  if validate {
+    match @hcl.parse(hcl_content) {
+      Ok(_) => {
+        println("Valid HCL")
+        @sys.exit(0)
+      }
+      Err(e) => {
+        println(e.message())
+        @sys.exit(1)
+      }
     }
   }
+
+  let json = hcl_to_json_string(hcl_content, pretty, simplify)
+  println(json)
 }
