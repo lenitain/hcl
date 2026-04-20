@@ -1,6 +1,6 @@
 # HCL for MoonBit
 
-[![mooncake](https://img.shields.io/badge/mooncake-lenitain%2Fhcl-blue)](https://mooncake.io/pkg/github:lenitain/hcl)
+[![mooncake](https://img.shields.io/badge/mooncake-lenitain%2Fhcl-blue)](https://mooncakes.io/docs/lenitain/hcl)
 
 HCL (HashiCorp Configuration Language) parser, formatter, and serialization library for MoonBit.
 
