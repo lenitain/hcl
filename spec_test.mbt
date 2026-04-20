@@ -495,3 +495,47 @@ test "spec heredoc indent" {
     }
   }
 }
+
+///|
+/// Official Spec Test: slash comment - parses a file containing only a comment
+test "spec official slash comment" {
+  let input = "// Slash comment"
+  let result = parse(input)
+  match result {
+    Ok(body) => assert_eq(body.len(), 0)
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
+
+///|
+/// Official Spec Test: primitive literals from official spec suite
+test "spec official primitive literals" {
+  let input = "whole_number = 5\nfractional_number = 3.2\nfractional_number_precision = 3.14159265358979323846264338327950288419716939937510582097494459\nstring_ascii = \"hello\"\nstring_unicode_bmp = \"ЖЖ\"\nstring_unicode_astral = \"👩‍👩‍👧‍👦\"\nstring_unicode_nonnorm = \"años\"\ntrue_ = true\nfalse_ = false\nnull_ = null"
+  let result = parse(input)
+  match result {
+    Ok(body) => {
+      assert_eq(body.len(), 10)
+    }
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
+
+///|
+/// Official Spec Test: empty file
+test "spec official empty file" {
+  let input = ""
+  let result = parse(input)
+  match result {
+    Ok(body) => assert_eq(body.len(), 0)
+    Err(e) => {
+      println("Error: " + e.message())
+      panic()
+    }
+  }
+}
