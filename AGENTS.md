@@ -4,7 +4,8 @@ HCL (HashiCorp Configuration Language) parser, formatter, and serialization libr
 
 ## Commands
 
-- `moon test` — run tests
+- `moon test` — run all tests
+- `moon test -F "spec fixture *"` — run official HCL spec fixture tests only
 - `moon test --update` — update snapshots
 - `moon fmt` — format code
 - `moon check` — typecheck (pre-commit hook runs this)
@@ -34,6 +35,19 @@ Pipeline: `lexer.mbt` → `token.mbt` → `parser.mbt` → `body.mbt` / `value.m
 
 CLI: `cmd/main/main.mbt` — hcl2json with `--help`, `--pretty`, `--simplify`, `--file`
 
+## Official HCL Spec Tests
+
+Tests from `~/.cloned/hcl/specsuite/tests/` are inline in `spec_test.mbt`.
+
+| Command | Description |
+|---------|-------------|
+| `moon test -F "spec fixture *"` | Run all 14 fixture tests |
+| `moon test -F "spec fixture comments *"` | Comment tests only |
+| `moon test -F "spec fixture expressions *"` | Expression tests only |
+| `moon test -F "spec fixture structure *"` | Structure tests only |
+
+Test fixtures in `tests/fixtures/` are not auto-loaded (MoonBit package doesn't include `tests/`). Tests are inline in `spec_test.mbt`.
+
 ## MoonBit conventions
 
 - Blocks separated by `///|` — order is irrelevant, can process block-by-block
@@ -55,5 +69,5 @@ Format: `lenitain/feat/<feature-name>` or `lenitain/fix/<bug-name>`
 
 ## Reference
 
-- hcl-rs source: `/home/pilot/.projects/hcl-rs/`
+- Official HCL spec tests: `~/.cloned/hcl/specsuite/tests/`
 - HCL spec: https://github.com/hashicorp/hcl/blob/main/spec.md
