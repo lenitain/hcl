@@ -121,6 +121,9 @@ fn Lexer::skip_whitespace(self : Lexer) -> Lexer {
             }
           _ => break
         }
+      Some(c) if c == '#'.to_int().to_uint16() =>
+        // Hash comment - skip until newline (same as //)
+        lexer = lexer.skip_line_comment()
       _ => break
     }
   }
