@@ -73,7 +73,7 @@
 | hcl2json CLI 批量处理 | ✅ 完成 | - |
 | hcl2json glob 模式 | ⏳ | - |
 | hcl2json --simplify 选项 | ✅ 完成 | eval |
-| specsuite 完整测试套件 | ⏳ | - |
+| specsuite 完整测试套件 | 🔄 进行中 | - |
 
 ### 第六阶段：适配
 | 任务 | 状态 | 依赖 |
