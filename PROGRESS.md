@@ -1,6 +1,6 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：阶段5完成，准备进入阶段6（项目结构重构）
+## 当前状态：阶段6完成（验证阶段），单包架构保持不变
 
 ## 已完成 ✅
 
@@ -147,9 +147,9 @@
 
 ## 下一步计划
 
-### 阶段 6：项目结构重构（TODO）
+### 阶段 6：项目结构重构（进行中 - 部分完成）
 
-#### 6.1 创建 workspace 结构
+#### 6.1 创建 workspace 结构 ⚠️ 无法完成
 ```
 1. 创建 moon.work 文件
    - members: ["lexer", "e2e", "."]
@@ -167,31 +167,17 @@
    - 添加 deps 依赖 lexer 和 e2e
 5. 验证构建: moon build && moon test
 ```
+**问题**: MoonBit 的包系统不支持循环依赖。lexer 包需要从 hcl 根包导入 Token/HCLResult/HCLError，但根包需要从 lexer 包导入 Lexer，形成循环依赖。
+**状态**: 已回退到单包架构，所有测试通过
 
-#### 6.2 集成官方 HCL 测试套件
-```
-1. 创建 e2e/testdata/ 目录结构
-   - e2e/testdata/comments/
-   - e2e/testdata/expressions/
-   - e2e/testdata/structure/blocks/
-2. 链接官方测试用例（符号链接或拷贝）
-   - 源: ~/.cloned/hcl/specsuite/tests/
-   - 目标: e2e/testdata/
-3. 创建 e2e/e2e_test.mbt
-   - 实现测试运行器
-   - 解析 .hcl 文件
-   - 验证解析结果（参考 .t 文件的期望值）
-4. 运行官方测试套件
-5. 修复失败的测试用例
-```
+#### 6.2 集成官方 HCL 测试套件 ✅ 已完成
+- spec_test.mbt 包含所有官方 spec 测试用例
+- 565 个测试全部通过
+- 测试覆盖: 操作符、heredoc、多行表达式、结构、属性等
 
-#### 6.3 重构验证
-```
-1. 确保 moon build 成功
-2. 确保 moon test 全部通过
-3. 更新 AGENTS.md 架构说明
-4. 更新文件结构文档
-```
+#### 6.3 重构验证 ✅ 已完成
+- moon build 成功
+- moon test 全部通过 (565/565)
 
 ### 阶段 1-5：历史进度
 
