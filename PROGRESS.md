@@ -1,19 +1,19 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：阶段6完成 - Workspace 结构重构成功
+## 当前状态：阶段6完成，准备进入阶段7（根目录清理）
 
 ## 文件结构（当前）
 
 ```
 hcl/
 ├── moon.work              # workspace 定义 (lexer, e2e, .)
-├── lexer/                 # HCL lexer 子包 (自包含)
+├── lexer/                 # HCL lexer 子包 (已完成)
 │   ├── moon.mod.json
 │   ├── moon.pkg
 │   ├── lexer.mbt
 │   ├── token.mbt
 │   └── error.mbt
-├── e2e/                   # 端到端测试
+├── e2e/                   # 端到端测试 (已完成)
 │   ├── moon.mod.json
 │   ├── moon.pkg
 │   ├── e2e_test.mbt
@@ -35,7 +35,74 @@ hcl/
 ├── value.mbt              # HCLValue 类型
 ├── trait.mbt              # ToHCL/FromHCL trait
 ├── builder.mbt            # Builder 模式
-└── *_test.mbt             # 测试文件
+└── *_test.mbt             # 测试文件 (51个文件散落根目录)
+```
+
+## 文件结构（目标 - 阶段7完成后）
+
+```
+hcl/
+├── moon.work              # workspace 定义
+├── lexer/                 # HCL lexer 子包 (自包含)
+│   ├── moon.mod.json
+│   ├── moon.pkg
+│   ├── lexer.mbt
+│   ├── token.mbt
+│   └── error.mbt
+├── internal/              # 实现细节
+│   ├── moon.mod.json      # name: "lenitain/hcl/internal"
+│   ├── moon.pkg
+│   ├── parser/            # 解析器
+│   │   ├── moon.mod.json
+│   │   ├── moon.pkg
+│   │   ├── parser.mbt
+│   │   └── *_test.mbt
+│   ├── eval/              # 表达式求值
+│   │   ├── moon.mod.json
+│   │   ├── moon.pkg
+│   │   ├── eval.mbt
+│   │   ├── expr.mbt
+│   │   └── *_test.mbt
+│   ├── funcs/             # 内置函数
+│   │   ├── moon.mod.json
+│   │   ├── moon.pkg
+│   │   ├── funcs.mbt
+│   │   └── *_test.mbt
+│   ├── template/          # 模板系统
+│   │   ├── moon.mod.json
+│   │   ├── moon.pkg
+│   │   ├── template.mbt
+│   │   └── *_test.mbt
+│   ├── value/             # 核心类型
+│   │   ├── moon.mod.json
+│   │   ├── moon.pkg
+│   │   ├── value.mbt
+│   │   ├── body.mbt
+│   │   ├── decor.mbt
+│   │   ├── visit.mbt
+│   │   ├── visit_mut.mbt
+│   │   └── *_test.mbt
+│   └── util/              # 工具模块
+│       ├── moon.mod.json
+│       ├── moon.pkg
+│       ├── number.mbt
+│       ├── object.mbt
+│       ├── ident.mbt
+│       └── *_test.mbt
+├── e2e/                   # 端到端测试
+│   ├── moon.mod.json
+│   ├── moon.pkg
+│   ├── e2e_test.mbt
+│   └── testdata/
+├── cmd/main/              # CLI 入口
+├── hcl.mbt                # 主入口 (~100行, re-export API)
+├── hcl_test.mbt           # 主集成测试
+├── json.mbt               # JSON 转换入口
+├── schema.mbt             # Schema 验证入口
+├── ser.mbt                # 序列化入口
+├── de.mbt                 # 反序列化入口
+├── trait.mbt              # ToHCL/FromHCL trait
+└── builder.mbt           # Builder 模式
 ```
 
 ## 已完成 ✅
@@ -219,14 +286,117 @@ hcl/
 - moon check 通过
 - moon fmt 通过
 
-#### 6.2 集成官方 HCL 测试套件 ✅ 已完成
-- spec_test.mbt 包含所有官方 spec 测试用例
-- 565 个测试全部通过
-- 测试覆盖: 操作符、heredoc、多行表达式、结构、属性等
+### 阶段 7：根目录清理（TODO）
 
-#### 6.3 重构验证 ✅ 已完成
-- moon build 成功
-- moon test 全部通过 (565/565)
+**目标**: 根目录只保留入口文件，所有实现细节移到 internal/ 子包
+
+**参考**: toml-parser 的 clean 结构：
+```
+toml-parser/
+├── lexer/           # 独立 lexer 包 (已完成)
+├── internal/        # internal/tokenize/
+│   └── tokenize/    # tokenize.mbt, token.mbt, *_test.mbt
+├── e2e/             # 端到端测试 (已完成)
+├── parser.mbt       # 入口
+├── toml.mbt         # 入口
+└── toml_test.mbt    # 主测试
+```
+
+**当前根目录问题**: 51个.mbt文件散落，职责不清
+
+**计划**:
+
+#### 7.1 创建 internal/ 包结构
+```
+1. 创建 internal/ 目录
+2. internal/moon.mod.json (name: "lenitain/hcl/internal")
+3. internal/moon.pkg
+4. 创建 internal/parser/ 子包
+   - mkdir internal/parser/
+   - mv parser.mbt internal/parser/parser.mbt
+   - mv *_test.mbt (parser相关) internal/parser/
+   - 创建 internal/parser/moon.mod.json
+   - 创建 internal/parser/moon.pkg
+5. 创建 internal/eval/ 子包 (表达式求值)
+6. 创建 internal/funcs/ 子包 (内置函数)
+7. 创建 internal/template/ 子包 (模板系统)
+8. 创建 internal/value/ 子包 (HCLValue, Body, Block, Attr)
+9. 创建 internal/serde/ 子包 (序列化/反序列化)
+10. 创建 internal/util/ 子包 (number, object, ident, decor, etc.)
+```
+
+#### 7.2 根目录只保留
+```
+hcl/
+├── hcl.mbt          # 主入口，re-export 所有 public API
+├── hcl_test.mbt     # 主集成测试
+├── json.mbt         # JSON 转换入口
+├── schema.mbt       # Schema 验证入口
+├── ser.mbt          # 序列化入口
+├── de.mbt           # 反序列化入口
+├── trait.mbt        # ToHCL/FromHCL trait
+├── builder.mbt      # Builder 模式
+├── cmd/main/        # CLI (已有)
+├── lexer/           # lexer 包 (已完成)
+├── e2e/             # e2e 包 (已完成)
+└── internal/        # internal 子包
+```
+
+#### 7.3 迁移顺序（避免循环依赖）
+```
+1. internal/value/ (最底层，无依赖)
+   - value.mbt, body.mbt, decor.mbt, visit.mbt, visit_mut.mbt
+
+2. internal/util/ (依赖 value)
+   - number.mbt, object.mbt, ident.mbt
+
+3. internal/parser/ (依赖 lexer, value)
+   - parser.mbt (改为 @lexer.Lexer, @value.HCLValue)
+
+4. internal/eval/ (依赖 value, parser)
+   - eval.mbt, expr.mbt
+
+5. internal/funcs/ (依赖 eval, value)
+   - funcs.mbt
+
+6. internal/template/ (依赖 eval, funcs)
+   - template.mbt
+
+7. 根目录 hcl.mbt (依赖所有)
+   - re-export public API
+```
+
+#### 7.4 每步验证
+```
+1. moon build && moon test
+2. 确保无循环依赖
+3. 提交每步
+```
+
+#### 7.5 预期结果
+```
+hcl/
+├── hcl.mbt          # ~100行，re-export API
+├── hcl_test.mbt     # ~500行，集成测试
+├── json.mbt         # ~200行
+├── schema.mbt       # ~300行
+├── ser.mbt          # ~300行
+├── de.mbt           # ~200行
+├── trait.mbt        # ~200行
+├── builder.mbt      # ~100行
+├── cmd/main/        # CLI
+├── lexer/           # lexer 包
+├── e2e/             # e2e 包
+└── internal/        # 所有实现细节
+    ├── parser/
+    ├── eval/
+    ├── funcs/
+    ├── template/
+    ├── value/
+    └── util/
+```
+
+**关键**: MoonBit 的 `using @package {type X}` 语法允许从子包导入类型，无需在每个文件写 `@package.Type`
 
 ### 阶段 1-5：历史进度
 
