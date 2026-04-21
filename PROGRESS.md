@@ -1,6 +1,42 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：阶段6完成（验证阶段），单包架构保持不变
+## 当前状态：阶段6完成 - Workspace 结构重构成功
+
+## 文件结构（当前）
+
+```
+hcl/
+├── moon.work              # workspace 定义 (lexer, e2e, .)
+├── lexer/                 # HCL lexer 子包 (自包含)
+│   ├── moon.mod.json
+│   ├── moon.pkg
+│   ├── lexer.mbt
+│   ├── token.mbt
+│   └── error.mbt
+├── e2e/                   # 端到端测试
+│   ├── moon.mod.json
+│   ├── moon.pkg
+│   ├── e2e_test.mbt
+│   └── testdata/
+├── cmd/main/              # CLI 入口
+├── moon.mod.json          # 根包配置 (deps: lexer)
+├── moon.pkg               # 导入 lexer 包
+├── body.mbt               # Body/Block/Attr 结构
+├── de.mbt                 # 反序列化
+├── eval.mbt               # 表达式求值
+├── funcs.mbt              # 内置函数
+├── hcl.mbt                # 主入口
+├── json.mbt               # JSON 转换
+├── parser.mbt             # 解析器
+├── schema.mbt             # Schema 验证
+├── ser.mbt                # 序列化
+├── template.mbt           # 模板系统
+├── token.mbt              # Token 类型 (已移除，见lexer/)
+├── value.mbt              # HCLValue 类型
+├── trait.mbt              # ToHCL/FromHCL trait
+├── builder.mbt            # Builder 模式
+└── *_test.mbt             # 测试文件
+```
 
 ## 已完成 ✅
 
@@ -149,26 +185,39 @@
 
 ### 阶段 6：项目结构重构（进行中 - 部分完成）
 
-#### 6.1 创建 workspace 结构 ⚠️ 无法完成
+### 阶段 6：项目结构重构 ✅ 已完成
+
+**解决方案**: 让 lexer 包自包含（参考 toml-parser）
+
+#### 6.1 创建 self-contained lexer 包 ✅
 ```
-1. 创建 moon.work 文件
-   - members: ["lexer", "e2e", "."]
-2. 创建 lexer/ 子包
-   - mkdir lexer/
-   - mv lexer.mbt lexer/lexer.mbt
-   - 创建 lexer/moon.mod.json
-   - 创建 lexer/moon.pkg
-3. 创建 e2e/ 子包
-   - mkdir e2e/
-   - 创建 e2e/moon.mod.json
-   - 创建 e2e/moon.pkg
-   - 创建 e2e/testdata/ 目录
-4. 更新根目录 moon.mod.json
-   - 添加 deps 依赖 lexer 和 e2e
-5. 验证构建: moon build && moon test
+1. 创建 lexer/ 目录
+2. lexer/lexer.mbt - Lexer 结构
+3. lexer/token.mbt - Token 枚举 (pub(all))
+4. lexer/error.mbt - HCLError, HCLResult (pub(all))
+5. lexer/moon.mod.json (name: "lenitain/hcl/lexer")
+6. lexer/moon.pkg (empty)
+7. 删除根目录的 lexer.mbt, token.mbt, error.mbt
 ```
-**问题**: MoonBit 的包系统不支持循环依赖。lexer 包需要从 hcl 根包导入 Token/HCLResult/HCLError，但根包需要从 lexer 包导入 Lexer，形成循环依赖。
-**状态**: 已回退到单包架构，所有测试通过
+
+#### 6.2 更新根包导入 ✅
+- moon.mod.json 添加 deps: "lenitain/hcl/lexer": "0.1.0"
+- moon.work 添加 "lexer" 到 members
+- 所有 .mbt 文件使用 @lexer.Lexer, @lexer.Token 等
+
+#### 6.3 创建 e2e/ 子包 ✅
+```
+1. mkdir -p e2e/testdata
+2. e2e/moon.mod.json (name: "lenitain/hcl/e2e", deps: lenitain/hcl)
+3. e2e/moon.pkg
+4. e2e/e2e_test.mbt (placeholder)
+```
+
+#### 6.4 验证 ✅
+- moon build 成功
+- moon test 全部通过 (566/566)
+- moon check 通过
+- moon fmt 通过
 
 #### 6.2 集成官方 HCL 测试套件 ✅ 已完成
 - spec_test.mbt 包含所有官方 spec 测试用例

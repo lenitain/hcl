@@ -8,7 +8,7 @@ pub fn eval_binary(
   left : HCLValue,
   op : String,
   right : HCLValue,
-) -> HCLResult[HCLValue] {
+) -> @lexer.HCLResult[HCLValue] {
   match op {
     "+" => eval_add(left, right)
     "-" => eval_sub(left, right)
@@ -23,161 +23,168 @@ pub fn eval_binary(
     ">=" => eval_gte(left, right)
     "&&" => eval_and(left, right)
     "||" => eval_or(left, right)
-    _ => Err(HCLError::invalid_value("Unknown operator: " + op))
+    _ => Err(@lexer.HCLError::invalid_value("Unknown operator: " + op))
   }
 }
 
 ///|
 /// Evaluate unary operation on HCLValue
-pub fn eval_unary(op : String, operand : HCLValue) -> HCLResult[HCLValue] {
+pub fn eval_unary(
+  op : String,
+  operand : HCLValue,
+) -> @lexer.HCLResult[HCLValue] {
   match op {
     "-" => eval_negate(operand)
     "!" => eval_not(operand)
-    _ => Err(HCLError::invalid_value("Unknown unary operator: " + op))
+    _ => Err(@lexer.HCLError::invalid_value("Unknown unary operator: " + op))
   }
 }
 
 ///|
 /// Evaluate addition
-fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_add(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Number(a + b, Decor::empty()))
     (String(a, _), String(b, _)) => Ok(String(a + b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for addition"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for addition"))
   }
 }
 
 ///|
 /// Evaluate subtraction
-fn eval_sub(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_sub(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Number(a - b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for subtraction"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for subtraction"))
   }
 }
 
 ///|
 /// Evaluate multiplication
-fn eval_mul(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_mul(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Number(a * b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for multiplication"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for multiplication"))
   }
 }
 
 ///|
 /// Evaluate division
-fn eval_div(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_div(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => {
       let fb = b.as_f64()
       if fb == 0.0 {
-        Err(HCLError::division_by_zero())
+        Err(@lexer.HCLError::division_by_zero())
       } else {
         Ok(Number(a / b, Decor::empty()))
       }
     }
-    _ => Err(HCLError::type_error("Invalid types for division"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for division"))
   }
 }
 
 ///|
 /// Evaluate modulo
-fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_mod(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => {
       let fb = b.as_f64()
       if fb == 0.0 {
-        Err(HCLError::division_by_zero())
+        Err(@lexer.HCLError::division_by_zero())
       } else {
         Ok(Number(a % b, Decor::empty()))
       }
     }
-    _ => Err(HCLError::type_error("Invalid types for modulo"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for modulo"))
   }
 }
 
 ///|
 /// Evaluate equality
-fn eval_eq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_eq(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   Ok(Bool(left == right, Decor::empty()))
 }
 
 ///|
 /// Evaluate inequality
-fn eval_neq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_neq(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   Ok(Bool(left != right, Decor::empty()))
 }
 
 ///|
 /// Evaluate less than
-fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_lt(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a < b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for less than"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for less than"))
   }
 }
 
 ///|
 /// Evaluate greater than
-fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_gt(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a > b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for greater than"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for greater than"))
   }
 }
 
 ///|
 /// Evaluate less than or equal
-fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_lte(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a <= b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for less than or equal"))
+    _ =>
+      Err(@lexer.HCLError::type_error("Invalid types for less than or equal"))
   }
 }
 
 ///|
 /// Evaluate greater than or equal
-fn eval_gte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_gte(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a >= b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for greater than or equal"))
+    _ =>
+      Err(
+        @lexer.HCLError::type_error("Invalid types for greater than or equal"),
+      )
   }
 }
 
 ///|
 /// Evaluate logical and
-fn eval_and(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_and(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Bool(a, _), Bool(b, _)) => Ok(Bool(a && b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for logical and"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for logical and"))
   }
 }
 
 ///|
 /// Evaluate logical or
-fn eval_or(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
+fn eval_or(left : HCLValue, right : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match (left, right) {
     (Bool(a, _), Bool(b, _)) => Ok(Bool(a || b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid types for logical or"))
+    _ => Err(@lexer.HCLError::type_error("Invalid types for logical or"))
   }
 }
 
 ///|
 /// Evaluate negation
-fn eval_negate(operand : HCLValue) -> HCLResult[HCLValue] {
+fn eval_negate(operand : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match operand {
     Number(n, _) => Ok(Number(-n, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid type for negation"))
+    _ => Err(@lexer.HCLError::type_error("Invalid type for negation"))
   }
 }
 
 ///|
 /// Evaluate logical not
-fn eval_not(operand : HCLValue) -> HCLResult[HCLValue] {
+fn eval_not(operand : HCLValue) -> @lexer.HCLResult[HCLValue] {
   match operand {
     Bool(b, _) => Ok(Bool(!b, Decor::empty()))
-    _ => Err(HCLError::type_error("Invalid type for logical not"))
+    _ => Err(@lexer.HCLError::type_error("Invalid type for logical not"))
   }
 }
 
@@ -187,10 +194,10 @@ pub fn eval_conditional(
   condition : HCLValue,
   true_expr : HCLValue,
   false_expr : HCLValue,
-) -> HCLResult[HCLValue] {
+) -> @lexer.HCLResult[HCLValue] {
   match condition {
     Bool(b, _) => if b { Ok(true_expr) } else { Ok(false_expr) }
-    _ => Err(HCLError::type_error("Condition must be boolean"))
+    _ => Err(@lexer.HCLError::type_error("Condition must be boolean"))
   }
 }
 
@@ -199,8 +206,8 @@ pub fn eval_conditional(
 pub fn eval_expr(
   expr : HCLValue,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
-) -> HCLResult[HCLValue] {
+  functions : Map[String, (Array[HCLValue]) -> @lexer.HCLResult[HCLValue]],
+) -> @lexer.HCLResult[HCLValue] {
   match expr {
     // Basic values - return as-is
     Null(_) | Bool(_, _) | Number(_, _) | String(_, _) => Ok(expr)
@@ -237,9 +244,10 @@ pub fn eval_expr(
             String(var_name, _) =>
               match variables.get(var_name) {
                 Some(value) => Ok(value)
-                None => Err(HCLError::undefined_variable(var_name))
+                None => Err(@lexer.HCLError::undefined_variable(var_name))
               }
-            _ => Err(HCLError::type_error("Variable name must be string"))
+            _ =>
+              Err(@lexer.HCLError::type_error("Variable name must be string"))
           }
         }
         Some(String("function_call", _)) => {
@@ -260,10 +268,13 @@ pub fn eval_expr(
               // Look up function
               match functions.get(func_name) {
                 Some(func) => func(evaluated_args)
-                None => Err(HCLError::undefined_function(func_name))
+                None => Err(@lexer.HCLError::undefined_function(func_name))
               }
             }
-            _ => Err(HCLError::type_error("Invalid function call structure"))
+            _ =>
+              Err(
+                @lexer.HCLError::type_error("Invalid function call structure"),
+              )
           }
         }
         Some(String("property_access", _)) => {
@@ -274,10 +285,10 @@ pub fn eval_expr(
             (Ok(Object(target_obj, _)), String(prop_name, _)) =>
               match target_obj.get(prop_name) {
                 Some(value) => Ok(value)
-                None => Err(HCLError::undefined_property(prop_name))
+                None => Err(@lexer.HCLError::undefined_property(prop_name))
               }
             (Ok(_), _) =>
-              Err(HCLError::type_error("Property access on non-object"))
+              Err(@lexer.HCLError::type_error("Property access on non-object"))
             (Err(e), _) => Err(e)
           }
         }
@@ -296,16 +307,24 @@ pub fn eval_expr(
                   if i >= 0 && i < arr.length() {
                     Ok(arr[i])
                   } else {
-                    Err(HCLError::invalid_value("Array index out of bounds"))
+                    Err(
+                      @lexer.HCLError::invalid_value(
+                        "Array index out of bounds",
+                      ),
+                    )
                   }
-                None => Err(HCLError::type_error("Array index must be integer"))
+                None =>
+                  Err(
+                    @lexer.HCLError::type_error("Array index must be integer"),
+                  )
               }
             (Ok(Object(target_obj, _)), Ok(String(key, _))) =>
               match target_obj.get(key) {
                 Some(value) => Ok(value)
-                None => Err(HCLError::undefined_property(key))
+                None => Err(@lexer.HCLError::undefined_property(key))
               }
-            (Ok(_), _) => Err(HCLError::type_error("Invalid index access"))
+            (Ok(_), _) =>
+              Err(@lexer.HCLError::type_error("Invalid index access"))
             (Err(e), _) => Err(e)
           }
         }
@@ -323,7 +342,7 @@ pub fn eval_expr(
             (Ok(left_val), Ok(right_val)) =>
               match op {
                 String(op_str, _) => eval_binary(left_val, op_str, right_val)
-                _ => Err(HCLError::type_error("Operator must be string"))
+                _ => Err(@lexer.HCLError::type_error("Operator must be string"))
               }
             (Err(e), _) => Err(e)
             (_, Err(e)) => Err(e)
@@ -337,7 +356,7 @@ pub fn eval_expr(
             Ok(operand_val) =>
               match op {
                 String(op_str, _) => eval_unary(op_str, operand_val)
-                _ => Err(HCLError::type_error("Operator must be string"))
+                _ => Err(@lexer.HCLError::type_error("Operator must be string"))
               }
             Err(e) => Err(e)
           }
@@ -363,14 +382,18 @@ pub fn eval_expr(
                       String(var_name, _) => loop_vars[var_name] = item
                       _ =>
                         return Err(
-                          HCLError::type_error("Loop variable must be string"),
+                          @lexer.HCLError::type_error(
+                            "Loop variable must be string",
+                          ),
                         )
                     }
                     match eval_expr(filter_expr, loop_vars, functions) {
                       Ok(Bool(b, _)) => b
                       Ok(_) =>
                         return Err(
-                          HCLError::type_error("Filter must return boolean"),
+                          @lexer.HCLError::type_error(
+                            "Filter must return boolean",
+                          ),
                         )
                       Err(e) => return Err(e)
                     }
@@ -384,7 +407,9 @@ pub fn eval_expr(
                     String(var_name, _) => loop_vars[var_name] = item
                     _ =>
                       return Err(
-                        HCLError::type_error("Loop variable must be string"),
+                        @lexer.HCLError::type_error(
+                          "Loop variable must be string",
+                        ),
                       )
                   }
                   match eval_expr(value_expr, loop_vars, functions) {
@@ -395,7 +420,8 @@ pub fn eval_expr(
               }
               Ok(Array(result, Decor::empty()))
             }
-            Ok(_) => Err(HCLError::type_error("For collection must be array"))
+            Ok(_) =>
+              Err(@lexer.HCLError::type_error("For collection must be array"))
             Err(e) => Err(e)
           }
         }
@@ -423,21 +449,27 @@ pub fn eval_expr(
                         loop_vars[key_var_name] = String(k, Decor::empty())
                       _ =>
                         return Err(
-                          HCLError::type_error("Key variable must be string"),
+                          @lexer.HCLError::type_error(
+                            "Key variable must be string",
+                          ),
                         )
                     }
                     match loop_value_var {
                       String(value_var_name, _) => loop_vars[value_var_name] = v
                       _ =>
                         return Err(
-                          HCLError::type_error("Value variable must be string"),
+                          @lexer.HCLError::type_error(
+                            "Value variable must be string",
+                          ),
                         )
                     }
                     match eval_expr(filter_expr, loop_vars, functions) {
                       Ok(Bool(b, _)) => b
                       Ok(_) =>
                         return Err(
-                          HCLError::type_error("Filter must return boolean"),
+                          @lexer.HCLError::type_error(
+                            "Filter must return boolean",
+                          ),
                         )
                       Err(e) => return Err(e)
                     }
@@ -452,14 +484,18 @@ pub fn eval_expr(
                       loop_vars[key_var_name] = String(k, Decor::empty())
                     _ =>
                       return Err(
-                        HCLError::type_error("Key variable must be string"),
+                        @lexer.HCLError::type_error(
+                          "Key variable must be string",
+                        ),
                       )
                   }
                   match loop_value_var {
                     String(value_var_name, _) => loop_vars[value_var_name] = v
                     _ =>
                       return Err(
-                        HCLError::type_error("Value variable must be string"),
+                        @lexer.HCLError::type_error(
+                          "Value variable must be string",
+                        ),
                       )
                   }
 
@@ -471,7 +507,7 @@ pub fn eval_expr(
                       }
                     Ok(_) =>
                       return Err(
-                        HCLError::type_error("Object key must be string"),
+                        @lexer.HCLError::type_error("Object key must be string"),
                       )
                     Err(e) => return Err(e)
                   }
@@ -479,7 +515,8 @@ pub fn eval_expr(
               }
               Ok(Object(result, Decor::empty()))
             }
-            Ok(_) => Err(HCLError::type_error("For collection must be object"))
+            Ok(_) =>
+              Err(@lexer.HCLError::type_error("For collection must be object"))
             Err(e) => Err(e)
           }
         }
@@ -500,7 +537,7 @@ pub fn eval_expr(
 
 ///|
 /// Evaluate expression with default empty context
-pub fn eval_expr_simple(expr : HCLValue) -> HCLResult[HCLValue] {
+pub fn eval_expr_simple(expr : HCLValue) -> @lexer.HCLResult[HCLValue] {
   let empty_vars = {}
   let empty_funcs = {}
   eval_expr(expr, empty_vars, empty_funcs)

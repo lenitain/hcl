@@ -74,7 +74,10 @@ test "evaluate variable reference" {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
           variables["var_name"] = Number(Number::from_int(42), Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) =>
@@ -98,7 +101,10 @@ test "evaluate undefined variable" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(_) => panic()
@@ -121,18 +127,23 @@ test "evaluate function call" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          let add_func = fn(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+          let add_func = fn(
+            args : Array[HCLValue],
+          ) -> @lexer.HCLResult[HCLValue] {
             match args {
               [Number(a_n, _), Number(b_n, _)] =>
                 match (a_n.as_int(), b_n.as_int()) {
                   (Some(a), Some(b)) =>
                     Ok(Number(Number::from_int(a + b), Decor::empty()))
-                  _ => Err(HCLError::type_error("expected int"))
+                  _ => Err(@lexer.HCLError::type_error("expected int"))
                 }
-              _ => Err(HCLError::type_error("add expects two integers"))
+              _ => Err(@lexer.HCLError::type_error("add expects two integers"))
             }
           }
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           functions["add"] = add_func
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
@@ -157,7 +168,10 @@ test "evaluate undefined function" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(_) => panic()
@@ -184,7 +198,10 @@ test "evaluate property access dot notation" {
           obj_map["value"] = Number(Number::from_int(123), Decor::empty())
           let variables : Map[String, HCLValue] = Map::new()
           variables["obj"] = Object(obj_map, Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) => assert_true(v == String("test", Decor::empty()))
@@ -211,7 +228,10 @@ test "evaluate property access bracket notation" {
           obj_map["value"] = Number(Number::from_int(123), Decor::empty())
           let variables : Map[String, HCLValue] = Map::new()
           variables["obj"] = Object(obj_map, Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) =>
@@ -238,7 +258,10 @@ test "evaluate chained property access" {
           person_map["name"] = String("Alice", Decor::empty())
           let variables : Map[String, HCLValue] = Map::new()
           variables["person"] = Object(person_map, Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) => assert_true(v == String("Alice", Decor::empty()))
@@ -269,7 +292,10 @@ test "evaluate array index access" {
             ],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) =>
@@ -316,7 +342,10 @@ test "evaluate property access on non-object" {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
           variables["num"] = Number(Number::from_int(42), Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(_) => panic()
@@ -347,7 +376,10 @@ test "evaluate array index out of bounds" {
             ],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(_) => panic()
@@ -375,18 +407,24 @@ test "evaluate function call with variable args" {
           variables["b"] = Number(Number::from_int(7), Decor::empty())
           let multiply_func = fn(
             args : Array[HCLValue],
-          ) -> HCLResult[HCLValue] {
+          ) -> @lexer.HCLResult[HCLValue] {
             match args {
               [Number(x_n, _), Number(y_n, _)] =>
                 match (x_n.as_int(), y_n.as_int()) {
                   (Some(x), Some(y)) =>
                     Ok(Number(Number::from_int(x * y), Decor::empty()))
-                  _ => Err(HCLError::type_error("expected int"))
+                  _ => Err(@lexer.HCLError::type_error("expected int"))
                 }
-              _ => Err(HCLError::type_error("multiply expects two integers"))
+              _ =>
+                Err(
+                  @lexer.HCLError::type_error("multiply expects two integers"),
+                )
             }
           }
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           functions["multiply"] = multiply_func
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
@@ -412,7 +450,10 @@ test "evaluate conditional with variable" {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
           variables["flag"] = Bool(true, Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) => assert_true(v == String("enabled", Decor::empty()))
@@ -440,7 +481,10 @@ test "evaluate nested property access" {
           config_map["db"] = Object(db_map, Decor::empty())
           let variables : Map[String, HCLValue] = Map::new()
           variables["config"] = Object(config_map, Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(v) => assert_true(v == String("localhost", Decor::empty()))

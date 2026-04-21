@@ -2,6 +2,7 @@
   "name": "lenitain/hcl",
   "version": "0.1.0",
   "deps": {
+    "lenitain/hcl/lexer": "0.1.0",
     "moonbitlang/x": "0.4.43"
   },
   "readme": "README.mbt.md",

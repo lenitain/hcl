@@ -31,7 +31,7 @@ test "parse error shows correct context for multiline input" {
 
 ///|
 test "parse error without context does not show extra lines" {
-  let err = HCLError::parse_error("something went wrong", 1, 5, 4)
+  let err = @lexer.HCLError::parse_error("something went wrong", 1, 5, 4)
   let msg = err.message()
   assert_eq(msg, "Parse error at line 1, column 5: something went wrong")
   assert_false(msg.contains("^"))
@@ -39,7 +39,7 @@ test "parse error without context does not show extra lines" {
 
 ///|
 test "parse error with context shows full message format" {
-  let err = HCLError::parse_error_with_context(
+  let err = @lexer.HCLError::parse_error_with_context(
     "Expected '=', got end of file", 1, 6, 5, "name =",
   )
   let msg = err.message()

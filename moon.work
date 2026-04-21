@@ -1,3 +1,5 @@
 members = [
+  "lexer",
+  "e2e",
   ".",
 ]

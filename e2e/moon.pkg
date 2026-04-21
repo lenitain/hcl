@@ -1,5 +1,5 @@
 import {
-  "lenitain/hcl/lexer",
+  "lenitain/hcl",
 }
 
 warnings = "-unused_package"

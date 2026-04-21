@@ -1,7 +1,7 @@
 ///|
 /// For Expression Tests
 test "tokenize for keyword" {
-  let lexer = Lexer::new("for")
+  let lexer = @lexer.Lexer::new("for")
   match lexer.next_token() {
     Ok((token, _)) => assert_true(token == For)
     Err(_) => panic()
@@ -11,7 +11,7 @@ test "tokenize for keyword" {
 ///|
 test "tokenize for expression" {
   let input = "[for x in numbers: x * 2]"
-  let lexer = Lexer::new(input)
+  let lexer = @lexer.Lexer::new(input)
   let tokens = lexer.tokenize()
   match tokens {
     Ok(token_list) => {
@@ -80,7 +80,10 @@ test "eval for expr simple" {
             ],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           match eval_expr(value, variables, functions) {
             Ok(Array(arr, _)) => {
               assert_eq(arr.length(), 3)
@@ -178,7 +181,10 @@ test "evaluate list comprehension" {
             ],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Array(arr, _)) => {
@@ -215,7 +221,10 @@ test "evaluate list comprehension with filter" {
             ],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Array(arr, _)) => {
@@ -246,7 +255,10 @@ test "evaluate object comprehension" {
           config["host"] = String("localhost", Decor::empty())
           config["port"] = Number(Number::from_int(8080), Decor::empty())
           variables["config"] = Object(config, Decor::empty())
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Object(obj, _)) => {
@@ -277,7 +289,10 @@ test "evaluate nested for expressions" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Array(arr, _)) => {
@@ -328,7 +343,10 @@ test "for expression with empty collection" {
         Attribute(attr) => {
           let value = attr.get_value()
           let variables : Map[String, HCLValue] = Map::new()
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Array(arr, _)) => assert_eq(arr.length(), 0)
@@ -355,7 +373,10 @@ test "for expression with string transformation" {
             [String("Alice", Decor::empty()), String("Bob", Decor::empty())],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Array(arr, _)) => assert_eq(arr.length(), 2)
@@ -388,7 +409,10 @@ test "for expression with conditional filter false" {
             ],
             Decor::empty(),
           )
-          let functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]] = Map::new()
+          let functions : Map[
+            String,
+            (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
+          ] = Map::new()
           let eval_result = eval_expr(value, variables, functions)
           match eval_result {
             Ok(Array(arr, _)) => assert_eq(arr.length(), 0)

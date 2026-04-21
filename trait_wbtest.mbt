@@ -59,7 +59,7 @@ test "to_hcl_str Array" {
 
 ///|
 test "from_hcl_str Array" {
-  let result : HCLResult[Map[String, Array[Int]]] = from_hcl_str(
+  let result : @lexer.HCLResult[Map[String, Array[Int]]] = from_hcl_str(
     "items = [1, 2, 3]",
   )
   assert_true(result is Ok(_))
@@ -82,7 +82,7 @@ test "to_hcl_str Map" {
 ///|
 test "from_hcl_str Map" {
   let input = "a = 1\nb = 2"
-  let result : HCLResult[Map[String, Int]] = from_hcl_str(input)
+  let result : @lexer.HCLResult[Map[String, Int]] = from_hcl_str(input)
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["a"], 1)
@@ -91,7 +91,7 @@ test "from_hcl_str Map" {
 
 ///|
 test "from_hcl_str Int via body" {
-  let result : HCLResult[Map[String, Int]] = from_hcl_str("val = 42")
+  let result : @lexer.HCLResult[Map[String, Int]] = from_hcl_str("val = 42")
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["val"], 42)
@@ -99,7 +99,9 @@ test "from_hcl_str Int via body" {
 
 ///|
 test "from_hcl_str String via body" {
-  let result : HCLResult[Map[String, String]] = from_hcl_str("val = \"hello\"")
+  let result : @lexer.HCLResult[Map[String, String]] = from_hcl_str(
+    "val = \"hello\"",
+  )
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["val"], "hello")
@@ -107,7 +109,7 @@ test "from_hcl_str String via body" {
 
 ///|
 test "from_hcl_str Bool via body" {
-  let result : HCLResult[Map[String, Bool]] = from_hcl_str("val = true")
+  let result : @lexer.HCLResult[Map[String, Bool]] = from_hcl_str("val = true")
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["val"], true)
@@ -117,7 +119,9 @@ test "from_hcl_str Bool via body" {
 test "roundtrip String via body" {
   let original = "hello world"
   let hcl = to_hcl_str(original)
-  let result : HCLResult[Map[String, String]] = from_hcl_str("val = " + hcl)
+  let result : @lexer.HCLResult[Map[String, String]] = from_hcl_str(
+    "val = " + hcl,
+  )
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["val"], original)
@@ -127,7 +131,9 @@ test "roundtrip String via body" {
 test "roundtrip Bool via body" {
   let original = true
   let hcl = to_hcl_str(original)
-  let result : HCLResult[Map[String, Bool]] = from_hcl_str("val = " + hcl)
+  let result : @lexer.HCLResult[Map[String, Bool]] = from_hcl_str(
+    "val = " + hcl,
+  )
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["val"], original)
@@ -137,7 +143,7 @@ test "roundtrip Bool via body" {
 test "roundtrip Int via body" {
   let original = 42
   let hcl = to_hcl_str(original)
-  let result : HCLResult[Map[String, Int]] = from_hcl_str("val = " + hcl)
+  let result : @lexer.HCLResult[Map[String, Int]] = from_hcl_str("val = " + hcl)
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_eq(m["val"], original)

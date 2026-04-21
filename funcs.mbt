@@ -6,7 +6,7 @@
 /// Get all built-in functions
 pub fn builtin_functions() -> Map[
   String,
-  (Array[HCLValue]) -> HCLResult[HCLValue],
+  (Array[HCLValue]) -> @lexer.HCLResult[HCLValue],
 ] {
   let funcs = {}
 
@@ -64,10 +64,10 @@ pub fn builtin_functions() -> Map[
 
 ///|
 /// Convert HCLValue to Double for numeric operations
-fn to_double(val : HCLValue) -> HCLResult[Double] {
+fn to_double(val : HCLValue) -> @lexer.HCLResult[Double] {
   match val {
     Number(n, _) => Ok(n.as_float())
-    _ => Err(HCLError::type_error("Expected number"))
+    _ => Err(@lexer.HCLError::type_error("Expected number"))
   }
 }
 
@@ -77,10 +77,10 @@ fn check_args(
   args : Array[HCLValue],
   expected : Int,
   name : String,
-) -> HCLResult[Unit] {
+) -> @lexer.HCLResult[Unit] {
   if args.length() != expected {
     Err(
-      HCLError::invalid_value(
+      @lexer.HCLError::invalid_value(
         name +
         "() expects " +
         expected.to_string() +
@@ -99,10 +99,10 @@ fn check_min_args(
   args : Array[HCLValue],
   min : Int,
   name : String,
-) -> HCLResult[Unit] {
+) -> @lexer.HCLResult[Unit] {
   if args.length() < min {
     Err(
-      HCLError::invalid_value(
+      @lexer.HCLError::invalid_value(
         name +
         "() expects at least " +
         min.to_string() +
@@ -123,7 +123,7 @@ fn char_at(s : String, idx : Int) -> String {
 
 ///|
 /// Parse integer from string with base (like parser.mbt)
-fn parse_int_with_base(s : String, base : Int) -> HCLResult[Int] {
+fn parse_int_with_base(s : String, base : Int) -> @lexer.HCLResult[Int] {
   let mut result = 0
   let mut negative = false
   let mut started = false
@@ -142,11 +142,11 @@ fn parse_int_with_base(s : String, base : Int) -> HCLResult[Int] {
       } else if c >= 'A' && c <= 'F' {
         c.to_int() - 'A'.to_int() + 10
       } else {
-        return Err(HCLError::invalid_value("Invalid digit"))
+        return Err(@lexer.HCLError::invalid_value("Invalid digit"))
       }
       if digit >= base || digit < 0 {
         return Err(
-          HCLError::invalid_value(
+          @lexer.HCLError::invalid_value(
             "Digit out of range for base " + base.to_string(),
           ),
         )
@@ -156,7 +156,7 @@ fn parse_int_with_base(s : String, base : Int) -> HCLResult[Int] {
   }
 
   if !started {
-    return Err(HCLError::invalid_value("Empty number string"))
+    return Err(@lexer.HCLError::invalid_value("Empty number string"))
   }
 
   if negative {
@@ -168,7 +168,7 @@ fn parse_int_with_base(s : String, base : Int) -> HCLResult[Int] {
 
 ///|
 /// Parse double from string
-fn parse_double(s : String) -> HCLResult[Double] {
+fn parse_double(s : String) -> @lexer.HCLResult[Double] {
   let mut result = 0.0
   let mut decimal_place = 1.0
   let mut in_decimal = false
@@ -193,12 +193,12 @@ fn parse_double(s : String) -> HCLResult[Double] {
         result = result * 10.0 + (c.to_int() - '0'.to_int()).to_double()
       }
     } else {
-      return Err(HCLError::invalid_value("Invalid character in number"))
+      return Err(@lexer.HCLError::invalid_value("Invalid character in number"))
     }
   }
 
   if !started {
-    return Err(HCLError::invalid_value("Empty number string"))
+    return Err(@lexer.HCLError::invalid_value("Empty number string"))
   }
 
   if negative {
@@ -215,20 +215,20 @@ fn parse_double(s : String) -> HCLResult[Double] {
 
 ///|
 /// abs(num) - Returns absolute value
-fn fn_abs(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_abs(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "abs") is Ok(_)
   match args[0] {
     Number(n, _) => {
       let f = n.as_float()
       Ok(Number(Number::from_finite_f64(f.abs()), Decor::empty()))
     }
-    _ => Err(HCLError::type_error("abs() requires a number"))
+    _ => Err(@lexer.HCLError::type_error("abs() requires a number"))
   }
 }
 
 ///|
 /// ceil(num) - Returns smallest integer >= num
-fn fn_ceil(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_ceil(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "ceil") is Ok(_)
   match to_double(args[0]) {
     Ok(f) => Ok(Number(Number::from_int(f.ceil().to_int()), Decor::empty()))
@@ -238,7 +238,7 @@ fn fn_ceil(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// floor(num) - Returns largest integer <= num
-fn fn_floor(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_floor(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "floor") is Ok(_)
   match to_double(args[0]) {
     Ok(f) => Ok(Number(Number::from_int(f.floor().to_int()), Decor::empty()))
@@ -248,14 +248,18 @@ fn fn_floor(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// log(num, base) - Returns log of num with given base
-fn fn_log(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_log(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "log") is Ok(_)
   match (to_double(args[0]), to_double(args[1])) {
     (Ok(num), Ok(base)) =>
       if base <= 0.0 || base == 1.0 {
-        Err(HCLError::invalid_value("log() base must be positive and not 1"))
+        Err(
+          @lexer.HCLError::invalid_value(
+            "log() base must be positive and not 1",
+          ),
+        )
       } else if num <= 0.0 {
-        Err(HCLError::invalid_value("log() number must be positive"))
+        Err(@lexer.HCLError::invalid_value("log() number must be positive"))
       } else {
         // log_base(num) = ln(num) / ln(base)
         let result = @math.ln(num) / @math.ln(base)
@@ -268,7 +272,7 @@ fn fn_log(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// max(num1, num2, ...) - Returns largest number
-fn fn_max(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_max(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_min_args(args, 1, "max") is Ok(_)
   let mut best = args[0]
   for i in 1..<args.length() {
@@ -283,7 +287,7 @@ fn fn_max(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// min(num1, num2, ...) - Returns smallest number
-fn fn_min(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_min(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_min_args(args, 1, "min") is Ok(_)
   let mut best = args[0]
   for i in 1..<args.length() {
@@ -298,7 +302,7 @@ fn fn_min(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// parseint(str, base) - Parses string as integer with given base
-fn fn_parseint(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_parseint(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "parseint") is Ok(_)
   match (args[0], args[1]) {
     (String(s, _), Number(n, _)) =>
@@ -308,15 +312,16 @@ fn fn_parseint(args : Array[HCLValue]) -> HCLResult[HCLValue] {
             Ok(i) => Ok(Number(Number::from_int(i), Decor::empty()))
             Err(e) => Err(e)
           }
-        None => Err(HCLError::type_error("parseint() base must be integer"))
+        None =>
+          Err(@lexer.HCLError::type_error("parseint() base must be integer"))
       }
-    _ => Err(HCLError::type_error("parseint() expects (string, number)"))
+    _ => Err(@lexer.HCLError::type_error("parseint() expects (string, number)"))
   }
 }
 
 ///|
 /// pow(num, power) - Returns num raised to power
-fn fn_pow(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_pow(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "pow") is Ok(_)
   match (to_double(args[0]), to_double(args[1])) {
     (Ok(base), Ok(exp)) =>
@@ -328,7 +333,7 @@ fn fn_pow(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// signum(num) - Returns -1, 0, or 1
-fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_signum(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "signum") is Ok(_)
   match args[0] {
     Number(n, _) => {
@@ -341,7 +346,7 @@ fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         Ok(Number(Number::from_int(0), Decor::empty()))
       }
     }
-    _ => Err(HCLError::type_error("signum() requires a number"))
+    _ => Err(@lexer.HCLError::type_error("signum() requires a number"))
   }
 }
 
@@ -352,19 +357,24 @@ fn fn_signum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// length(collection) - Returns length of list, map, or string
-fn fn_length(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_length(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "length") is Ok(_)
   match args[0] {
     Array(a, _) => Ok(Number(Number::from_int(a.length()), Decor::empty()))
     Object(o, _) => Ok(Number(Number::from_int(o.length()), Decor::empty()))
     String(s, _) => Ok(Number(Number::from_int(s.length()), Decor::empty()))
-    _ => Err(HCLError::type_error("length() requires array, object, or string"))
+    _ =>
+      Err(
+        @lexer.HCLError::type_error(
+          "length() requires array, object, or string",
+        ),
+      )
   }
 }
 
 ///|
 /// keys(map) - Returns list of keys from map
-fn fn_keys(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_keys(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "keys") is Ok(_)
   match args[0] {
     Object(o, _) => {
@@ -374,13 +384,13 @@ fn fn_keys(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("keys() requires an object"))
+    _ => Err(@lexer.HCLError::type_error("keys() requires an object"))
   }
 }
 
 ///|
 /// values(map) - Returns list of values from map
-fn fn_values(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_values(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "values") is Ok(_)
   match args[0] {
     Object(o, _) => {
@@ -390,13 +400,13 @@ fn fn_values(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("values() requires an object"))
+    _ => Err(@lexer.HCLError::type_error("values() requires an object"))
   }
 }
 
 ///|
 /// contains(list, element) - Returns true if list contains element
-fn fn_contains(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_contains(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "contains") is Ok(_)
   match args[0] {
     Array(arr, _) => {
@@ -407,13 +417,13 @@ fn fn_contains(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Bool(false, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("contains() requires an array"))
+    _ => Err(@lexer.HCLError::type_error("contains() requires an array"))
   }
 }
 
 ///|
 /// flatten(list) - Flattens nested list
-fn fn_flatten(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_flatten(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "flatten") is Ok(_)
   match args[0] {
     Array(arr, _) => {
@@ -421,7 +431,7 @@ fn fn_flatten(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       flatten_recursive(arr, result)
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("flatten() requires an array"))
+    _ => Err(@lexer.HCLError::type_error("flatten() requires an array"))
   }
 }
 
@@ -437,7 +447,7 @@ fn flatten_recursive(arr : Array[HCLValue], result : Array[HCLValue]) -> Unit {
 
 ///|
 /// merge(map1, map2, ...) - Merges multiple maps
-fn fn_merge(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_merge(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_min_args(args, 1, "merge") is Ok(_)
   let result = {}
   for arg in args {
@@ -446,7 +456,7 @@ fn fn_merge(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         for k, v in o {
           result[k] = v
         }
-      _ => return Err(HCLError::type_error("merge() requires objects"))
+      _ => return Err(@lexer.HCLError::type_error("merge() requires objects"))
     }
   }
   Ok(Object(result, Decor::empty()))
@@ -454,7 +464,7 @@ fn fn_merge(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// reverse(list) - Reverses a list
-fn fn_reverse(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_reverse(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "reverse") is Ok(_)
   match args[0] {
     Array(arr, _) => {
@@ -475,13 +485,14 @@ fn fn_reverse(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(String(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("reverse() requires an array or string"))
+    _ =>
+      Err(@lexer.HCLError::type_error("reverse() requires an array or string"))
   }
 }
 
 ///|
 /// distinct(list) - Returns list with duplicates removed
-fn fn_distinct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_distinct(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "distinct") is Ok(_)
   match args[0] {
     Array(arr, _) => {
@@ -496,13 +507,13 @@ fn fn_distinct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("distinct() requires an array"))
+    _ => Err(@lexer.HCLError::type_error("distinct() requires an array"))
   }
 }
 
 ///|
 /// sort(list) - Sorts a list
-fn fn_sort(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_sort(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "sort") is Ok(_)
   match args[0] {
     Array(arr, _) => {
@@ -516,20 +527,22 @@ fn fn_sort(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       })
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("sort() requires an array"))
+    _ => Err(@lexer.HCLError::type_error("sort() requires an array"))
   }
 }
 
 ///|
 /// slice(list, from, to) - Returns slice of list
-fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_slice(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 3, "slice") is Ok(_)
   match (args[0], args[1], args[2]) {
     (Array(arr, _), Number(from_n, _), Number(to_n, _)) =>
       match (from_n.as_int(), to_n.as_int()) {
         (Some(from), Some(to)) => {
           if from < 0 || to > arr.length() || from > to {
-            return Err(HCLError::invalid_value("slice() indices out of bounds"))
+            return Err(
+              @lexer.HCLError::invalid_value("slice() indices out of bounds"),
+            )
           }
           let result = []
           for i in from..<to {
@@ -537,15 +550,16 @@ fn fn_slice(args : Array[HCLValue]) -> HCLResult[HCLValue] {
           }
           Ok(Array(result, Decor::empty()))
         }
-        _ => Err(HCLError::type_error("slice() indices must be integers"))
+        _ =>
+          Err(@lexer.HCLError::type_error("slice() indices must be integers"))
       }
-    _ => Err(HCLError::type_error("slice() requires (array, int, int)"))
+    _ => Err(@lexer.HCLError::type_error("slice() requires (array, int, int)"))
   }
 }
 
 ///|
 /// element(list, index) - Returns element at index (wraps around)
-fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_element(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "element") is Ok(_)
   match (args[0], args[1]) {
     (Array(arr, _), Number(idx_n, _)) =>
@@ -553,15 +567,16 @@ fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         Some(idx) => {
           if arr.length() == 0 {
             return Err(
-              HCLError::invalid_value("element() called on empty list"),
+              @lexer.HCLError::invalid_value("element() called on empty list"),
             )
           }
           let wrapped = (idx % arr.length() + arr.length()) % arr.length()
           Ok(arr[wrapped])
         }
-        None => Err(HCLError::type_error("element() index must be integer"))
+        None =>
+          Err(@lexer.HCLError::type_error("element() index must be integer"))
       }
-    _ => Err(HCLError::type_error("element() requires (array, int)"))
+    _ => Err(@lexer.HCLError::type_error("element() requires (array, int)"))
   }
 }
 
@@ -572,7 +587,7 @@ fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// chomp(str) - Removes trailing newline
-fn fn_chomp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_chomp(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "chomp") is Ok(_)
   match args[0] {
     String(s, _) => {
@@ -590,13 +605,13 @@ fn fn_chomp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(String(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("chomp() requires a string"))
+    _ => Err(@lexer.HCLError::type_error("chomp() requires a string"))
   }
 }
 
 ///|
 /// indent(spaces, str) - Indents each line
-fn fn_indent(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_indent(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "indent") is Ok(_)
   match (args[0], args[1]) {
     (Number(spaces_n, _), String(s, _)) =>
@@ -610,15 +625,16 @@ fn fn_indent(args : Array[HCLValue]) -> HCLResult[HCLValue] {
           }
           Ok(String(result.join("\n"), Decor::empty()))
         }
-        None => Err(HCLError::type_error("indent() spaces must be integer"))
+        None =>
+          Err(@lexer.HCLError::type_error("indent() spaces must be integer"))
       }
-    _ => Err(HCLError::type_error("indent() requires (int, string)"))
+    _ => Err(@lexer.HCLError::type_error("indent() requires (int, string)"))
   }
 }
 
 ///|
 /// join(separator, list) - Joins list elements with separator
-fn fn_join(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_join(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "join") is Ok(_)
   match (args[0], args[1]) {
     (String(sep, _), Array(arr, _)) => {
@@ -627,50 +643,56 @@ fn fn_join(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         match item {
           String(s, _) => parts.push(s)
           _ =>
-            return Err(HCLError::type_error("join() requires string elements"))
+            return Err(
+              @lexer.HCLError::type_error("join() requires string elements"),
+            )
         }
       }
       Ok(String(parts.join(sep), Decor::empty()))
     }
-    _ => Err(HCLError::type_error("join() requires (string, array)"))
+    _ => Err(@lexer.HCLError::type_error("join() requires (string, array)"))
   }
 }
 
 ///|
 /// lower(str) - Converts to lowercase
-fn fn_lower(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_lower(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "lower") is Ok(_)
   match args[0] {
     String(s, _) => Ok(String(s.to_lower(), Decor::empty()))
-    _ => Err(HCLError::type_error("lower() requires a string"))
+    _ => Err(@lexer.HCLError::type_error("lower() requires a string"))
   }
 }
 
 ///|
 /// upper(str) - Converts to uppercase
-fn fn_upper(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_upper(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "upper") is Ok(_)
   match args[0] {
     String(s, _) => Ok(String(s.to_upper(), Decor::empty()))
-    _ => Err(HCLError::type_error("upper() requires a string"))
+    _ => Err(@lexer.HCLError::type_error("upper() requires a string"))
   }
 }
 
 ///|
 /// replace(str, pattern, replacement) - Replaces all occurrences
-fn fn_replace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_replace(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 3, "replace") is Ok(_)
   match (args[0], args[1], args[2]) {
     (String(s, _), String(pattern, _), String(replacement, _)) =>
       Ok(String(s.replace(old=pattern, new=replacement), Decor::empty()))
     _ =>
-      Err(HCLError::type_error("replace() requires (string, string, string)"))
+      Err(
+        @lexer.HCLError::type_error(
+          "replace() requires (string, string, string)",
+        ),
+      )
   }
 }
 
 ///|
 /// split(separator, str) - Splits string by separator
-fn fn_split(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_split(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "split") is Ok(_)
   match (args[0], args[1]) {
     (String(sep, _), String(s, _)) => {
@@ -681,13 +703,13 @@ fn fn_split(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("split() requires (string, string)"))
+    _ => Err(@lexer.HCLError::type_error("split() requires (string, string)"))
   }
 }
 
 ///|
 /// strrev(str) - Reverses a string
-fn fn_strrev(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_strrev(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "strrev") is Ok(_)
   match args[0] {
     String(s, _) => {
@@ -699,20 +721,22 @@ fn fn_strrev(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(String(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("strrev() requires a string"))
+    _ => Err(@lexer.HCLError::type_error("strrev() requires a string"))
   }
 }
 
 ///|
 /// substr(str, offset, length) - Returns substring
-fn fn_substr(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_substr(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 3, "substr") is Ok(_)
   match (args[0], args[1], args[2]) {
     (String(s, _), Number(offset_n, _), Number(length_n, _)) =>
       match (offset_n.as_int(), length_n.as_int()) {
         (Some(offset), Some(length)) => {
           if offset < 0 || offset > s.length() {
-            return Err(HCLError::invalid_value("substr() offset out of bounds"))
+            return Err(
+              @lexer.HCLError::invalid_value("substr() offset out of bounds"),
+            )
           }
           let end = if offset + length > s.length() {
             s.length()
@@ -721,15 +745,17 @@ fn fn_substr(args : Array[HCLValue]) -> HCLResult[HCLValue] {
           }
           Ok(String(substring(s, offset, end), Decor::empty()))
         }
-        _ => Err(HCLError::type_error("substr() indices must be integers"))
+        _ =>
+          Err(@lexer.HCLError::type_error("substr() indices must be integers"))
       }
-    _ => Err(HCLError::type_error("substr() requires (string, int, int)"))
+    _ =>
+      Err(@lexer.HCLError::type_error("substr() requires (string, int, int)"))
   }
 }
 
 ///|
 /// trim(str, cutset) - Trims characters from both ends
-fn fn_trim(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_trim(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "trim") is Ok(_)
   match (args[0], args[1]) {
     (String(s, _), String(cutset, _)) => {
@@ -743,13 +769,13 @@ fn fn_trim(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(String(substring(s, start, end), Decor::empty()))
     }
-    _ => Err(HCLError::type_error("trim() requires (string, string)"))
+    _ => Err(@lexer.HCLError::type_error("trim() requires (string, string)"))
   }
 }
 
 ///|
 /// trimprefix(str, prefix) - Trims prefix
-fn fn_trimprefix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_trimprefix(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "trimprefix") is Ok(_)
   match (args[0], args[1]) {
     (String(s, _), String(prefix, _)) =>
@@ -758,13 +784,14 @@ fn fn_trimprefix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else {
         Ok(String(s, Decor::empty()))
       }
-    _ => Err(HCLError::type_error("trimprefix() requires (string, string)"))
+    _ =>
+      Err(@lexer.HCLError::type_error("trimprefix() requires (string, string)"))
   }
 }
 
 ///|
 /// trimsuffix(str, suffix) - Trims suffix
-fn fn_trimsuffix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_trimsuffix(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "trimsuffix") is Ok(_)
   match (args[0], args[1]) {
     (String(s, _), String(suffix, _)) =>
@@ -775,23 +802,24 @@ fn fn_trimsuffix(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else {
         Ok(String(s, Decor::empty()))
       }
-    _ => Err(HCLError::type_error("trimsuffix() requires (string, string)"))
+    _ =>
+      Err(@lexer.HCLError::type_error("trimsuffix() requires (string, string)"))
   }
 }
 
 ///|
 /// trimspace(str) - Trims whitespace
-fn fn_trimspace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_trimspace(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "trimspace") is Ok(_)
   match args[0] {
     String(s, _) => Ok(String(s.trim().to_string(), Decor::empty()))
-    _ => Err(HCLError::type_error("trimspace() requires a string"))
+    _ => Err(@lexer.HCLError::type_error("trimspace() requires a string"))
   }
 }
 
 ///|
 /// format(pattern, args...) - Formats string with arguments
-fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_format(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_min_args(args, 1, "format") is Ok(_)
   match args[0] {
     String(pattern, _) => {
@@ -808,7 +836,7 @@ fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
           } else if next == "s" || next == "d" || next == "f" || next == "v" {
             if arg_idx >= args.length() {
               return Err(
-                HCLError::invalid_value("format() not enough arguments"),
+                @lexer.HCLError::invalid_value("format() not enough arguments"),
               )
             }
             let formatted = match args[arg_idx] {
@@ -832,13 +860,14 @@ fn fn_format(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(String(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("format() first argument must be string"))
+    _ =>
+      Err(@lexer.HCLError::type_error("format() first argument must be string"))
   }
 }
 
 ///|
 /// formatlist(pattern, list) - Formats each element of list
-fn fn_formatlist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_formatlist(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 2, "formatlist") is Ok(_)
   match (args[0], args[1]) {
     (String(pattern, _), Array(arr, _)) => {
@@ -852,7 +881,8 @@ fn fn_formatlist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Array(result, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("formatlist() requires (string, array)"))
+    _ =>
+      Err(@lexer.HCLError::type_error("formatlist() requires (string, array)"))
   }
 }
 
@@ -863,7 +893,7 @@ fn fn_formatlist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// tobool(val) - Converts to boolean
-fn fn_tobool(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_tobool(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "tobool") is Ok(_)
   match args[0] {
     Bool(b, _) => Ok(Bool(b, Decor::empty()))
@@ -874,20 +904,22 @@ fn fn_tobool(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       } else if lower == "false" {
         Ok(Bool(false, Decor::empty()))
       } else {
-        Err(HCLError::invalid_value("Cannot convert '" + s + "' to bool"))
+        Err(
+          @lexer.HCLError::invalid_value("Cannot convert '" + s + "' to bool"),
+        )
       }
     }
     Number(n, _) => {
       let f = n.as_float()
       Ok(Bool(f != 0.0, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("tobool() cannot convert this type"))
+    _ => Err(@lexer.HCLError::type_error("tobool() cannot convert this type"))
   }
 }
 
 ///|
 /// tonumber(val) - Converts to number
-fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_tonumber(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "tonumber") is Ok(_)
   match args[0] {
     Number(_, _) => Ok(args[0])
@@ -914,13 +946,13 @@ fn fn_tonumber(args : Array[HCLValue]) -> HCLResult[HCLValue] {
     }
     Bool(b, _) =>
       Ok(Number(Number::from_int(if b { 1 } else { 0 }), Decor::empty()))
-    _ => Err(HCLError::type_error("tonumber() cannot convert this type"))
+    _ => Err(@lexer.HCLError::type_error("tonumber() cannot convert this type"))
   }
 }
 
 ///|
 /// tolist(val) - Converts to list
-fn fn_tolist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_tolist(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "tolist") is Ok(_)
   match args[0] {
     Array(a, _) => Ok(Array(a, Decor::empty()))
@@ -930,17 +962,17 @@ fn fn_tolist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// tomap(val) - Converts to map
-fn fn_tomap(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_tomap(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "tomap") is Ok(_)
   match args[0] {
     Object(o, _) => Ok(Object(o, Decor::empty()))
-    _ => Err(HCLError::type_error("tomap() requires an object"))
+    _ => Err(@lexer.HCLError::type_error("tomap() requires an object"))
   }
 }
 
 ///|
 /// toset(val) - Converts to set (as distinct list)
-fn fn_toset(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_toset(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "toset") is Ok(_)
   match args[0] {
     Array(_, _) => fn_distinct(args)
@@ -950,7 +982,7 @@ fn fn_toset(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// tostring(val) - Converts to string
-fn fn_tostring(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_tostring(args : Array[HCLValue]) -> @lexer.HCLResult[HCLValue] {
   guard check_args(args, 1, "tostring") is Ok(_)
   match args[0] {
     String(s, _) => Ok(String(s, Decor::empty()))
