@@ -3,7 +3,7 @@
 
 ///|
 /// Convert HCL string to JSON string
-pub fn hcl_to_json(input : String) -> @lexer.HCLResult[String] {
+pub fn hcl_to_json(input : String) -> HCLResult[String] {
   match parse(input) {
     Ok(body) => Ok(body_to_json(body))
     Err(e) => Err(e)
@@ -12,7 +12,7 @@ pub fn hcl_to_json(input : String) -> @lexer.HCLResult[String] {
 
 ///|
 /// Convert HCL string to JSON string with pretty printing
-pub fn hcl_to_json_pretty(input : String) -> @lexer.HCLResult[String] {
+pub fn hcl_to_json_pretty(input : String) -> HCLResult[String] {
   match parse(input) {
     Ok(body) => Ok(body_to_json_pretty(body))
     Err(e) => Err(e)

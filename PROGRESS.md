@@ -1,19 +1,51 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：阶段7进行中（根目录清理遇到挑战）
+## 当前状态：阶段7进行中 - 改为 flat package 风格
 
-**挑战**: MoonBit的`pub(all)`仅在同包内可见。移动文件到`internal/`后，根包无法访问`pub(all)`类型（如`HCLValue`、`Body`、`Number`等）。
+**变更**: 用户要求保持 flat package 风格（所有模块共享命名空间），已执行以下操作：
 
-**解决方案**: 需要将`pub(all)`改为`pub`，并使用`@internal/value.*`前缀访问类型。这需要大量代码修改。
+1. 将 lexer/ 目录的文件移到根目录（lexer.mbt, token.mbt, error.mbt）
+2. 删除 lexer/ 目录
+3. 更新 moon.work 移除 lexer 成员
+4. 更新 moon.pkg 移除 import
+5. 更新 moon.mod.json 移除 lexer 依赖
+6. 移除所有代码中的 @lexer. 前缀引用
+7. 为 cmd/main 添加 moon.mod.json
 
-**当前尝试**:
-1. 尝试使用`using @package {type X}`语法（moon.pkg不支持）
-2. 尝试直接使用`@internal/value.*`前缀（需要修改50+文件的函数调用）
+**结果**: 编译通过，测试全部通过 (566/566)
 
-**备选方案**: 保持当前结构，在根目录按逻辑分组组织文件（通过注释和目录结构），而不是真正移动到子包。
+## 文件结构（当前 - flat package 风格）
 
-## 文件结构（当前 - 阶段7进行中）
-
+```
+hcl/
+├── moon.work              # workspace 定义 (e2e, cmd/main, .)
+├── e2e/                   # 端到端测试
+│   ├── moon.mod.json
+│   ├── moon.pkg
+│   └── e2e_test.mbt
+├── cmd/main/              # CLI 入口
+│   ├── moon.mod.json
+│   ├── moon.pkg
+│   └── main.mbt
+├── moon.mod.json          # 根包配置
+├── moon.pkg               # 空（flat package）
+├── lexer.mbt              # Lexer 结构 (从 lexer/ 移回根目录)
+├── token.mbt              # Token 类型 (从 lexer/ 移回根目录)
+├── error.mbt              # HCLError, HCLResult (从 lexer/ 移回根目录)
+├── body.mbt               # Body/Block/Attr 结构
+├── de.mbt                 # 反序列化
+├── eval.mbt               # 表达式求值
+├── funcs.mbt              # 内置函数
+├── hcl.mbt                # 主入口
+├── json.mbt               # JSON 转换
+├── parser.mbt             # 解析器
+├── schema.mbt             # Schema 验证
+├── ser.mbt                # 序列化
+├── template.mbt           # 模板系统
+├── value.mbt              # HCLValue 类型
+├── trait.mbt              # ToHCL/FromHCL trait
+├── builder.mbt            # Builder 模式
+└── *_test.mbt             # 测试文件
 ```
 hcl/
 ├── moon.work              # workspace 定义 (lexer, e2e, .)

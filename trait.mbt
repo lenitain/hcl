@@ -7,7 +7,7 @@ pub trait ToHCL {
 ///|
 /// Trait for converting HCLValue to MoonBit types
 pub trait FromHCL {
-  from_hcl(HCLValue) -> @lexer.HCLResult[Self]
+  from_hcl(HCLValue) -> HCLResult[Self]
 }
 
 ///|
@@ -31,7 +31,7 @@ pub fn[T : ToHCL] to_hcl_str(value : T) -> String {
 
 ///|
 /// Parse HCL string to any FromHCL type
-pub fn[T : FromHCL] from_hcl_str(input : String) -> @lexer.HCLResult[T] {
+pub fn[T : FromHCL] from_hcl_str(input : String) -> HCLResult[T] {
   match parse(input) {
     Ok(body) => T::from_hcl(body_to_value(body))
     Err(e) => Err(e)
@@ -63,9 +63,9 @@ impl FromHCL for Int with from_hcl(value) {
     Number(n, _) =>
       match n.as_int() {
         Some(i) => Ok(i)
-        None => Err(@lexer.HCLError::type_mismatch("Int", type_name_of(value)))
+        None => Err(HCLError::type_mismatch("Int", type_name_of(value)))
       }
-    _ => Err(@lexer.HCLError::type_mismatch("Int", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("Int", type_name_of(value)))
   }
 }
 
@@ -82,10 +82,9 @@ impl FromHCL for Int64 with from_hcl(value) {
     Number(n, _) =>
       match n.as_int64() {
         Some(i) => Ok(i)
-        None =>
-          Err(@lexer.HCLError::type_mismatch("Int64", type_name_of(value)))
+        None => Err(HCLError::type_mismatch("Int64", type_name_of(value)))
       }
-    _ => Err(@lexer.HCLError::type_mismatch("Int64", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("Int64", type_name_of(value)))
   }
 }
 
@@ -100,7 +99,7 @@ impl ToHCL for Double with to_hcl(self) {
 impl FromHCL for Double with from_hcl(value) {
   match value {
     Number(n, _) => Ok(n.as_float())
-    _ => Err(@lexer.HCLError::type_mismatch("Double", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("Double", type_name_of(value)))
   }
 }
 
@@ -115,7 +114,7 @@ impl ToHCL for Bool with to_hcl(self) {
 impl FromHCL for Bool with from_hcl(value) {
   match value {
     Bool(b, _) => Ok(b)
-    _ => Err(@lexer.HCLError::type_mismatch("Bool", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("Bool", type_name_of(value)))
   }
 }
 
@@ -130,7 +129,7 @@ impl ToHCL for String with to_hcl(self) {
 impl FromHCL for String with from_hcl(value) {
   match value {
     String(s, _) => Ok(s)
-    _ => Err(@lexer.HCLError::type_mismatch("String", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("String", type_name_of(value)))
   }
 }
 
@@ -177,7 +176,7 @@ impl[T : FromHCL] FromHCL for Array[T] with from_hcl(value) {
       }
       Ok(result)
     }
-    _ => Err(@lexer.HCLError::type_mismatch("Array", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("Array", type_name_of(value)))
   }
 }
 
@@ -205,6 +204,6 @@ impl[T : FromHCL] FromHCL for Map[String, T] with from_hcl(value) {
       }
       Ok(result)
     }
-    _ => Err(@lexer.HCLError::type_mismatch("Object", type_name_of(value)))
+    _ => Err(HCLError::type_mismatch("Object", type_name_of(value)))
   }
 }

@@ -26,9 +26,9 @@ pub fn Ident::new(s : String) -> Ident {
 
 ///|
 /// Create a new Ident after validating, returning error on failure.
-pub fn Ident::try_new(s : String) -> @lexer.HCLResult[Ident] {
+pub fn Ident::try_new(s : String) -> HCLResult[Ident] {
   if !is_ident(s) {
-    Err(@lexer.HCLError::invalid_value("invalid identifier: " + s))
+    Err(HCLError::invalid_value("invalid identifier: " + s))
   } else {
     Ok({ inner: s })
   }

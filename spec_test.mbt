@@ -42,7 +42,7 @@ fn body_to_value(body : Body) -> HCLValue {
 
 ///|
 /// Parse HCL, convert body to value, and evaluate expressions
-fn eval_body(input : String) -> @lexer.HCLResult[HCLValue] {
+fn eval_body(input : String) -> HCLResult[HCLValue] {
   match parse(input) {
     Ok(body) => {
       let value = body_to_value(body)

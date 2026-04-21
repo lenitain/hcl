@@ -1,6 +1,5 @@
 import {
   "lenitain/hcl" @hcl,
-  "lenitain/hcl/lexer" @lexer,
   "moonbitlang/x/sys" @sys,
   "moonbitlang/x/fs" @fs,
 }

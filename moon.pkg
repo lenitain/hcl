@@ -1,5 +1,1 @@
-import {
-  "lenitain/hcl/lexer",
-}
-
 warnings = "-unused_package"

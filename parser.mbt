@@ -1,16 +1,16 @@
 ///|
 /// HCL Parser - parses HCL input into structured data
 pub struct Parser {
-  lexer : @lexer.Lexer
-  current : @lexer.Token
-  peek : @lexer.Token
+  lexer : Lexer
+  current : Token
+  peek : Token
   next_prefix : String?
 }
 
 ///|
 /// Create a new parser from string input
-pub fn Parser::new(input : String) -> @lexer.HCLResult[Parser] {
-  let lexer = @lexer.Lexer::new(input)
+pub fn Parser::new(input : String) -> HCLResult[Parser] {
+  let lexer = Lexer::new(input)
   match lexer.next_token_with_trivia() {
     Ok((current, lexer, prefix1)) =>
       match lexer.next_token_with_trivia() {
@@ -24,7 +24,7 @@ pub fn Parser::new(input : String) -> @lexer.HCLResult[Parser] {
 
 ///|
 /// Create a new parser from lexer
-pub fn Parser::from_lexer(lexer : @lexer.Lexer) -> @lexer.HCLResult[Parser] {
+pub fn Parser::from_lexer(lexer : Lexer) -> HCLResult[Parser] {
   match lexer.next_token_with_trivia() {
     Ok((current, lexer, prefix1)) =>
       match lexer.next_token_with_trivia() {
@@ -38,7 +38,7 @@ pub fn Parser::from_lexer(lexer : @lexer.Lexer) -> @lexer.HCLResult[Parser] {
 
 ///|
 /// Advance to next token, using peek's prefix for new current
-fn Parser::advance(self : Parser) -> @lexer.HCLResult[Parser] {
+fn Parser::advance(self : Parser) -> HCLResult[Parser] {
   match self.lexer.next_token_with_trivia() {
     Ok((new_peek, new_lexer, peek_prefix)) =>
       Ok({
@@ -53,22 +53,19 @@ fn Parser::advance(self : Parser) -> @lexer.HCLResult[Parser] {
 
 ///|
 /// Check if current token matches expected
-fn Parser::check(self : Parser, expected : @lexer.Token) -> Bool {
+fn Parser::check(self : Parser, expected : Token) -> Bool {
   self.current == expected
 }
 
 ///|
 /// Consume token if it matches expected
-fn Parser::expect(
-  self : Parser,
-  expected : @lexer.Token,
-) -> @lexer.HCLResult[Parser] {
+fn Parser::expect(self : Parser, expected : Token) -> HCLResult[Parser] {
   if self.check(expected) {
     self.advance()
   } else {
     let (line, col, offset) = self.lexer.location()
     Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Expected " +
         token_to_string(expected) +
         ", got " +
@@ -84,7 +81,7 @@ fn Parser::expect(
 
 ///|
 /// Skip newlines
-fn Parser::skip_newlines(self : Parser) -> @lexer.HCLResult[Parser] {
+fn Parser::skip_newlines(self : Parser) -> HCLResult[Parser] {
   let mut parser = self
   while parser.check(Newline) {
     match parser.advance() {
@@ -97,7 +94,7 @@ fn Parser::skip_newlines(self : Parser) -> @lexer.HCLResult[Parser] {
 
 ///|
 /// Parse HCL input into a Body
-pub fn Parser::parse_body(self : Parser) -> @lexer.HCLResult[Body] {
+pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
   match self.skip_newlines() {
     Ok(start_parser) => {
       let items = []
@@ -134,7 +131,7 @@ pub fn Parser::parse_body(self : Parser) -> @lexer.HCLResult[Body] {
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              @lexer.HCLError::parse_error_with_context(
+              HCLError::parse_error_with_context(
                 "Unexpected token: " + token_to_string(parser.current),
                 line,
                 col,
@@ -170,7 +167,7 @@ fn Parser::collect_prefix(self : Parser) -> (Parser, Decor) {
 
 ///|
 /// Parse an attribute with decor collection
-fn Parser::parse_attr(self : Parser) -> @lexer.HCLResult[(Attr, Parser)] {
+fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
   // Collect prefix decor
   let (parser, prefix_decor) = self.collect_prefix()
 
@@ -180,7 +177,7 @@ fn Parser::parse_attr(self : Parser) -> @lexer.HCLResult[(Attr, Parser)] {
     _ => {
       let (line, col, offset) = parser.lexer.location()
       return Err(
-        @lexer.HCLError::parse_error_with_context(
+        HCLError::parse_error_with_context(
           "Expected identifier",
           line,
           col,
@@ -213,7 +210,7 @@ fn Parser::parse_attr(self : Parser) -> @lexer.HCLResult[(Attr, Parser)] {
 
 ///|
 /// Parse a block with decor collection
-fn Parser::parse_block(self : Parser) -> @lexer.HCLResult[(Block, Parser)] {
+fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
   // Collect prefix decor
   let (parser, prefix_decor) = self.collect_prefix()
 
@@ -222,7 +219,7 @@ fn Parser::parse_block(self : Parser) -> @lexer.HCLResult[(Block, Parser)] {
     _ => {
       let (line, col, offset) = parser.lexer.location()
       return Err(
-        @lexer.HCLError::parse_error_with_context(
+        HCLError::parse_error_with_context(
           "Expected block type name",
           line,
           col,
@@ -259,7 +256,7 @@ fn Parser::parse_block(self : Parser) -> @lexer.HCLResult[(Block, Parser)] {
       _ => {
         let (line, col, offset) = result.lexer.location()
         return Err(
-          @lexer.HCLError::parse_error_with_context(
+          HCLError::parse_error_with_context(
             "Expected block label or '{'",
             line,
             col,
@@ -311,7 +308,7 @@ fn Parser::parse_block(self : Parser) -> @lexer.HCLResult[(Block, Parser)] {
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              @lexer.HCLError::parse_error_with_context(
+              HCLError::parse_error_with_context(
                 "Unexpected token: " + token_to_string(parser.current),
                 line,
                 col,
@@ -349,7 +346,7 @@ fn Parser::parse_block(self : Parser) -> @lexer.HCLResult[(Block, Parser)] {
 
 ///|
 /// Parse a value (including expressions with binary operators)
-fn Parser::parse_value(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.parse_primary() {
     Ok((expr, parser)) => parser.parse_binary_expr(expr, 0)
     Err(e) => Err(e)
@@ -362,7 +359,7 @@ fn Parser::parse_binary_expr(
   self : Parser,
   left : HCLValue,
   min_prec : Int,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(HCLValue, Parser)] {
   let mut result = left
   let mut parser = match self.skip_newlines() {
     Ok(p) => p
@@ -451,7 +448,7 @@ fn Parser::parse_binary_expr(
 fn Parser::parse_conditional_expr(
   self : Parser,
   condition : HCLValue,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(HCLValue, Parser)] {
   let parser = match self.skip_newlines() {
     Ok(p) => p
     Err(e) => return Err(e)
@@ -492,7 +489,7 @@ fn Parser::parse_conditional_expr(
 
 ///|
 /// Parse primary value
-fn Parser::parse_primary(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.current {
     StringLit(s) =>
       match self.advance() {
@@ -663,7 +660,7 @@ fn Parser::parse_primary(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] 
     _ => {
       let (line, col, offset) = self.lexer.location()
       Err(
-        @lexer.HCLError::parse_error_with_context(
+        HCLError::parse_error_with_context(
           "Unexpected token: " + token_to_string(self.current),
           line,
           col,
@@ -680,7 +677,7 @@ fn Parser::parse_primary(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] 
 fn Parser::parse_ident_expr(
   self : Parser,
   name : String,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(HCLValue, Parser)] {
   match self.advance() {
     Ok(parser) =>
       // Check for function call
@@ -704,7 +701,7 @@ fn Parser::parse_ident_expr(
 fn Parser::parse_function_call(
   self : Parser,
   name : String,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LParen) {
     Ok(parser) => {
       let args = []
@@ -745,7 +742,7 @@ fn Parser::parse_function_call(
         } else if !p.check(RParen) {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected ',' or ')'",
               line,
               col,
@@ -779,7 +776,7 @@ fn Parser::parse_function_call(
 fn Parser::parse_property_access(
   self : Parser,
   obj : HCLValue,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(HCLValue, Parser)] {
   if self.check(Dot) {
     // Property access with dot notation
     match self.advance() {
@@ -789,7 +786,7 @@ fn Parser::parse_property_access(
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              @lexer.HCLError::parse_error_with_context(
+              HCLError::parse_error_with_context(
                 "Expected property name",
                 line,
                 col,
@@ -844,7 +841,7 @@ fn Parser::parse_property_access(
 
 ///|
 /// Parse an array or for expression
-fn Parser::parse_array(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LBracket) {
     Ok(start_parser) => {
       let mut parser = start_parser
@@ -887,7 +884,7 @@ fn Parser::parse_array(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
         } else if !parser.check(RBracket) {
           let (line, col, offset) = parser.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected ',' or ']'",
               line,
               col,
@@ -909,9 +906,7 @@ fn Parser::parse_array(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
 
 ///|
 /// Parse for expression [for x in list: expr] or {for k, v in obj: k => v}
-fn Parser::parse_for_expr(
-  self : Parser,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(For) {
     Ok(parser) => {
       // Parse loop variable(s)
@@ -930,7 +925,7 @@ fn Parser::parse_for_expr(
         _ => {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected identifier after 'for'",
               line,
               col,
@@ -958,7 +953,7 @@ fn Parser::parse_for_expr(
           _ => {
             let (line, col, offset) = p.lexer.location()
             return Err(
-              @lexer.HCLError::parse_error_with_context(
+              HCLError::parse_error_with_context(
                 "Expected identifier after ','",
                 line,
                 col,
@@ -1099,7 +1094,7 @@ fn Parser::parse_for_expr(
 /// Parse for expression for object comprehension {for k, v in obj: k => v}
 fn Parser::parse_for_expr_for_object(
   self : Parser,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(For) {
     Ok(parser) => {
       // Parse loop variables (key, value)
@@ -1118,7 +1113,7 @@ fn Parser::parse_for_expr_for_object(
         _ => {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected identifier after 'for'",
               line,
               col,
@@ -1147,7 +1142,7 @@ fn Parser::parse_for_expr_for_object(
         _ => {
           let (line, col, offset) = p.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected identifier after ','",
               line,
               col,
@@ -1245,7 +1240,7 @@ fn Parser::parse_for_expr_for_object(
 
 ///|
 /// Parse an object or object for expression
-fn Parser::parse_object(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LBrace) {
     Ok(start_parser) => {
       let mut parser = start_parser
@@ -1276,7 +1271,7 @@ fn Parser::parse_object(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
           _ => {
             let (line, col, offset) = parser.lexer.location()
             return Err(
-              @lexer.HCLError::parse_error_with_context(
+              HCLError::parse_error_with_context(
                 "Expected object key",
                 line,
                 col,
@@ -1306,7 +1301,7 @@ fn Parser::parse_object(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
         } else {
           let (line, col, offset) = parser.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected '=' or ':'",
               line,
               col,
@@ -1342,7 +1337,7 @@ fn Parser::parse_object(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
         } else if !parser.check(RBrace) {
           let (line, col, offset) = parser.lexer.location()
           return Err(
-            @lexer.HCLError::parse_error_with_context(
+            HCLError::parse_error_with_context(
               "Expected ',' or '}'",
               line,
               col,
@@ -1364,9 +1359,7 @@ fn Parser::parse_object(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
 
 ///|
 /// Parse parenthesized expression
-fn Parser::parse_paren_expr(
-  self : Parser,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_paren_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(LParen) {
     Ok(parser) =>
       match parser.parse_value() {
@@ -1383,9 +1376,7 @@ fn Parser::parse_paren_expr(
 
 ///|
 /// Parse negative number
-fn Parser::parse_negative(
-  self : Parser,
-) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(Minus) {
     Ok(parser) =>
       match parser.parse_value() {
@@ -1395,7 +1386,7 @@ fn Parser::parse_negative(
             _ => {
               let (line, col, offset) = parser.lexer.location()
               Err(
-                @lexer.HCLError::parse_error_with_context(
+                HCLError::parse_error_with_context(
                   "Expected number after '-'",
                   line,
                   col,
@@ -1413,7 +1404,7 @@ fn Parser::parse_negative(
 
 ///|
 /// Parse logical not
-fn Parser::parse_not(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_not(self : Parser) -> HCLResult[(HCLValue, Parser)] {
   match self.expect(Bang) {
     Ok(parser) =>
       match parser.parse_value() {
@@ -1433,7 +1424,7 @@ fn Parser::parse_not(self : Parser) -> @lexer.HCLResult[(HCLValue, Parser)] {
 
 ///|
 /// Parse HCL string into Body
-pub fn parse(input : String) -> @lexer.HCLResult[Body] {
+pub fn parse(input : String) -> HCLResult[Body] {
   match Parser::new(input) {
     Ok(parser) => parser.parse_body()
     Err(e) => Err(e)
@@ -1442,7 +1433,7 @@ pub fn parse(input : String) -> @lexer.HCLResult[Body] {
 
 ///|
 /// Convert token to string for error messages
-fn token_to_string(token : @lexer.Token) -> String {
+fn token_to_string(token : Token) -> String {
   match token {
     Ident(s) => s
     StringLit(s) => "\"" + s + "\""

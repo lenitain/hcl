@@ -45,7 +45,7 @@ pub fn substring(s : String, start : Int, end : Int) -> String {
 
 ///|
 /// Parse string with template expressions
-pub fn Template::from_string(input : String) -> @lexer.HCLResult[Template] {
+pub fn Template::from_string(input : String) -> HCLResult[Template] {
   let template = Template::new()
   let mut i = 0
   let len = input.length()
@@ -109,7 +109,7 @@ pub fn Template::from_string(input : String) -> @lexer.HCLResult[Template] {
 fn parse_interpolation(
   input : String,
   start : Int,
-) -> @lexer.HCLResult[(HCLValue, Int)] {
+) -> HCLResult[(HCLValue, Int)] {
   let mut i = start
   let len = input.length()
   let mut depth = 1
@@ -137,13 +137,13 @@ fn parse_interpolation(
 
   if depth > 0 {
     Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Unclosed interpolation ${", 0, 0, start, "",
       ),
     )
   } else {
     Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Unexpected end of interpolation", 0, 0, i, "",
       ),
     )
@@ -155,7 +155,7 @@ fn parse_interpolation(
 fn parse_directive(
   input : String,
   start : Int,
-) -> @lexer.HCLResult[(TemplatePart, Int)] {
+) -> HCLResult[(TemplatePart, Int)] {
   let mut i = start
   let len = input.length()
   let mut depth = 1
@@ -183,13 +183,13 @@ fn parse_directive(
 
   if depth > 0 {
     Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Unclosed directive %{", 0, 0, start, "",
       ),
     )
   } else {
     Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Unexpected end of directive", 0, 0, i, "",
       ),
     )
@@ -198,7 +198,7 @@ fn parse_directive(
 
 ///|
 /// Parse directive content
-fn parse_directive_content(content : String) -> @lexer.HCLResult[TemplatePart] {
+fn parse_directive_content(content : String) -> HCLResult[TemplatePart] {
   let trimmed = content.trim().to_string()
 
   if has_prefix(trimmed, "if ") {
@@ -222,7 +222,7 @@ fn parse_directive_content(content : String) -> @lexer.HCLResult[TemplatePart] {
     Ok(ForEnd)
   } else {
     Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Unknown directive: " + trimmed,
         0,
         0,
@@ -235,9 +235,7 @@ fn parse_directive_content(content : String) -> @lexer.HCLResult[TemplatePart] {
 
 ///|
 /// Parse for directive %{for var in collection}
-fn parse_for_directive(
-  content : String,
-) -> @lexer.HCLResult[(String, HCLValue)] {
+fn parse_for_directive(content : String) -> HCLResult[(String, HCLValue)] {
   // Expected format: "for var_name in collection_expr"
   let parts = []
   let mut current = ""
@@ -257,7 +255,7 @@ fn parse_for_directive(
 
   if parts.length() < 4 || parts[0] != "for" || parts[2] != "in" {
     return Err(
-      @lexer.HCLError::parse_error_with_context(
+      HCLError::parse_error_with_context(
         "Invalid for directive format", 0, 0, 0, "",
       ),
     )
@@ -307,7 +305,7 @@ fn has_suffix(s : String, suffix : String) -> Bool {
 
 ///|
 /// Parse simple template expression (variable or literal)
-fn parse_template_expression(expr_str : String) -> @lexer.HCLResult[HCLValue] {
+fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
   let trimmed = expr_str.trim().to_string()
 
   // Check for string literal
@@ -385,8 +383,8 @@ fn parse_template_expression(expr_str : String) -> @lexer.HCLResult[HCLValue] {
 pub fn Template::evaluate(
   self : Template,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> @lexer.HCLResult[HCLValue]],
-) -> @lexer.HCLResult[String] {
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[String] {
   let mut result = ""
   let mut i = 0
   let parts = self.parts
@@ -433,10 +431,7 @@ pub fn Template::evaluate(
                     Err(e) => return Err(e)
                   }
                 }
-              _ =>
-                return Err(
-                  @lexer.HCLError::type_error("Condition must be boolean"),
-                )
+              _ => return Err(HCLError::type_error("Condition must be boolean"))
             }
           Err(e) => return Err(e)
         }
@@ -462,9 +457,7 @@ pub fn Template::evaluate(
                   Err(e) => return Err(e)
                 }
               _ =>
-                return Err(
-                  @lexer.HCLError::type_error("For collection must be array"),
-                )
+                return Err(HCLError::type_error("For collection must be array"))
             }
           Err(e) => return Err(e)
         }
@@ -483,8 +476,8 @@ fn evaluate_conditional_body(
   parts : Array[TemplatePart],
   start : Int,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> @lexer.HCLResult[HCLValue]],
-) -> @lexer.HCLResult[(String, Int)] {
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[(String, Int)] {
   let mut result = ""
   let mut i = start
   let mut depth = 0
@@ -518,9 +511,7 @@ fn evaluate_conditional_body(
   }
 
   Err(
-    @lexer.HCLError::parse_error_with_context(
-      "Unclosed conditional", 0, 0, start, "",
-    ),
+    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
   )
 }
 
@@ -529,7 +520,7 @@ fn evaluate_conditional_body(
 fn skip_conditional_body(
   parts : Array[TemplatePart],
   start : Int,
-) -> @lexer.HCLResult[Int] {
+) -> HCLResult[Int] {
   let mut i = start
   let mut depth = 0
 
@@ -549,9 +540,7 @@ fn skip_conditional_body(
   }
 
   Err(
-    @lexer.HCLError::parse_error_with_context(
-      "Unclosed conditional", 0, 0, start, "",
-    ),
+    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
   )
 }
 
@@ -563,17 +552,15 @@ fn evaluate_for_body(
   var_name : String,
   arr : Array[HCLValue],
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> @lexer.HCLResult[HCLValue]],
-) -> @lexer.HCLResult[(String, Int)] {
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[(String, Int)] {
   let mut result = ""
 
   // Find end of for loop
   let end_pos = find_for_end(parts, start)
   if end_pos < 0 {
     return Err(
-      @lexer.HCLError::parse_error_with_context(
-        "Unclosed for loop", 0, 0, start, "",
-      ),
+      HCLError::parse_error_with_context("Unclosed for loop", 0, 0, start, ""),
     )
   }
 
@@ -648,7 +635,7 @@ pub fn Template::from_heredoc(
   input : String,
   _delimiter : String,
   strip : Bool,
-) -> @lexer.HCLResult[Template] {
+) -> HCLResult[Template] {
   let processed_input = if strip { strip_heredoc_indent(input) } else { input }
 
   let template = Template::new()
@@ -780,7 +767,7 @@ fn value_to_string(value : HCLValue) -> String {
 
 ///|
 /// Parse template from string (simple version)
-pub fn parse_template(input : String) -> @lexer.HCLResult[Template] {
+pub fn parse_template(input : String) -> HCLResult[Template] {
   Template::from_string(input)
 }
 
@@ -789,8 +776,8 @@ pub fn parse_template(input : String) -> @lexer.HCLResult[Template] {
 pub fn evaluate_template(
   input : String,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> @lexer.HCLResult[HCLValue]],
-) -> @lexer.HCLResult[String] {
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[String] {
   match parse_template(input) {
     Ok(template) => template.evaluate(variables, functions)
     Err(e) => Err(e)

@@ -42,7 +42,7 @@ test "to_hcl_str with Map" {
 ///|
 test "from_hcl_str to Map" {
   let input = "host = \"localhost\"\nport = 8080"
-  let result : @lexer.HCLResult[Map[String, HCLValue]] = from_hcl_str(input)
+  let result : HCLResult[Map[String, HCLValue]] = from_hcl_str(input)
   assert_true(result is Ok(_))
   let m = result.unwrap()
   assert_true(m["host"] == String("localhost", Decor::empty()))

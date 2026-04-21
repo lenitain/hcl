@@ -108,21 +108,17 @@ fn Lexer::skip_whitespace(self : Lexer) -> Lexer {
         c == '\t'.to_int().to_uint16() ||
         c == '\r'.to_int().to_uint16() => lexer = lexer.advance()
       Some(c) if c == '/'.to_int().to_uint16() =>
-        // Check for comments
         match lexer.peek_next() {
           Some(c2) if c2 == '/'.to_int().to_uint16() =>
-            // Line comment - skip until newline
             lexer = lexer.skip_line_comment()
           Some(c2) if c2 == '*'.to_int().to_uint16() =>
-            // Block comment - skip until */
             match lexer.skip_block_comment() {
               Ok(new_lexer) => lexer = new_lexer
-              Err(_) => return lexer // Error will be caught later
+              Err(_) => return lexer
             }
           _ => break
         }
       Some(c) if c == '#'.to_int().to_uint16() =>
-        // Hash comment - skip until newline (same as //)
         lexer = lexer.skip_line_comment()
       _ => break
     }
@@ -133,7 +129,7 @@ fn Lexer::skip_whitespace(self : Lexer) -> Lexer {
 ///|
 /// Skip line comment
 fn Lexer::skip_line_comment(self : Lexer) -> Lexer {
-  let mut lexer = self.advance().advance() // skip //
+  let mut lexer = self.advance().advance()
   while !lexer.is_at_end() && lexer.peek() != Some('\n'.to_int().to_uint16()) {
     lexer = lexer.advance()
   }
@@ -143,7 +139,7 @@ fn Lexer::skip_line_comment(self : Lexer) -> Lexer {
 ///|
 /// Skip block comment
 fn Lexer::skip_block_comment(self : Lexer) -> HCLResult[Lexer] {
-  let mut lexer = self.advance().advance() // skip /*
+  let mut lexer = self.advance().advance()
   let start_line = self.line
   let start_col = self.col - 2
 
@@ -172,7 +168,7 @@ fn Lexer::skip_block_comment(self : Lexer) -> HCLResult[Lexer] {
 fn Lexer::read_string(self : Lexer) -> HCLResult[(Token, Lexer)] {
   let start_line = self.line
   let start_col = self.col
-  let mut lexer = self.advance() // skip opening quote
+  let mut lexer = self.advance()
   let mut result = ""
 
   while !lexer.is_at_end() {
@@ -259,7 +255,7 @@ fn Lexer::read_escape_sequence(self : Lexer) -> HCLResult[(Char, Lexer)] {
 ///|
 /// Read Unicode escape sequence (\uXXXX or \u{XXXX})
 fn Lexer::read_unicode_escape(self : Lexer) -> HCLResult[(Char, Lexer)] {
-  let lexer = self.advance() // skip 'u'
+  let lexer = self.advance()
   if lexer.is_at_end() {
     return Err(
       HCLError::parse_error_with_context(
@@ -272,9 +268,8 @@ fn Lexer::read_unicode_escape(self : Lexer) -> HCLResult[(Char, Lexer)] {
     )
   }
 
-  // Check for \u{XXXX} format
   if lexer.peek() == Some('{'.to_int().to_uint16()) {
-    let lexer = lexer.advance() // skip '{'
+    let lexer = lexer.advance()
     let mut code_point = 0
     let mut digits = 0
     let mut l = lexer
@@ -293,8 +288,7 @@ fn Lexer::read_unicode_escape(self : Lexer) -> HCLResult[(Char, Lexer)] {
               ),
             )
           }
-          l = l.advance() // skip '}'
-          // Validate code point range
+          l = l.advance()
           if code_point > 0x10FFFF {
             return Err(
               HCLError::parse_error_with_context(
@@ -348,7 +342,6 @@ fn Lexer::read_unicode_escape(self : Lexer) -> HCLResult[(Char, Lexer)] {
     )
   }
 
-  // \uXXXX format - exactly 4 hex digits
   let mut code_point = 0
   let mut digits = 0
   let mut l = lexer
@@ -386,14 +379,12 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
   let mut num = ""
   let mut is_float = false
 
-  // Check for prefix: 0x (hex), 0o (octal), 0b (binary)
   match lexer.peek() {
     Some(c) if c == '0'.to_int().to_uint16() =>
       match lexer.peek_next() {
         Some(c2) if c2 == 'x'.to_int().to_uint16() ||
           c2 == 'X'.to_int().to_uint16() => {
-          // Hex literal
-          lexer = lexer.advance().advance() // skip 0x
+          lexer = lexer.advance().advance()
           num = "0x"
           while !lexer.is_at_end() {
             match lexer.peek() {
@@ -410,8 +401,7 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
         }
         Some(c2) if c2 == 'o'.to_int().to_uint16() ||
           c2 == 'O'.to_int().to_uint16() => {
-          // Octal literal
-          lexer = lexer.advance().advance() // skip 0o
+          lexer = lexer.advance().advance()
           num = "0o"
           while !lexer.is_at_end() {
             match lexer.peek() {
@@ -428,8 +418,7 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
         }
         Some(c2) if c2 == 'b'.to_int().to_uint16() ||
           c2 == 'B'.to_int().to_uint16() => {
-          // Binary literal
-          lexer = lexer.advance().advance() // skip 0b
+          lexer = lexer.advance().advance()
           num = "0b"
           while !lexer.is_at_end() {
             match lexer.peek() {
@@ -445,21 +434,18 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
           }
           return Ok((NumberLit(num), lexer))
         }
-        _ => () // Fall through to decimal parsing
+        _ => ()
       }
     _ => ()
   }
 
-  // Decimal number parsing
   while !lexer.is_at_end() {
     match lexer.peek() {
       Some(c) if is_digit(c) => {
         num = num + c.to_int().unsafe_to_char().to_string()
         lexer = lexer.advance()
       }
-      Some(c) if c == '_'.to_int().to_uint16() =>
-        // Allow underscores in numbers
-        lexer = lexer.advance()
+      Some(c) if c == '_'.to_int().to_uint16() => lexer = lexer.advance()
       Some(c) if c == '.'.to_int().to_uint16() && !is_float => {
         is_float = true
         num = num + "."
@@ -469,11 +455,9 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
           c == 'e'.to_int().to_uint16() || c == 'E'.to_int().to_uint16()
         ) &&
         !is_float => {
-        // Scientific notation (only after integer part, not after decimal)
         is_float = true
         num = num + "e"
         lexer = lexer.advance()
-        // Optional sign
         match lexer.peek() {
           Some(c2) if c2 == '+'.to_int().to_uint16() ||
             c2 == '-'.to_int().to_uint16() => {
@@ -487,10 +471,8 @@ fn Lexer::read_number(self : Lexer) -> HCLResult[(Token, Lexer)] {
           c == 'e'.to_int().to_uint16() || c == 'E'.to_int().to_uint16()
         ) &&
         is_float => {
-        // Scientific notation after decimal part
         num = num + "e"
         lexer = lexer.advance()
-        // Optional sign
         match lexer.peek() {
           Some(c2) if c2 == '+'.to_int().to_uint16() ||
             c2 == '-'.to_int().to_uint16() => {
@@ -535,7 +517,6 @@ fn Lexer::read_ident_or_keyword(self : Lexer) -> HCLResult[(Token, Lexer)] {
     }
   }
 
-  // Check for keywords
   match ident {
     "true" => Ok((BoolLit(true), lexer))
     "false" => Ok((BoolLit(false), lexer))
@@ -557,12 +538,10 @@ pub fn Lexer::next_token_with_trivia(
   let newline_code = '\n'.to_int().to_uint16()
   let slash_code = '/'.to_int().to_uint16()
 
-  // Collect all trivia: whitespace, newlines, and comments
   let mut has_more = true
   while has_more {
     has_more = false
 
-    // Collect whitespace (including newlines)
     let start = lexer.pos
     while !lexer.is_at_end() {
       match lexer.peek() {
@@ -578,11 +557,9 @@ pub fn Lexer::next_token_with_trivia(
       has_more = true
     }
 
-    // Try to collect a comment
     if !lexer.is_at_end() && lexer.peek() == Some(slash_code) {
       match lexer.peek_next() {
         Some(c) if c == slash_code => {
-          // Line comment
           let cstart = lexer.pos
           lexer = lexer.advance().advance()
           while !lexer.is_at_end() && lexer.peek() != Some(newline_code) {
@@ -592,7 +569,6 @@ pub fn Lexer::next_token_with_trivia(
           has_more = true
         }
         Some(c) if c == '*'.to_int().to_uint16() => {
-          // Block comment
           let cstart = lexer.pos
           lexer = lexer.advance().advance()
           let star_code = '*'.to_int().to_uint16()
@@ -613,13 +589,10 @@ pub fn Lexer::next_token_with_trivia(
     }
   }
 
-  // Record where trivia ends (before token)
   let token_start = lexer.pos
 
-  // Get the actual token (may skip additional whitespace)
   match lexer.next_token() {
     Ok((token, final_lexer)) => {
-      // Extract trivia from original position to token start
       let full_trivia = self.input[self.pos:token_start].to_string()
       let prefix = if full_trivia == "" { None } else { Some(full_trivia) }
       Ok((token, final_lexer, prefix))
@@ -671,7 +644,6 @@ pub fn Lexer::next_token(self : Lexer) -> HCLResult[(Token, Lexer)] {
       if lexer.peek_next() == Some('='.to_int().to_uint16()) {
         Ok((LtEq, lexer.advance().advance()))
       } else if lexer.peek_next() == Some('<'.to_int().to_uint16()) {
-        // Heredoc - read full heredoc literal
         lexer.read_heredoc()
       } else {
         Ok((Lt, lexer.advance()))
@@ -835,7 +807,6 @@ pub fn Lexer::collect_comment(self : Lexer) -> (Lexer, String?) {
   if self.peek() == Some(slash_code) {
     match self.peek_next() {
       Some(c) if c == slash_code => {
-        // Line comment
         let start = self.pos
         let mut lexer = self.advance().advance()
         while !lexer.is_at_end() && lexer.peek() != Some(newline_code) {
@@ -844,7 +815,6 @@ pub fn Lexer::collect_comment(self : Lexer) -> (Lexer, String?) {
         (lexer, Some(lexer.input[start:lexer.pos].to_string()))
       }
       Some(c) if c == star_code => {
-        // Block comment
         let start = self.pos
         let mut lexer = self.advance().advance()
         while !lexer.is_at_end() {
@@ -855,7 +825,6 @@ pub fn Lexer::collect_comment(self : Lexer) -> (Lexer, String?) {
           }
           lexer = lexer.advance()
         }
-        // Unterminated block comment - return what we have
         (lexer, Some(lexer.input[start:lexer.pos].to_string()))
       }
       _ => (self, None)
@@ -870,7 +839,7 @@ pub fn Lexer::collect_comment(self : Lexer) -> (Lexer, String?) {
 fn Lexer::read_heredoc(self : Lexer) -> HCLResult[(Token, Lexer)] {
   let start_line = self.line
   let start_col = self.col
-  let mut lexer = self.advance().advance() // skip <<
+  let mut lexer = self.advance().advance()
   let strip = if lexer.peek() == Some('-'.to_int().to_uint16()) {
     lexer = lexer.advance()
     true
@@ -878,7 +847,6 @@ fn Lexer::read_heredoc(self : Lexer) -> HCLResult[(Token, Lexer)] {
     false
   }
 
-  // Read delimiter (identifier)
   let mut delimiter = ""
   while !lexer.is_at_end() && is_ident_continue(lexer.peek().unwrap_or(0)) {
     let c = lexer.peek().unwrap_or(0)
@@ -898,7 +866,6 @@ fn Lexer::read_heredoc(self : Lexer) -> HCLResult[(Token, Lexer)] {
     )
   }
 
-  // Skip newline after delimiter
   if lexer.peek() == Some('\r'.to_int().to_uint16()) {
     lexer = lexer.advance()
   }
@@ -906,19 +873,16 @@ fn Lexer::read_heredoc(self : Lexer) -> HCLResult[(Token, Lexer)] {
     lexer = lexer.advance()
   }
 
-  // Read content until delimiter appears on its own line
   let mut content = ""
   let mut line_start = lexer.pos
   let mut found_end = false
 
   while !lexer.is_at_end() {
     if lexer.peek() == Some('\n'.to_int().to_uint16()) {
-      // Check if current line matches delimiter
       let line = lexer.input[line_start:lexer.pos].to_string()
       let trimmed = line.trim()
       if trimmed == delimiter {
-        // Found end delimiter
-        lexer = lexer.advance() // skip newline
+        lexer = lexer.advance()
         found_end = true
         break
       }
@@ -930,17 +894,13 @@ fn Lexer::read_heredoc(self : Lexer) -> HCLResult[(Token, Lexer)] {
     }
   }
 
-  // Check if we found the end delimiter
   if !found_end {
-    // Check last line (might be at end of input without trailing newline)
     if line_start <= lexer.pos {
       let line = lexer.input[line_start:lexer.pos].to_string()
       let trimmed = line.trim()
       if trimmed == delimiter {
         found_end = true
-        // Don't add delimiter line to content
       } else {
-        // Add last line to content if it's not the delimiter
         content = content + line
       }
     }

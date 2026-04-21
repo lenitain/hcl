@@ -120,10 +120,7 @@ pub fn TypeSchema::object(fields : Map[String, FieldSchema]) -> TypeSchema {
 
 ///|
 /// Validate a value against a schema
-pub fn validate(
-  value : HCLValue,
-  schema : TypeSchema,
-) -> Array[@lexer.HCLError] {
+pub fn validate(value : HCLValue, schema : TypeSchema) -> Array[HCLError] {
   validate_at(value, schema, "$")
 }
 
@@ -133,20 +130,20 @@ fn validate_at(
   value : HCLValue,
   schema : TypeSchema,
   path : String,
-) -> Array[@lexer.HCLError] {
+) -> Array[HCLError] {
   match schema {
     Any => []
     NullSchema =>
       if value.is_null() {
         []
       } else {
-        [@lexer.HCLError::validation_error(path, "expected null")]
+        [HCLError::validation_error(path, "expected null")]
       }
     BoolSchema =>
       if value.is_bool() {
         []
       } else {
-        [@lexer.HCLError::validation_error(path, "expected bool")]
+        [HCLError::validation_error(path, "expected bool")]
       }
     IntSchema =>
       match value {
@@ -154,9 +151,9 @@ fn validate_at(
           if n.is_int() {
             []
           } else {
-            [@lexer.HCLError::validation_error(path, "expected int")]
+            [HCLError::validation_error(path, "expected int")]
           }
-        _ => [@lexer.HCLError::validation_error(path, "expected int")]
+        _ => [HCLError::validation_error(path, "expected int")]
       }
     Int64Schema =>
       match value {
@@ -164,9 +161,9 @@ fn validate_at(
           if n.is_int() {
             []
           } else {
-            [@lexer.HCLError::validation_error(path, "expected int64")]
+            [HCLError::validation_error(path, "expected int64")]
           }
-        _ => [@lexer.HCLError::validation_error(path, "expected int64")]
+        _ => [HCLError::validation_error(path, "expected int64")]
       }
     FloatSchema =>
       match value {
@@ -174,21 +171,21 @@ fn validate_at(
           if n.is_float() {
             []
           } else {
-            [@lexer.HCLError::validation_error(path, "expected float")]
+            [HCLError::validation_error(path, "expected float")]
           }
-        _ => [@lexer.HCLError::validation_error(path, "expected float")]
+        _ => [HCLError::validation_error(path, "expected float")]
       }
     NumberSchema =>
       if value.is_number() {
         []
       } else {
-        [@lexer.HCLError::validation_error(path, "expected number")]
+        [HCLError::validation_error(path, "expected number")]
       }
     StringSchema =>
       if value.is_string() {
         []
       } else {
-        [@lexer.HCLError::validation_error(path, "expected string")]
+        [HCLError::validation_error(path, "expected string")]
       }
     ArraySchema(elem_schema) => validate_array(value, elem_schema, path)
     ObjectSchema(field_schemas) => validate_object(value, field_schemas, path)
@@ -201,7 +198,7 @@ fn validate_array(
   value : HCLValue,
   elem_schema : TypeSchema,
   path : String,
-) -> Array[@lexer.HCLError] {
+) -> Array[HCLError] {
   match value {
     Array(arr, _) => {
       let errors = []
@@ -214,7 +211,7 @@ fn validate_array(
       }
       errors
     }
-    _ => [@lexer.HCLError::validation_error(path, "expected array")]
+    _ => [HCLError::validation_error(path, "expected array")]
   }
 }
 
@@ -224,7 +221,7 @@ fn validate_object(
   value : HCLValue,
   field_schemas : Map[String, FieldSchema],
   path : String,
-) -> Array[@lexer.HCLError] {
+) -> Array[HCLError] {
   match value {
     Object(obj, _) => {
       let errors = []
@@ -244,25 +241,20 @@ fn validate_object(
           None =>
             if field_schema.required {
               errors.push(
-                @lexer.HCLError::validation_error(
-                  field_path, "required field missing",
-                ),
+                HCLError::validation_error(field_path, "required field missing"),
               )
             }
         }
       }
       errors
     }
-    _ => [@lexer.HCLError::validation_error(path, "expected object")]
+    _ => [HCLError::validation_error(path, "expected object")]
   }
 }
 
 ///|
 /// Validate and return first error, or Ok
-pub fn validate_one(
-  value : HCLValue,
-  schema : TypeSchema,
-) -> @lexer.HCLResult[Unit] {
+pub fn validate_one(value : HCLValue, schema : TypeSchema) -> HCLResult[Unit] {
   let errors = validate(value, schema)
   if errors.is_empty() {
     Ok(())
@@ -279,7 +271,7 @@ pub fn is_valid(value : HCLValue, schema : TypeSchema) -> Bool {
 
 ///|
 /// Custom validator function type
-pub type Validator = (HCLValue, String) -> Array[@lexer.HCLError]
+pub type Validator = (HCLValue, String) -> Array[HCLError]
 
 ///|
 /// Extended field schema with custom validators
@@ -312,7 +304,7 @@ pub fn FieldSchemaEx::add_validator(
 pub fn validate_ex(
   value : HCLValue,
   schema : Map[String, FieldSchemaEx],
-) -> Array[@lexer.HCLError] {
+) -> Array[HCLError] {
   validate_object_ex(value, schema, "$")
 }
 
@@ -322,7 +314,7 @@ fn validate_object_ex(
   value : HCLValue,
   field_schemas : Map[String, FieldSchemaEx],
   path : String,
-) -> Array[@lexer.HCLError] {
+) -> Array[HCLError] {
   match value {
     Object(obj, _) => {
       let errors = []
@@ -350,16 +342,14 @@ fn validate_object_ex(
           None =>
             if field_schema.base.required {
               errors.push(
-                @lexer.HCLError::validation_error(
-                  field_path, "required field missing",
-                ),
+                HCLError::validation_error(field_path, "required field missing"),
               )
             }
         }
       }
       errors
     }
-    _ => [@lexer.HCLError::validation_error(path, "expected object")]
+    _ => [HCLError::validation_error(path, "expected object")]
   }
 }
 
@@ -369,7 +359,7 @@ pub fn string_not_empty() -> Validator {
   fn(value, path) {
     match value {
       String(s, _) if s.is_empty() =>
-        [@lexer.HCLError::validation_error(path, "string must not be empty")]
+        [HCLError::validation_error(path, "string must not be empty")]
       _ => []
     }
   }
@@ -384,7 +374,7 @@ pub fn int_in_range(min : Int, max : Int) -> Validator {
         match n.as_int() {
           Some(i) if i < min || i > max =>
             [
-              @lexer.HCLError::validation_error(
+              HCLError::validation_error(
                 path,
                 "value " +
                 i.to_string() +
@@ -408,12 +398,7 @@ pub fn string_starts_with(prefix : String) -> Validator {
   fn(value, path) {
     match value {
       String(s, _) if !s.has_prefix(prefix) =>
-        [
-          @lexer.HCLError::validation_error(
-            path,
-            "string must start with " + prefix,
-          ),
-        ]
+        [HCLError::validation_error(path, "string must start with " + prefix)]
       _ => []
     }
   }

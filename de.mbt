@@ -3,7 +3,7 @@
 
 ///|
 /// Deserialize from HCL string to Int
-pub fn from_hcl_int(input : String) -> Result[Int, @lexer.HCLError] {
+pub fn from_hcl_int(input : String) -> Result[Int, HCLError] {
   match parse(input) {
     Ok(body) => {
       let value = body_to_value(body)
@@ -12,12 +12,9 @@ pub fn from_hcl_int(input : String) -> Result[Int, @lexer.HCLError] {
           match n.as_int() {
             Some(i) => Ok(i)
             None =>
-              Err(
-                @lexer.HCLError::type_mismatch("Int", value_to_type_name(value)),
-              )
+              Err(HCLError::type_mismatch("Int", value_to_type_name(value)))
           }
-        _ =>
-          Err(@lexer.HCLError::type_mismatch("Int", value_to_type_name(value)))
+        _ => Err(HCLError::type_mismatch("Int", value_to_type_name(value)))
       }
     }
     Err(e) => Err(e)
@@ -26,16 +23,13 @@ pub fn from_hcl_int(input : String) -> Result[Int, @lexer.HCLError] {
 
 ///|
 /// Deserialize from HCL string to String
-pub fn from_hcl_string(input : String) -> Result[String, @lexer.HCLError] {
+pub fn from_hcl_string(input : String) -> Result[String, HCLError] {
   match parse(input) {
     Ok(body) => {
       let value = body_to_value(body)
       match value {
         String(s, _) => Ok(s)
-        _ =>
-          Err(
-            @lexer.HCLError::type_mismatch("String", value_to_type_name(value)),
-          )
+        _ => Err(HCLError::type_mismatch("String", value_to_type_name(value)))
       }
     }
     Err(e) => Err(e)
@@ -44,14 +38,13 @@ pub fn from_hcl_string(input : String) -> Result[String, @lexer.HCLError] {
 
 ///|
 /// Deserialize from HCL string to Bool
-pub fn from_hcl_bool(input : String) -> Result[Bool, @lexer.HCLError] {
+pub fn from_hcl_bool(input : String) -> Result[Bool, HCLError] {
   match parse(input) {
     Ok(body) => {
       let value = body_to_value(body)
       match value {
         Bool(b, _) => Ok(b)
-        _ =>
-          Err(@lexer.HCLError::type_mismatch("Bool", value_to_type_name(value)))
+        _ => Err(HCLError::type_mismatch("Bool", value_to_type_name(value)))
       }
     }
     Err(e) => Err(e)
@@ -60,7 +53,7 @@ pub fn from_hcl_bool(input : String) -> Result[Bool, @lexer.HCLError] {
 
 ///|
 /// Deserialize from HCL string to HCLValue
-pub fn from_hcl_value(input : String) -> Result[HCLValue, @lexer.HCLError] {
+pub fn from_hcl_value(input : String) -> Result[HCLValue, HCLError] {
   match parse(input) {
     Ok(body) => Ok(body_to_value(body))
     Err(e) => Err(e)
@@ -69,7 +62,7 @@ pub fn from_hcl_value(input : String) -> Result[HCLValue, @lexer.HCLError] {
 
 ///|
 /// Deserialize from HCL string to Body
-pub fn from_hcl_body(input : String) -> Result[Body, @lexer.HCLError] {
+pub fn from_hcl_body(input : String) -> Result[Body, HCLError] {
   parse(input)
 }
 
@@ -94,7 +87,7 @@ fn body_to_value(body : Body) -> HCLValue {
 pub fn from_hcl_with_schema(
   input : String,
   schema : TypeSchema,
-) -> @lexer.HCLResult[HCLValue] {
+) -> HCLResult[HCLValue] {
   match parse(input) {
     Ok(body) => {
       let value = body_to_value(body)
@@ -114,7 +107,7 @@ pub fn from_hcl_with_schema(
 pub fn from_hcl_with_schema_full(
   input : String,
   schema : TypeSchema,
-) -> Result[HCLValue, Array[@lexer.HCLError]] {
+) -> Result[HCLValue, Array[HCLError]] {
   match parse(input) {
     Ok(body) => {
       let value = body_to_value(body)
