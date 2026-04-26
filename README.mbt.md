@@ -141,11 +141,14 @@ let name = body.find_attr("name").unwrap().get_value().as_string()
 ### Serialize to HCL
 
 ```moonbit nocheck
+///|
 let value = hcl.hcl_object([
   ("name", hcl.hcl_str("John")),
   ("age", hcl.hcl_int(30)),
   ("active", hcl.hcl_bool(true)),
 ])
+
+///|
 let hcl_str = hcl.to_hcl_value(value)
 // name = "John"
 // age = 30
@@ -155,40 +158,54 @@ let hcl_str = hcl.to_hcl_value(value)
 ### Format with Decor Preservation
 
 ```moonbit nocheck
+///|
 let input = "// Configure server\nhost = \"localhost\"\nport = 8080"
+
+///|
 let body = hcl.parse(input).unwrap()
 
 // format_body_with_decor preserves comments
+
+///|
 let output = hcl.format_body_with_decor(body)
 ```
 
 ### Expression Evaluation
 
 ```moonbit nocheck
-let vars = {
-  "x": hcl.hcl_int(10),
-  "y": hcl.hcl_int(3),
-}
+///|
+let vars = { "x": hcl.hcl_int(10), "y": hcl.hcl_int(3) }
+
+///|
 let funcs = hcl.builtin_functions()
 
 // Evaluate: x + y > 5 ? "yes" : "no"
+
+///|
 let expr = hcl.hcl_object([
   ("type", hcl.hcl_str("conditional")),
-  ("condition", hcl.hcl_object([
-    ("type", hcl.hcl_str("binary_expr")),
-    ("op", hcl.hcl_str(">")),
-    ("left", hcl.hcl_object([
+  (
+    "condition",
+    hcl.hcl_object([
       ("type", hcl.hcl_str("binary_expr")),
-      ("op", hcl.hcl_str("+")),
-      ("left", hcl.hcl_str("x")),
-      ("right", hcl.hcl_str("y")),
-    ])),
-    ("right", hcl.hcl_int(5)),
-  ])),
+      ("op", hcl.hcl_str(">")),
+      (
+        "left",
+        hcl.hcl_object([
+          ("type", hcl.hcl_str("binary_expr")),
+          ("op", hcl.hcl_str("+")),
+          ("left", hcl.hcl_str("x")),
+          ("right", hcl.hcl_str("y")),
+        ]),
+      ),
+      ("right", hcl.hcl_int(5)),
+    ]),
+  ),
   ("true_expr", hcl.hcl_str("yes")),
   ("false_expr", hcl.hcl_str("no")),
 ])
 
+///|
 let result = hcl.eval_expr(expr, vars, funcs)
 // Ok(String("yes", ...))
 ```

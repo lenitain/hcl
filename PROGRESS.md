@@ -193,28 +193,65 @@
 - ✅ 路径跟踪错误消息（$.user.name）
 - ✅ 集成到反序列化（from_hcl_with_schema）
 
-## 未完成 ❌
+## 待实现：对标完整 HCL 规范的缺口
 
-### 中优先级
-- [x] 更好的错误消息
-  - [x] 上下文信息（显示出错的代码行）
-  - [x] 修复建议（列指针指向错误位置）
+综合评估：整体约 55% 完整度。核心解析/求值/序列化已可用，但缺以下关键功能。
 
-- [x] JSON 转换
-  - [x] hcl_to_json() 函数
-  - [x] hcl_to_json_pretty() 函数
-  - [x] body_to_json() 函数
-  - [x] 字符串转义
-  - [x] 浮点数解析修复
+### 🔴 P0：生产环境必备
 
-- [x] CLI 工具
-  - [x] 基本框架
-  - [x] 命令行参数解析
-  - [x] 使用说明
+| # | 功能 | 说明 | 影响 |
+|---|------|------|------|
+| 1 | **未知值 (Unknown values)** | `HCLValue` 缺少 `Unknown` 变体。Terraform plan 阶段依赖 unknown value propagation（例如 `length(unknown_list)` 应返回 unknown 而非报错）。 | Terraform 兼容性完全不可用 |
+| 2 | **隐式类型转换** | 无 string↔number、string↔bool 自动转换。Go HCL 在比较/运算时会自动转换，当前 `eval.mbt` 严格类型检查。 | 现有 `.tf` 文件大量依赖隐式转换 |
+| 3 | **JSON 语法解析** | `json.mbt` 只有 HCL→JSON 序列化，没有 JSON→HCL body 解析。HCL spec 定义了一套 JSON 等效语法。 | 无法读取 `terraform.tfvars.json` |
+| 4 | **模板 else 子句** | `%{if cond}...%{else}...%{endif}` 未实现，`template.mbt` 只处理 if/endif。 | 大量 Terraform 模板不可用 |
+| 5 | **表达式类型安全重构** | parser 把表达式编码成带 tag 的 `Object`（运行时字符串分派），而非 `expr.mbt` 里定义的 `Expression` enum。导致 `visit.mbt` visitor 对表达式无效，编译期无法模式匹配。 | 架构缺陷，越早修成本越低 |
 
-### 低优先级
-- [x] 保留空白和注释的编辑（类似 hcl-edit）- 已完成
-- [x] 完整的 spec test suite (已完成基础操作符和 heredoc 测试)
+### 🟡 P1：重要但可暂缓
+
+| # | 功能 | 说明 |
+|---|------|------|
+| 6 | **Splat 运算符** | `list.*.attr` 和 `list[*].attr` 无法解析。`parser.mbt:776-840` 处理 `.` 和 `[` 但无 `*` 支持。 |
+| 7 | **模板 Strip markers** | `${~ expr ~}` 去除相邻空白未实现。 |
+| 8 | **Unicode 标识符** | `ident.mbt:11` 注明不支持 XID_Start/XID_Continue，只支持 ASCII。 |
+| 9 | **Schema 驱动的 body 提取** | 现有 schema 只做 value 类型校验，没有 body 结构提取（类似 `.hcldec` 的功能：根据 schema 把 body 解析成结构化的 attribute map + block sequence）。 |
+
+### 🟢 P2：锦上添花
+
+| # | 功能 | 说明 |
+|---|------|------|
+| 10 | **源位置保留在 AST 中** | Body/Attr/Block/HCLValue 只有 Decor（注释/空白），没有 source span。错误定位有但不够精确。 |
+| 11 | **UTF-8 BOM 拒绝 + UTF-8 验证** | Lexer 不做 BOM 检查和 UTF-8 合法性验证。 |
+| 12 | **类型统一 (Type unification)** | 条件表达式、函数返回值等需要 unification lattice 找到共同类型。 |
+| 13 | **函数参数定义系统** | `funcs.mbt` 用裸 closure `(Array[HCLValue]) -> Result`，缺少 formal param spec（位置/variadic、类型约束、null 接受标志）。 |
+| 14 | **静态分析 API** | 没有 `visit.mbt` 之外的静态分析工具（list/map/call/traversal 分析）。 |
+
+### 优先级排序（建议下次迭代顺序）
+
+```
+迭代 1 (P0):  表达式类型安全重构 (#5) → 这是所有后续工作的基础
+迭代 2 (P0):  未知值 Unknown (#1) → Terraform 兼容的前提
+迭代 3 (P0):  模板 else (#4) → 影响面广
+迭代 4 (P0):  隐式类型转换 (#2) → 关系到所有表达式求值
+迭代 5 (P0):  JSON 语法解析 (#3) → 独立模块，可并行
+迭代 6 (P1):  Splat (#6) + Strip markers (#7) + Unicode ident (#8)
+迭代 7 (P1):  Schema body 提取 (#9)
+迭代 8 (P2):  剩余功能
+```
+
+### 实现建议
+
+**关于 #5（表达式类型安全重构）**：
+当前 parser 产出的是：
+```
+Object({"type": String("function_call"), "name": String("foo"), "args": Array([...])}, _)
+```
+应改为产出 `Expression` enum 的直接实例，例如 `FuncCallExpr`。这涉及：
+1. `parser.mbt` 的表达式解析分支返回 `Expression` 而非 `HCLValue`
+2. `eval.mbt` 从 string-match 改为 pattern match on enum
+3. `visit.mbt` 的 Expression visitor 才能真正工作
+
+参考 `expr.mbt` 中已有的枚举定义，它们现在未被 parser 使用。
 
 ## 已知问题
 

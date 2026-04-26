@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "hcl/cmd/main"
+package "lenitain/hcl/cmd/main"
 
 // Values
 
