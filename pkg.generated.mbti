@@ -606,6 +606,7 @@ pub(all) enum TemplatePart {
   Text(String)
   Interpolation(HCLValue)
   ConditionalStart(HCLValue)
+  ConditionalElse
   ConditionalEnd
   ForStart(String, HCLValue)
   ForEnd

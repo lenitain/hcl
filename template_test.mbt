@@ -269,6 +269,166 @@ test "parse heredoc with interpolation" {
 }
 
 ///|
+
+///|
+test "template else true condition" {
+  let input = "%{if show}yes%{else}no%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "show": HCLValue::Bool(true, Decor::empty()) }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "yes")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else false condition" {
+  let input = "%{if show}yes%{else}no%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = { "show": HCLValue::Bool(false, Decor::empty()) }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "no")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else with interpolation" {
+  let input = "%{if admin}Welcome ${name}%{else}Access denied%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "admin": HCLValue::Bool(false, Decor::empty()),
+        "name": HCLValue::String("Alice", Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Access denied")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else true with interpolation" {
+  let input = "%{if admin}Welcome ${name}%{else}Access denied%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "admin": HCLValue::Bool(true, Decor::empty()),
+        "name": HCLValue::String("Bob", Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "Welcome Bob")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else in for loop" {
+  let input = "%{for item in items}%{if active}${item}%{else}(hidden)%{endif} %{endfor}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "items": HCLValue::Array(
+          [
+            HCLValue::String("a", Decor::empty()),
+            HCLValue::String("b", Decor::empty()),
+          ],
+          Decor::empty(),
+        ),
+        "active": HCLValue::Bool(true, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "a b ")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else false in for loop" {
+  let input = "%{for item in items}%{if active}${item}%{else}(hidden)%{endif} %{endfor}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "items": HCLValue::Array(
+          [
+            HCLValue::String("a", Decor::empty()),
+            HCLValue::String("b", Decor::empty()),
+          ],
+          Decor::empty(),
+        ),
+        "active": HCLValue::Bool(false, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "(hidden) (hidden) ")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else multiple conditionals" {
+  let input = "%{if a}first%{else}%{if b}second%{else}third%{endif}%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(false, Decor::empty()),
+        "b": HCLValue::Bool(true, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "second")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else multiple conditionals all false" {
+  let input = "%{if a}first%{else}%{if b}second%{else}third%{endif}%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(false, Decor::empty()),
+        "b": HCLValue::Bool(false, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "third")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
 test "parse heredoc with strip" {
   let input = "  This has leading spaces\n  And more spaces\n"
   match Template::from_heredoc(input, "EOF", true) {

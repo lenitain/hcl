@@ -11,6 +11,8 @@ pub(all) enum TemplatePart {
   Interpolation(HCLValue)
   /// Conditional directive %{if cond}
   ConditionalStart(HCLValue)
+  /// Else directive %{else}
+  ConditionalElse
   /// End of conditional %{endif}
   ConditionalEnd
   /// For directive %{for var in collection}
@@ -208,6 +210,9 @@ fn parse_directive_content(content : String) -> HCLResult[TemplatePart] {
       Ok(cond) => Ok(ConditionalStart(cond))
       Err(e) => Err(e)
     }
+  } else if trimmed == "else" {
+    // %{else}
+    Ok(ConditionalElse)
   } else if trimmed == "endif" {
     // %{endif}
     Ok(ConditionalEnd)
@@ -409,27 +414,58 @@ pub fn Template::evaluate(
           Ok(cond_value) =>
             match cond_value {
               Bool(b, _) =>
-                if b {
-                  // Evaluate conditional body
-                  match
-                    evaluate_conditional_body(
-                      parts,
-                      i + 1,
-                      variables,
-                      functions,
-                    ) {
-                    Ok((body_result, end_pos)) => {
-                      result = result + body_result
-                      i = end_pos + 1
+                // Find first boundary (ConditionalElse or ConditionalEnd at depth 0)
+                match find_conditional_boundary(parts, i + 1) {
+                  Ok((boundary, has_else)) =>
+                    if b {
+                      // Evaluate true body
+                      match
+                        evaluate_body_range(
+                          parts,
+                          i + 1,
+                          boundary,
+                          variables,
+                          functions,
+                        ) {
+                        Ok(body_result) => {
+                          result = result + body_result
+                          if has_else {
+                            // Skip else body
+                            match find_conditional_end(parts, boundary + 1) {
+                              Ok(end) => i = end + 1
+                              Err(e) => return Err(e)
+                            }
+                          } else {
+                            i = boundary + 1
+                          }
+                        }
+                        Err(e) => return Err(e)
+                      }
+                    } else if has_else {
+                      // Evaluate else body
+                      match find_conditional_end(parts, boundary + 1) {
+                        Ok(end) =>
+                          match
+                            evaluate_body_range(
+                              parts,
+                              boundary + 1,
+                              end,
+                              variables,
+                              functions,
+                            ) {
+                            Ok(body_result) => {
+                              result = result + body_result
+                              i = end + 1
+                            }
+                            Err(e) => return Err(e)
+                          }
+                        Err(e) => return Err(e)
+                      }
+                    } else {
+                      // No else clause, skip to endif
+                      i = boundary + 1
                     }
-                    Err(e) => return Err(e)
-                  }
-                } else {
-                  // Skip conditional body
-                  match skip_conditional_body(parts, i + 1) {
-                    Ok(end_pos) => i = end_pos + 1
-                    Err(e) => return Err(e)
-                  }
+                  Err(e) => return Err(e)
                 }
               _ => return Err(HCLError::type_error("Condition must be boolean"))
             }
@@ -461,87 +497,13 @@ pub fn Template::evaluate(
             }
           Err(e) => return Err(e)
         }
-      ConditionalEnd | ForEnd =>
+      ConditionalEnd | ForEnd | ConditionalElse =>
         // These should be handled by their respective start directives
         i += 1
     }
   }
 
   Ok(result)
-}
-
-///|
-/// Evaluate conditional body
-fn evaluate_conditional_body(
-  parts : Array[TemplatePart],
-  start : Int,
-  variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
-) -> HCLResult[(String, Int)] {
-  let mut result = ""
-  let mut i = start
-  let mut depth = 0
-
-  while i < parts.length() {
-    let part = parts[i]
-    match part {
-      ConditionalStart(_) => {
-        depth += 1
-        i += 1
-      }
-      ConditionalEnd => {
-        if depth == 0 {
-          return Ok((result, i))
-        }
-        depth -= 1
-        i += 1
-      }
-      _ => {
-        // Evaluate part
-        let temp_template = { parts: [part] }
-        match temp_template.evaluate(variables, functions) {
-          Ok(text) => {
-            result = result + text
-            i += 1
-          }
-          Err(e) => return Err(e)
-        }
-      }
-    }
-  }
-
-  Err(
-    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
-  )
-}
-
-///|
-/// Skip conditional body (when condition is false)
-fn skip_conditional_body(
-  parts : Array[TemplatePart],
-  start : Int,
-) -> HCLResult[Int] {
-  let mut i = start
-  let mut depth = 0
-
-  while i < parts.length() {
-    let part = parts[i]
-    match part {
-      ConditionalStart(_) => depth += 1
-      ConditionalEnd => {
-        if depth == 0 {
-          return Ok(i)
-        }
-        depth -= 1
-      }
-      _ => ignore(part)
-    }
-    i += 1
-  }
-
-  Err(
-    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
-  )
 }
 
 ///|
@@ -570,35 +532,10 @@ fn evaluate_for_body(
     let loop_vars = variables.copy()
     loop_vars[var_name] = item
 
-    // Evaluate body
-    let mut j = start
-    while j < end_pos {
-      let part = parts[j]
-      match part {
-        Text(text) => {
-          result = result + text
-          j += 1
-        }
-        Interpolation(expr) =>
-          match eval_expr(expr, loop_vars, functions) {
-            Ok(value) => {
-              result = result + value_to_string(value)
-              j += 1
-            }
-            Err(e) => return Err(e)
-          }
-        _ => {
-          // Handle nested structures
-          let temp_template = { parts: [part] }
-          match temp_template.evaluate(loop_vars, functions) {
-            Ok(text) => {
-              result = result + text
-              j += 1
-            }
-            Err(e) => return Err(e)
-          }
-        }
-      }
+    // Evaluate body using evaluate_body_range for proper nested conditional handling
+    match evaluate_body_range(parts, start, end_pos, loop_vars, functions) {
+      Ok(body_result) => result = result + body_result
+      Err(e) => return Err(e)
     }
   }
 
@@ -627,6 +564,160 @@ fn find_for_end(parts : Array[TemplatePart], start : Int) -> Int {
   }
 
   -1
+}
+
+///|
+/// Find first ConditionalElse or ConditionalEnd at depth 0
+fn find_conditional_boundary(
+  parts : Array[TemplatePart],
+  start : Int,
+) -> HCLResult[(Int, Bool)] {
+  let mut i = start
+  let mut depth = 0
+  while i < parts.length() {
+    let part = parts[i]
+    match part {
+      ConditionalStart(_) => depth += 1
+      ConditionalElse => if depth == 0 { return Ok((i, true)) }
+      ConditionalEnd => {
+        if depth == 0 {
+          return Ok((i, false))
+        }
+        depth -= 1
+      }
+      _ => ignore(part)
+    }
+    i += 1
+  }
+  Err(
+    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
+  )
+}
+
+///|
+/// Find ConditionalEnd at depth 0
+fn find_conditional_end(
+  parts : Array[TemplatePart],
+  start : Int,
+) -> HCLResult[Int] {
+  let mut i = start
+  let mut depth = 0
+  while i < parts.length() {
+    let part = parts[i]
+    match part {
+      ConditionalStart(_) => depth += 1
+      ConditionalEnd => {
+        if depth == 0 {
+          return Ok(i)
+        }
+        depth -= 1
+      }
+      _ => ignore(part)
+    }
+    i += 1
+  }
+  Err(
+    HCLError::parse_error_with_context("Unclosed conditional", 0, 0, start, ""),
+  )
+}
+
+///|
+/// Evaluate a range of template parts, handling nested conditionals recursively
+fn evaluate_body_range(
+  parts : Array[TemplatePart],
+  start : Int,
+  end : Int,
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[String] {
+  let mut result = ""
+  let mut i = start
+  while i < end {
+    let part = parts[i]
+    match part {
+      Text(text) => {
+        result = result + text
+        i += 1
+      }
+      Interpolation(expr) =>
+        match eval_expr(expr, variables, functions) {
+          Ok(value) => {
+            result = result + value_to_string(value)
+            i += 1
+          }
+          Err(e) => return Err(e)
+        }
+      ConditionalStart(condition) =>
+        // Recursively evaluate nested conditional
+        match eval_expr(condition, variables, functions) {
+          Ok(cond_value) =>
+            match cond_value {
+              Bool(b, _) =>
+                match find_conditional_boundary(parts, i + 1) {
+                  Ok((boundary, has_else)) =>
+                    if b {
+                      match
+                        evaluate_body_range(
+                          parts,
+                          i + 1,
+                          boundary,
+                          variables,
+                          functions,
+                        ) {
+                        Ok(body_result) => {
+                          result = result + body_result
+                          i = if has_else {
+                            match find_conditional_end(parts, boundary + 1) {
+                              Ok(e) => e + 1
+                              Err(e) => return Err(e)
+                            }
+                          } else {
+                            boundary + 1
+                          }
+                        }
+                        Err(e) => return Err(e)
+                      }
+                    } else if has_else {
+                      match find_conditional_end(parts, boundary + 1) {
+                        Ok(e) =>
+                          match
+                            evaluate_body_range(
+                              parts,
+                              boundary + 1,
+                              e,
+                              variables,
+                              functions,
+                            ) {
+                            Ok(body_result) => {
+                              result = result + body_result
+                              i = e + 1
+                            }
+                            Err(e) => return Err(e)
+                          }
+                        Err(e) => return Err(e)
+                      }
+                    } else {
+                      i = boundary + 1
+                    }
+                  Err(e) => return Err(e)
+                }
+              _ => return Err(HCLError::type_error("Condition must be boolean"))
+            }
+          Err(e) => return Err(e)
+        }
+      _ => {
+        let temp_template = { parts: [part] }
+        match temp_template.evaluate(variables, functions) {
+          Ok(text) => {
+            result = result + text
+            i += 1
+          }
+          Err(e) => return Err(e)
+        }
+      }
+    }
+  }
+  Ok(result)
 }
 
 ///|
