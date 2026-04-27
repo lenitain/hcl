@@ -1,9 +1,9 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：Schema Body Extraction 全部完成 ✅
+## 当前状态：函数参数定义系统 (#13) 全部完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/func-def-param-system`
+- 分支：`lenitain/feat/func-param-defs`
 - 状态：开发完成
 - 目标：函数参数定义系统 (#13)
 
@@ -55,12 +55,12 @@
 
 ### 验证结果
 - ✅ moon check: 0 errors
-- ✅ moon test: 682 passed, 0 failed
+- ✅ moon test: 697 passed, 0 failed
 - ✅ moon fmt: 通过
 - ✅ moon info: 通过
 
 ## 警告统计
-- 33 警告（主要是 trait impl 的 unused_value，这些是 MoonBit trait 系统的正常警告）
+- 38 警告（主要是 trait impl 的 unused_value，这些是 MoonBit trait 系统的正常警告）
 
 ## 设计要点
 - 参考 hcl-rs 的 hcl2json CLI 设计
@@ -178,7 +178,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 682 个测试全部通过
+- ✅ 697 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -197,6 +197,7 @@
 - 覆盖：Splat 运算符（`.*`、`[*]`、解析、序列化、求值、round-trip）
 - 覆盖：Template strip markers（`${~ expr ~}`、`%{~ directive ~}`、前后空白去除）
 - 覆盖：Unicode 标识符（XID_Start/XID_Continue、CJK、Latin Extended、Cyrillic 等）
+- 覆盖：FuncDef 参数定义系统（ParamType 类型检查、FuncDef 验证、variadic、builder）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -230,6 +231,9 @@
 - ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
 - ✅ 通过 builtin_functions() 获取所有内置函数
+- ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
+- ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
+- ✅ `FuncDefBuilder` — 链式 API 构建函数定义
 
 ### 多行表达式 (parser.mbt) - 新增
 - ✅ 条件表达式支持换行 (true ? "a" : "b")
@@ -287,7 +291,8 @@
 迭代 5 (P0):  JSON 语法解析 (#3) → ✅ 已完成
 迭代 6 (P1):  Splat (#6) + Strip markers (#7) + Unicode ident (#8) → ✅ 已完成
 迭代 7 (P1):  Schema body 提取 (#9) → ✅ 已完成（全量测试验证通过）
-迭代 8 (P2):  剩余功能
+迭代 8 (P2):  函数参数定义系统 (#13) → ✅ 已完成（697 测试通过）
+迭代 9 (P2):  剩余功能 (#10, #11, #12, #14)
 ```
 
 ### 实现建议

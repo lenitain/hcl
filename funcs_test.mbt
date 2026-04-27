@@ -1244,9 +1244,7 @@ test "ParamType display_name" {
   assert_true(
     ParamType::ParamArray(ParamString).display_name() == "array(string)",
   )
-  assert_true(
-    ParamType::Nullable(ParamNumber).display_name() == "number?",
-  )
+  assert_true(ParamType::Nullable(ParamNumber).display_name() == "number?")
 }
 
 ///|
@@ -1271,10 +1269,11 @@ test "FuncDef call validates too many args" {
   let fd = FuncDefBuilder::new()
     .param(ParamNumber)
     .build("one_param", fn_add_stub)
-  match fd.call([
-    Number(Number::from_int(1), Decor::empty()),
-    Number(Number::from_int(2), Decor::empty()),
-  ]) {
+  match
+    fd.call([
+      Number(Number::from_int(1), Decor::empty()),
+      Number(Number::from_int(2), Decor::empty()),
+    ]) {
     Err(_) => assert_true(true)
     Ok(_) => panic()
   }
@@ -1296,8 +1295,7 @@ test "FuncDef call succeeds with valid args" {
   let funcs = builtin_functions()
   let fd = funcs["abs"]
   match fd.call([Number(Number::from_int(-5), Decor::empty())]) {
-    Ok(v) =>
-      assert_true(v == Number(Number::from_int(5), Decor::empty()))
+    Ok(v) => assert_true(v == Number(Number::from_int(5), Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -1306,13 +1304,13 @@ test "FuncDef call succeeds with valid args" {
 test "FuncDef variadic accepts extra args" {
   let funcs = builtin_functions()
   let fd = funcs["max"]
-  match fd.call([
-    Number(Number::from_int(1), Decor::empty()),
-    Number(Number::from_int(3), Decor::empty()),
-    Number(Number::from_int(2), Decor::empty()),
-  ]) {
-    Ok(v) =>
-      assert_true(v == Number(Number::from_int(3), Decor::empty()))
+  match
+    fd.call([
+      Number(Number::from_int(1), Decor::empty()),
+      Number(Number::from_int(3), Decor::empty()),
+      Number(Number::from_int(2), Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == Number(Number::from_int(3), Decor::empty()))
     Err(_) => panic()
   }
 }
@@ -1321,10 +1319,11 @@ test "FuncDef variadic accepts extra args" {
 test "FuncDef variadic rejects wrong type in extra args" {
   let funcs = builtin_functions()
   let fd = funcs["max"]
-  match fd.call([
-    Number(Number::from_int(1), Decor::empty()),
-    String("not number", Decor::empty()),
-  ]) {
+  match
+    fd.call([
+      Number(Number::from_int(1), Decor::empty()),
+      String("not number", Decor::empty()),
+    ]) {
     Err(_) => assert_true(true)
     Ok(_) => panic()
   }
@@ -1332,9 +1331,7 @@ test "FuncDef variadic rejects wrong type in extra args" {
 
 ///|
 test "FuncDef builder factory" {
-  let fd = FuncDef::builder()
-    .param(ParamString)
-    .build("test_fn", fn_add_stub)
+  let fd = FuncDef::builder().param(ParamString).build("test_fn", fn_add_stub)
   match fd.call([String("hello", Decor::empty())]) {
     Ok(_) => assert_true(true)
     Err(_) => panic()
