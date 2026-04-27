@@ -460,6 +460,23 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamString)
     .build("timecmp", fn_timecmp)
 
+  funcs["cidrhost"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamNumber)
+    .build("cidrhost", fn_cidrhost)
+  funcs["cidrnetmask"] = FuncDef::builder()
+    .param(ParamString)
+    .build("cidrnetmask", fn_cidrnetmask)
+  funcs["cidrsubnet"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamNumber)
+    .param(ParamNumber)
+    .build("cidrsubnet", fn_cidrsubnet)
+  funcs["cidrsubnets"] = FuncDef::builder()
+    .param(ParamString)
+    .variadic(ParamNumber)
+    .build("cidrsubnets", fn_cidrsubnets)
+
   funcs
 }
 
@@ -2305,5 +2322,291 @@ fn fn_timecmp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         _ => Err(HCLError::invalid_value("timecmp: invalid timestamp"))
       }
     _ => Err(HCLError::invalid_value("timecmp: both arguments must be strings"))
+  }
+}
+
+///| =========================================================================
+/// Network Functions (CIDR)
+
+///| =========================================================================
+
+///|
+fn find_char(s : String, ch : Char, start : Int) -> Int {
+  let len = s.length()
+  let mut i = start
+  while i < len {
+    if s.code_unit_at(i) == ch.to_int().to_uint16() {
+      return i
+    }
+    i = i + 1
+  }
+  -1
+}
+
+///|
+fn ip_to_int(ip : String) -> HCLResult[Int] {
+  let d1 = find_char(ip, '.', 0)
+  if d1 < 0 {
+    return Err(HCLError::invalid_value("invalid IPv4 address: " + ip))
+  }
+  let d2 = find_char(ip, '.', d1 + 1)
+  if d2 < 0 {
+    return Err(HCLError::invalid_value("invalid IPv4 address: " + ip))
+  }
+  let d3 = find_char(ip, '.', d2 + 1)
+  if d3 < 0 {
+    return Err(HCLError::invalid_value("invalid IPv4 address: " + ip))
+  }
+  let s0 = substring(ip, 0, d1)
+  let s1 = substring(ip, d1 + 1, d2)
+  let s2 = substring(ip, d2 + 1, d3)
+  let s3 = substring(ip, d3 + 1, ip.length())
+  match
+    (
+      parse_int_with_base(s0, 10),
+      parse_int_with_base(s1, 10),
+      parse_int_with_base(s2, 10),
+      parse_int_with_base(s3, 10),
+    ) {
+    (Ok(a), Ok(b), Ok(c), Ok(d)) =>
+      if a < 0 ||
+        a > 255 ||
+        b < 0 ||
+        b > 255 ||
+        c < 0 ||
+        c > 255 ||
+        d < 0 ||
+        d > 255 {
+        Err(HCLError::invalid_value("IPv4 octet out of range: " + ip))
+      } else {
+        Ok((a << 24) | (b << 16) | (c << 8) | d)
+      }
+    _ => Err(HCLError::invalid_value("invalid IPv4 address: " + ip))
+  }
+}
+
+///|
+fn int_to_ip(n : Int) -> String {
+  let a = (n >> 24) & 0xFF
+  let b = (n >> 16) & 0xFF
+  let c = (n >> 8) & 0xFF
+  let d = n & 0xFF
+  a.to_string() +
+  "." +
+  b.to_string() +
+  "." +
+  c.to_string() +
+  "." +
+  d.to_string()
+}
+
+///|
+fn parse_cidr(cidr : String) -> HCLResult[(Int, Int)] {
+  let slash = find_char(cidr, '/', 0)
+  if slash < 0 {
+    return Err(HCLError::invalid_value("invalid CIDR: " + cidr))
+  }
+  let ip_str = substring(cidr, 0, slash)
+  let prefix_str = substring(cidr, slash + 1, cidr.length())
+  match (ip_to_int(ip_str), parse_int_with_base(prefix_str, 10)) {
+    (Ok(ip_int), Ok(prefix)) =>
+      if prefix < 0 || prefix > 32 {
+        Err(HCLError::invalid_value("CIDR prefix out of range: " + cidr))
+      } else {
+        Ok((ip_int, prefix))
+      }
+    _ => Err(HCLError::invalid_value("invalid CIDR: " + cidr))
+  }
+}
+
+///|
+fn prefix_to_mask(prefix : Int) -> Int {
+  if prefix == 0 {
+    0
+  } else if prefix == 32 {
+    -1
+  } else {
+    -1 << (32 - prefix)
+  }
+}
+
+///|
+fn fn_cidrhost(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(cidr, _), Number(hostnum_n, _)) =>
+      match (parse_cidr(cidr), hostnum_n.as_int()) {
+        (Ok((ip_int, prefix_len)), Some(hostnum)) => {
+          let mask = prefix_to_mask(prefix_len)
+          let base = ip_int & mask
+          let host_bits = 32 - prefix_len
+          let max_hosts = if host_bits == 32 { -1 } else { 1 << host_bits }
+          if hostnum < -max_hosts || hostnum >= max_hosts {
+            return Err(
+              HCLError::invalid_value("cidrhost: host number out of range"),
+            )
+          }
+          let ip = if hostnum >= 0 {
+            base + hostnum
+          } else {
+            base + max_hosts + hostnum
+          }
+          Ok(String(int_to_ip(ip), Decor::empty()))
+        }
+        (Err(e), _) => Err(e)
+        (_, None) =>
+          Err(HCLError::type_error("cidrhost: hostnum must be an integer"))
+      }
+    _ => Err(HCLError::type_error("cidrhost: expected (string, number)"))
+  }
+}
+
+///|
+fn fn_cidrnetmask(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) => {
+      let prefix_str = if s.length() > 0 &&
+        s.code_unit_at(0) == '/'.to_int().to_uint16() {
+        substring(s, 1, s.length())
+      } else {
+        s
+      }
+      match parse_int_with_base(prefix_str, 10) {
+        Ok(prefix) =>
+          if prefix < 0 || prefix > 32 {
+            Err(
+              HCLError::invalid_value("cidrnetmask: prefix out of range 0-32"),
+            )
+          } else {
+            Ok(String(int_to_ip(prefix_to_mask(prefix)), Decor::empty()))
+          }
+        Err(_) => Err(HCLError::invalid_value("cidrnetmask: invalid prefix"))
+      }
+    }
+    _ => Err(HCLError::type_error("cidrnetmask: expected string"))
+  }
+}
+
+///|
+fn fn_cidrsubnet(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1], args[2]) {
+    (String(cidr, _), Number(newbits_n, _), Number(netnum_n, _)) =>
+      match (parse_cidr(cidr), newbits_n.as_int(), netnum_n.as_int()) {
+        (Ok((ip_int, prefix_len)), Some(newbits), Some(netnum)) => {
+          let new_prefix = prefix_len + newbits
+          if new_prefix < 0 || new_prefix > 32 {
+            return Err(
+              HCLError::invalid_value("cidrsubnet: new prefix out of range"),
+            )
+          }
+          if newbits <= 0 {
+            return Err(
+              HCLError::invalid_value("cidrsubnet: newbits must be positive"),
+            )
+          }
+          let max_subnets = 1 << newbits
+          if netnum < 0 || netnum >= max_subnets {
+            return Err(
+              HCLError::invalid_value("cidrsubnet: netnum out of range"),
+            )
+          }
+          let mask = prefix_to_mask(prefix_len)
+          let base = ip_int & mask
+          let shift = 32 - new_prefix
+          let subnet_ip = base | (netnum << shift)
+          Ok(
+            String(
+              int_to_ip(subnet_ip) + "/" + new_prefix.to_string(),
+              Decor::empty(),
+            ),
+          )
+        }
+        (Err(e), _, _) => Err(e)
+        (_, None, _) =>
+          Err(HCLError::type_error("cidrsubnet: newbits must be an integer"))
+        (_, _, None) =>
+          Err(HCLError::type_error("cidrsubnet: netnum must be an integer"))
+      }
+    _ =>
+      Err(HCLError::type_error("cidrsubnet: expected (string, number, number)"))
+  }
+}
+
+///|
+fn fn_cidrsubnets(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(cidr, _) =>
+      match parse_cidr(cidr) {
+        Ok((ip_int, prefix_len)) => {
+          let results : Array[HCLValue] = Array::new()
+          let mask = prefix_to_mask(prefix_len)
+          let base = ip_int & mask
+          let mut current_base = base
+          let total_host_bits = 32 - prefix_len
+          let total_hosts = if total_host_bits == 32 {
+            -1
+          } else {
+            1 << total_host_bits
+          }
+          let end_addr = base + total_hosts
+          for i in 1..<args.length() {
+            match args[i] {
+              Number(newbits_n, _) =>
+                match newbits_n.as_int() {
+                  Some(newbits) => {
+                    if newbits <= 0 {
+                      return Err(
+                        HCLError::invalid_value(
+                          "cidrsubnets: newbits must be positive",
+                        ),
+                      )
+                    }
+                    let new_prefix = prefix_len + newbits
+                    if new_prefix > 32 {
+                      return Err(
+                        HCLError::invalid_value(
+                          "cidrsubnets: resulting prefix out of range",
+                        ),
+                      )
+                    }
+                    let subnet_host_bits = 32 - new_prefix
+                    let subnet_size = if subnet_host_bits == 32 {
+                      -1
+                    } else {
+                      1 << subnet_host_bits
+                    }
+                    if current_base + subnet_size > end_addr {
+                      return Err(
+                        HCLError::invalid_value(
+                          "cidrsubnets: not enough address space",
+                        ),
+                      )
+                    }
+                    results.push(
+                      String(
+                        int_to_ip(current_base) + "/" + new_prefix.to_string(),
+                        Decor::empty(),
+                      ),
+                    )
+                    current_base = current_base + subnet_size
+                  }
+                  None =>
+                    return Err(
+                      HCLError::type_error(
+                        "cidrsubnets: newbits must be an integer",
+                      ),
+                    )
+                }
+              _ =>
+                return Err(
+                  HCLError::type_error("cidrsubnets: newbits must be a number"),
+                )
+            }
+          }
+          Ok(Array(results, Decor::empty()))
+        }
+        Err(e) => Err(e)
+      }
+    _ =>
+      Err(HCLError::type_error("cidrsubnets: first argument must be a string"))
   }
 }

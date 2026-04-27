@@ -2832,3 +2832,159 @@ test "timecmp error on invalid timestamp" {
     Err(_) => assert_true(true)
   }
 }
+
+///|
+test "cidrhost basic" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrhost"]
+  match f.call([str("192.168.1.0/24"), num(5)]) {
+    Ok(v) => assert_true(v == str("192.168.1.5"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrhost negative hostnum" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrhost"]
+  match f.call([str("192.168.1.0/24"), num(-1)]) {
+    Ok(v) => assert_true(v == str("192.168.1.255"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrhost error on invalid cidr" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrhost"]
+  match f.call([str("not-a-cidr"), num(0)]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
+
+///|
+test "cidrhost error on hostnum overflow" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrhost"]
+  match f.call([str("192.168.1.0/24"), num(256)]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
+
+///|
+test "cidrnetmask /24" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("24")]) {
+    Ok(v) => assert_true(v == str("255.255.255.0"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrnetmask /16" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("16")]) {
+    Ok(v) => assert_true(v == str("255.255.0.0"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrnetmask /8" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("8")]) {
+    Ok(v) => assert_true(v == str("255.0.0.0"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrnetmask /32" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("32")]) {
+    Ok(v) => assert_true(v == str("255.255.255.255"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrnetmask /0" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("0")]) {
+    Ok(v) => assert_true(v == str("0.0.0.0"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrnetmask with slash prefix" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("/24")]) {
+    Ok(v) => assert_true(v == str("255.255.255.0"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrnetmask error on out of range" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrnetmask"]
+  match f.call([str("33")]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
+
+///|
+test "cidrsubnet basic" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrsubnet"]
+  match f.call([str("10.1.0.0/16"), num(8), num(1)]) {
+    Ok(v) => assert_true(v == str("10.1.1.0/24"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrsubnet zero netnum" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrsubnet"]
+  match f.call([str("10.1.0.0/16"), num(8), num(0)]) {
+    Ok(v) => assert_true(v == str("10.1.0.0/24"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "cidrsubnet error on overflow" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrsubnet"]
+  match f.call([str("10.1.0.0/16"), num(8), num(256)]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
+
+///|
+test "cidrsubnets basic" {
+  let funcs = builtin_functions()
+  let f = funcs["cidrsubnets"]
+  match f.call([str("10.0.0.0/16"), num(4), num(4), num(4), num(4)]) {
+    Ok(Array(arr, _)) => {
+      assert_true(arr.length() == 4)
+      assert_true(arr[0] == str("10.0.0.0/20"))
+      assert_true(arr[1] == str("10.0.16.0/20"))
+      assert_true(arr[2] == str("10.0.32.0/20"))
+      assert_true(arr[3] == str("10.0.48.0/20"))
+    }
+    _ => panic()
+  }
+}

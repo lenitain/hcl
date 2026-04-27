@@ -1,13 +1,36 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：日期时间函数 — 迭代 7 完成 ✅
+## 当前状态：网络函数 — 迭代 8 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/datetime-funcs`
+- 分支：`lenitain/feat/network-funcs`
 - 状态：开发完成
-- 目标：日期时间函数（formatdate, timeadd, timecmp）
+- 目标：CIDR 网络函数（cidrhost, cidrnetmask, cidrsubnet, cidrsubnets）
 
 ## 本次开发完成的任务
+
+### 网络函数 NetworkFuncs ✅
+- ✅ `cidrhost(prefix, hostnum)` — 计算 CIDR 前缀中第 N 个主机地址
+  - 支持负数 hostnum（从末尾计算）
+  - 验证主机地址不溢出网络位
+- ✅ `cidrnetmask(prefix)` — 将前缀长度转换为点分十进制子网掩码
+  - 支持 "/24" 和 "24" 两种输入格式
+  - 支持 /0 到 /32 全范围
+- ✅ `cidrsubnet(prefix, newbits, netnum)` — 计算子网地址
+  - 扩展前缀长度 newbits 位
+  - 使用 netnum 分配子网号
+- ✅ `cidrsubnets(prefix, newbits...)` — 批量计算多个子网
+  - variadic 参数，每个 newbits 对应一个子网
+  - 顺序分配子网号
+- ✅ 辅助函数：`ip_to_int`, `int_to_ip`, `parse_cidr`, `prefix_to_mask`, `find_char`
+- ✅ 15 个新测试（cidrhost 4 + cidrnetmask 6 + cidrsubnet 3 + cidrsubnets 2）
+- ✅ 所有 906 个测试通过
+
+### 验证结果
+- ✅ moon check: 0 errors
+- ✅ moon test: 906 passed, 0 failed
+- ✅ moon fmt: 通过
+- ✅ moon info: 通过
 
 ### 日期时间函数 DateTimeFuncs ✅
 - ✅ `formatdate(format, timestamp)` — 按格式字符串格式化 RFC3339 时间戳
@@ -336,7 +359,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 891 个测试全部通过
+- ✅ 906 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -346,7 +369,7 @@
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：JSON 语法解析（JSON→Body、标签嵌套、数组块、round-trip、terraform.tfvars.json）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
-- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论、编码、日期时间，共65个函数）
+- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论、编码、日期时间、网络，共69个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
@@ -361,6 +384,7 @@
 - 覆盖：源位置 Span（Span 类型、Spanned[T]、Parser span 捕获、Attr/Body/Block span）
 - 覆盖：类型统一（TypeName、unify_types、convert_value、条件分支类型检查、Null/Unknown 传播）
 - 覆盖：日期时间函数（formatdate 令牌格式化、timeadd 时长加法、timecmp 比较、RFC3339 解析）
+- 覆盖：网络函数（cidrhost 主机地址、cidrnetmask 子网掩码、cidrsubnet 子网计算、cidrsubnets 批量子网）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -394,7 +418,8 @@
 - ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist, startswith, endswith, title)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
 - ✅ 编码函数 (jsondecode, jsonencode, base64decode, base64encode, csvdecode, urlencode)
-- ✅ 通过 builtin_functions() 获取所有内置函数（65 个）
+- ✅ 网络函数 (cidrhost, cidrnetmask, cidrsubnet, cidrsubnets)
+- ✅ 通过 builtin_functions() 获取所有内置函数（69 个）
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
 - ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
 - ✅ `FuncDefBuilder` — 链式 API 构建函数定义
@@ -1084,13 +1109,13 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 5:  EncodingFuncs       — ✅ 已完成 (871 测试通过)
 迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
 迭代 7:  DateTimeFuncs       — ✅ 已完成 (891 测试通过)
-迭代 8:  NetworkFuncs        — 低优先级
+迭代 8:  NetworkFuncs        — ✅ 已完成 (906 测试通过)
 迭代 9:  RegexFuncs          — 低优先级 (依赖 MoonBit 生态)
 迭代 10: UserFuncRegistry    — ✅ 已完成 (878 测试通过)
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 ✅ → 8 → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 ✅ → 8 ✅ → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 
@@ -1104,7 +1129,7 @@ lenitain/feat/set-funcs                — 迭代 4
 lenitain/feat/encoding-funcs           — 迭代 5
 lenitain/feat/crypto-funcs             — 迭代 6
 lenitain/feat/datetime-funcs           — 迭代 7
-lenitain/feat/network-funcs            — 迭代 8
+lenitain/feat/network-funcs            — 迭代 8 ✅
 lenitain/feat/regex-funcs              — 迭代 9
 lenitain/feat/user-func-registry       — 迭代 10
 lenitain/feat/type-system-enhance      — 迭代 11
