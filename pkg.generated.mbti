@@ -24,6 +24,8 @@ pub fn collect_variables(Body) -> Array[String]
 
 pub fn collect_variables_from_expr(Expression) -> Array[String]
 
+pub fn convert_value(HCLValue, TypeName) -> Result[HCLValue, HCLError]
+
 pub fn decorated_expr_to_string(Decorated[Expression]) -> String
 
 pub fn escape_hcl_string(String) -> String
@@ -161,6 +163,10 @@ pub fn[T : ToHCL] to_hcl_str(T) -> String
 pub fn to_hcl_string(String) -> String
 
 pub fn to_hcl_value(HCLValue) -> String
+
+pub fn type_of(HCLValue) -> TypeName
+
+pub fn unify_types(TypeName, TypeName) -> Result[TypeName, HCLError]
 
 pub fn validate(HCLValue, TypeSchema) -> Array[HCLError]
 
@@ -855,6 +861,16 @@ pub(all) enum TraversalOperator {
   Attr(String)
   Index(Expression)
   Splat
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TypeName {
+  TNull
+  TBool
+  TNumber
+  TString
+  TArray
+  TObject
+  TUnknown
 } derive(Eq, @debug.Debug)
 
 pub(all) enum TypeSchema {

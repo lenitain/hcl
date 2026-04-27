@@ -340,6 +340,17 @@ fn eval_not(operand : HCLValue) -> HCLResult[HCLValue] {
 }
 
 ///|
+/// Unify two branch values and return the selected one converted to the common type
+fn unify_branches(selected : HCLValue, other : HCLValue) -> HCLResult[HCLValue] {
+  let selected_type = type_of(selected)
+  let other_type = type_of(other)
+  match unify_types(selected_type, other_type) {
+    Ok(unified) => convert_value(selected, unified)
+    Err(_) => Ok(selected)
+  }
+}
+
+///|
 /// Evaluate conditional expression (cond ? true : false)
 pub fn eval_conditional(
   condition : HCLValue,
@@ -350,7 +361,11 @@ pub fn eval_conditional(
     return Ok(Unknown(Decor::empty()))
   }
   match condition {
-    Bool(b, _) => if b { Ok(true_expr) } else { Ok(false_expr) }
+    Bool(b, _) => {
+      let selected = if b { true_expr } else { false_expr }
+      let other = if b { false_expr } else { true_expr }
+      unify_branches(selected, other)
+    }
     _ => Err(HCLError::type_error("Condition must be boolean"))
   }
 }
@@ -489,13 +504,25 @@ pub fn eval_expr(
     ExprParenthesis(inner) => eval_expr(inner, variables, functions)
     ExprConditional(cond) =>
       match eval_expr(cond.condition, variables, functions) {
-        Ok(Bool(b, _)) =>
-          if b {
-            eval_expr(cond.true_expr, variables, functions)
-          } else {
-            eval_expr(cond.false_expr, variables, functions)
+        Ok(Bool(b, _)) => {
+          let true_result = eval_expr(cond.true_expr, variables, functions)
+          let false_result = eval_expr(cond.false_expr, variables, functions)
+          match (true_result, false_result) {
+            (Ok(true_val), Ok(false_val)) => {
+              let selected = if b { true_val } else { false_val }
+              let other = if b { false_val } else { true_val }
+              unify_branches(selected, other)
+            }
+            (Ok(val), Err(_)) | (Err(_), Ok(val)) => Ok(val)
+            (Err(e), Err(_)) => Err(e)
           }
-        Ok(_) => Err(HCLError::type_error("Condition must be boolean"))
+        }
+        Ok(v) =>
+          if is_unknown_value(v) {
+            Ok(Unknown(Decor::empty()))
+          } else {
+            Err(HCLError::type_error("Condition must be boolean"))
+          }
         Err(e) => Err(e)
       }
     ExprOperation(op) => eval_operation(op, variables, functions)
