@@ -12,6 +12,7 @@ pub(all) enum HCLError {
   UndefinedProperty(String)
   ValidationError(String, String)
   EncodingError(String)
+  MultipleErrors(Array[HCLError])
 } derive(Debug, Eq)
 
 ///|
@@ -91,6 +92,11 @@ pub fn HCLError::encoding_error(msg : String) -> HCLError {
 }
 
 ///|
+pub fn HCLError::multi(errors : Array[HCLError]) -> HCLError {
+  MultipleErrors(errors)
+}
+
+///|
 pub fn HCLError::message(self : HCLError) -> String {
   match self {
     ParseError(msg, line, column, _, context) => {
@@ -126,6 +132,7 @@ pub fn HCLError::message(self : HCLError) -> String {
     UndefinedProperty(name) => "Undefined property: " + name
     ValidationError(path, msg) => "Validation error at " + path + ": " + msg
     EncodingError(msg) => "Encoding error: " + msg
+    MultipleErrors(errors) => errors.map(fn(e) { e.message() }).join("\n")
   }
 }
 
