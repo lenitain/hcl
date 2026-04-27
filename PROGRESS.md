@@ -1,13 +1,22 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：未知值 (Unknown values) 完成 ✅
+## 当前状态：隐式类型转换 (Implicit Type Conversion) 进行中
 
 ## 当前分支
-- 分支：`lenitain/feat/unknown-values`
-- 状态：开发完成
-- 目标：Unknown values 支持（P0 #1）
+- 分支：`lenitain/feat/implicit-type-conversion`
+- 状态：开发中
+- 目标：隐式类型转换（P0 #2）
 
 ## 本次开发完成的任务
+- ✅ `HCLValue::type_name()` 方法 — 获取值类型名称字符串
+- ✅ `string_to_bool` — 字符串转布尔值（"true"/"1" → true, "false"/"0" → false）
+- ✅ `string_to_number` — 字符串转数字（支持整数、浮点数、正负号）
+- ✅ `number_to_string` — 数字转字符串
+- ✅ `bool_to_string` — 布尔值转字符串
+- ✅ `try_convert` — 统一类型转换入口（pub fn）
+- ✅ 所有 588 个测试通过
+- ✅ moon check: 0 errors
+- ✅ moon fmt: 通过
 - ✅ `HCLValue::Unknown(Decor)` 变体
 - ✅ `Expression::ExprUnknown` 变体
 - ✅ `expr_to_hcl_value` / `hcl_value_to_expression` 桥接 Unknown
@@ -163,6 +172,7 @@
 - ✅ 变量引用
 - ✅ 属性访问 (obj.key, obj["key"])
 - ✅ 类型检查和错误处理
+- ✅ 类型转换辅助函数（string_to_bool, string_to_number, try_convert）
 
 ### 模板系统 (template.mbt)
 - ✅ 字符串插值 (${expr})
@@ -207,7 +217,7 @@
 | # | 功能 | 说明 | 影响 |
 |---|------|------|------|
 | 1 | **未知值 (Unknown values)** | ✅ 已完成。`HCLValue::Unknown(Decor)` + `Expression::ExprUnknown` + 桥接函数。Unknown 通过所有 schema 验证 + tostring 返回 "unknown"。 | Terraform 兼容性已可用 |
-| 2 | **隐式类型转换** | 无 string↔number、string↔bool 自动转换。Go HCL 在比较/运算时会自动转换，当前 `eval.mbt` 严格类型检查。 | 现有 `.tf` 文件大量依赖隐式转换 |
+| 2 | **隐式类型转换** | 🔄 辅助函数已实现（string_to_bool, string_to_number, try_convert），待集成到 eval_binary/eval_eq 等 | 现有 `.tf` 文件大量依赖隐式转换 |
 | 3 | **JSON 语法解析** | `json.mbt` 只有 HCL→JSON 序列化，没有 JSON→HCL body 解析。HCL spec 定义了一套 JSON 等效语法。 | 无法读取 `terraform.tfvars.json` |
 | 4 | **模板 else 子句** | `%{if cond}...%{else}...%{endif}` 未实现，`template.mbt` 只处理 if/endif。 | 大量 Terraform 模板不可用 |
 | 5 | **表达式类型安全重构** | ✅ 已完成 | 架构缺陷修复 |
