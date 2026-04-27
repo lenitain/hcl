@@ -300,6 +300,14 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamArray(Any))
     .param(ParamArray(Any))
     .build("zipmap", fn_zipmap)
+  funcs["transpose"] = FuncDef::builder()
+    .param(ParamObject(Any))
+    .build("transpose", fn_transpose)
+  funcs["matchkeys"] = FuncDef::builder()
+    .param(ParamArray(Any))
+    .param(ParamArray(Any))
+    .param(ParamArray(Any))
+    .build("matchkeys", fn_matchkeys)
 
   // String functions
   funcs["chomp"] = FuncDef::builder()
@@ -974,6 +982,79 @@ fn fn_zipmap(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       Ok(Object(map, Decor::empty()))
     }
     _ => Err(HCLError::type_error("zipmap() requires (array, array)"))
+  }
+}
+
+///|
+/// transpose(map) - Transpose map keys/values
+fn fn_transpose(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Object(o, _) => {
+      let result : Map[String, HCLValue] = {}
+      for k, v in o {
+        match v {
+          Array(arr, _) => {
+            for item in arr {
+              match item {
+                String(s, _) => {
+                  match result.get(s) {
+                    Some(Array(existing, _)) => {
+                      existing.push(String(k, Decor::empty()))
+                      result[s] = Array(existing, Decor::empty())
+                    }
+                    None => {
+                      result[s] = Array(
+                        [String(k, Decor::empty())],
+                        Decor::empty(),
+                      )
+                    }
+                    _ =>
+                      return Err(
+                        HCLError::invalid_value("transpose() internal error"),
+                      )
+                  }
+                }
+                _ =>
+                  return Err(
+                    HCLError::type_error(
+                      "transpose() values must be arrays of strings",
+                    ),
+                  )
+              }
+            }
+          }
+          _ =>
+            return Err(
+              HCLError::type_error("transpose() values must be arrays"),
+            )
+        }
+      }
+      Ok(Object(result, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("transpose() requires an object"))
+  }
+}
+
+///|
+/// matchkeys(search, keys, values) - Match key patterns
+fn fn_matchkeys(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1], args[2]) {
+    (Array(search_arr, _), Array(keys_arr, _), Array(values_arr, _)) => {
+      let result = []
+      for search_item in search_arr {
+        let mut i = 0
+        while i < keys_arr.length() && i < values_arr.length() {
+          if keys_arr[i] == search_item {
+            result.push(values_arr[i])
+            break
+          }
+          i = i + 1
+        }
+      }
+      Ok(Array(result, Decor::empty()))
+    }
+    _ =>
+      Err(HCLError::type_error("matchkeys() requires (array, array, array)"))
   }
 }
 

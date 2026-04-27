@@ -1807,3 +1807,169 @@ test "FuncDef builder factory" {
     Err(_) => panic()
   }
 }
+
+///| =========================================================================
+/// Collection Functions - transpose, matchkeys
+
+///| =========================================================================
+
+///|
+test "transpose basic" {
+  let funcs = builtin_functions()
+  let f = funcs["transpose"]
+  let obj = HCLValue::Object(
+    {
+      "a": HCLValue::Array(
+        [
+          HCLValue::String("x", Decor::empty()),
+          HCLValue::String("y", Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+      "b": HCLValue::Array(
+        [
+          HCLValue::String("y", Decor::empty()),
+          HCLValue::String("z", Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+    },
+    Decor::empty(),
+  )
+  match f.call([obj]) {
+    Ok(HCLValue::Object(m, _)) => {
+      assert_true(m.get("x") is Some(_))
+      assert_true(m.get("y") is Some(_))
+      assert_true(m.get("z") is Some(_))
+      match m["x"] {
+        HCLValue::Array(arr, _) => {
+          assert_eq(arr.length(), 1)
+          assert_true(arr[0] == HCLValue::String("a", Decor::empty()))
+        }
+        _ => panic()
+      }
+      match m["y"] {
+        HCLValue::Array(arr, _) => {
+          assert_eq(arr.length(), 2)
+        }
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "transpose empty" {
+  let funcs = builtin_functions()
+  let f = funcs["transpose"]
+  let obj = HCLValue::Object({}, Decor::empty())
+  match f.call([obj]) {
+    Ok(HCLValue::Object(m, _)) => {
+      assert_eq(m.length(), 0)
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "transpose type error" {
+  let funcs = builtin_functions()
+  let f = funcs["transpose"]
+  match f.call([HCLValue::Number(Number::from_int(1), Decor::empty())]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "matchkeys basic" {
+  let funcs = builtin_functions()
+  let f = funcs["matchkeys"]
+  let search = HCLValue::Array(
+    [
+      HCLValue::String("a", Decor::empty()),
+      HCLValue::String("c", Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  let keys = HCLValue::Array(
+    [
+      HCLValue::String("a", Decor::empty()),
+      HCLValue::String("b", Decor::empty()),
+      HCLValue::String("c", Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  let values = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+      HCLValue::Number(Number::from_int(3), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  match f.call([search, keys, values]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 2)
+      assert_true(
+        arr[0] == HCLValue::Number(Number::from_int(1), Decor::empty()),
+      )
+      assert_true(
+        arr[1] == HCLValue::Number(Number::from_int(3), Decor::empty()),
+      )
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "matchkeys no match" {
+  let funcs = builtin_functions()
+  let f = funcs["matchkeys"]
+  let search = HCLValue::Array(
+    [HCLValue::String("x", Decor::empty())],
+    Decor::empty(),
+  )
+  let keys = HCLValue::Array(
+    [
+      HCLValue::String("a", Decor::empty()),
+      HCLValue::String("b", Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  let values = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  match f.call([search, keys, values]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 0)
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "matchkeys empty search" {
+  let funcs = builtin_functions()
+  let f = funcs["matchkeys"]
+  let search = HCLValue::Array([], Decor::empty())
+  let keys = HCLValue::Array(
+    [HCLValue::String("a", Decor::empty())],
+    Decor::empty(),
+  )
+  let values = HCLValue::Array(
+    [HCLValue::Number(Number::from_int(1), Decor::empty())],
+    Decor::empty(),
+  )
+  match f.call([search, keys, values]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 0)
+    }
+    _ => panic()
+  }
+}
