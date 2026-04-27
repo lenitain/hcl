@@ -318,6 +318,27 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamArray(ParamBool))
     .build("anytrue", fn_anytrue)
   funcs["one"] = FuncDef::builder().param(ParamArray(Any)).build("one", fn_one)
+  funcs["setunion"] = FuncDef::builder()
+    .variadic(ParamArray(Any))
+    .build("setunion", fn_setunion)
+  funcs["setintersection"] = FuncDef::builder()
+    .variadic(ParamArray(Any))
+    .build("setintersection", fn_setintersection)
+  funcs["setsubtract"] = FuncDef::builder()
+    .param(ParamArray(Any))
+    .param(ParamArray(Any))
+    .build("setsubtract", fn_setsubtract)
+  funcs["setsymmetricdifference"] = FuncDef::builder()
+    .param(ParamArray(Any))
+    .param(ParamArray(Any))
+    .build("setsymmetricdifference", fn_setsymmetricdifference)
+  funcs["setproduct"] = FuncDef::builder()
+    .variadic(ParamArray(Any))
+    .build("setproduct", fn_setproduct)
+  funcs["setissubset"] = FuncDef::builder()
+    .param(ParamArray(Any))
+    .param(ParamArray(Any))
+    .build("setissubset", fn_setissubset)
 
   // String functions
   funcs["chomp"] = FuncDef::builder()
@@ -1138,6 +1159,197 @@ fn fn_one(args : Array[HCLValue]) -> HCLResult[HCLValue] {
         )
       }
     _ => Err(HCLError::type_error("one() requires an array"))
+  }
+}
+
+///|
+/// setunion(s1, s2, ...) - Returns deduplicated union of all arrays
+fn fn_setunion(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  let result = []
+  let seen = Set::new()
+  for arg in args {
+    match arg {
+      Array(arr, _) =>
+        for item in arr {
+          let key = item.to_json_string()
+          if !seen.contains(key) {
+            seen.add(key)
+            result.push(item)
+          }
+        }
+      _ => return Err(HCLError::type_error("setunion() requires arrays"))
+    }
+  }
+  Ok(Array(result, Decor::empty()))
+}
+
+///|
+/// setintersection(s1, s2, ...) - Returns items present in ALL arrays
+fn fn_setintersection(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  if args.length() == 0 {
+    return Ok(Array([], Decor::empty()))
+  }
+  match args[0] {
+    Array(first, _) => {
+      let seen = Set::new()
+      let result = []
+      for item in first {
+        let key = item.to_json_string()
+        if seen.contains(key) {
+          continue
+        }
+        seen.add(key)
+        let mut in_all = true
+        for i in 1..<args.length() {
+          match args[i] {
+            Array(arr, _) => {
+              let mut found = false
+              for other in arr {
+                if other.to_json_string() == key {
+                  found = true
+                  break
+                }
+              }
+              if !found {
+                in_all = false
+                break
+              }
+            }
+            _ =>
+              return Err(
+                HCLError::type_error("setintersection() requires arrays"),
+              )
+          }
+        }
+        if in_all {
+          result.push(item)
+        }
+      }
+      Ok(Array(result, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("setintersection() requires arrays"))
+  }
+}
+
+///|
+/// setsubtract(s1, s2) - Returns items in s1 NOT in s2
+fn fn_setsubtract(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(s1, _) =>
+      match args[1] {
+        Array(s2, _) => {
+          let s2_keys = Set::new()
+          for item in s2 {
+            s2_keys.add(item.to_json_string())
+          }
+          let seen = Set::new()
+          let result = []
+          for item in s1 {
+            let key = item.to_json_string()
+            if !s2_keys.contains(key) && !seen.contains(key) {
+              seen.add(key)
+              result.push(item)
+            }
+          }
+          Ok(Array(result, Decor::empty()))
+        }
+        _ => Err(HCLError::type_error("setsubtract() requires arrays"))
+      }
+    _ => Err(HCLError::type_error("setsubtract() requires arrays"))
+  }
+}
+
+///|
+/// setsymmetricdifference(s1, s2) - Returns items in s1 or s2 but not both
+fn fn_setsymmetricdifference(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(s1, _) =>
+      match args[1] {
+        Array(s2, _) => {
+          let s1_keys = Set::new()
+          for item in s1 {
+            s1_keys.add(item.to_json_string())
+          }
+          let s2_keys = Set::new()
+          for item in s2 {
+            s2_keys.add(item.to_json_string())
+          }
+          let seen = Set::new()
+          let result = []
+          for item in s1 {
+            let key = item.to_json_string()
+            if !s2_keys.contains(key) && !seen.contains(key) {
+              seen.add(key)
+              result.push(item)
+            }
+          }
+          for item in s2 {
+            let key = item.to_json_string()
+            if !s1_keys.contains(key) && !seen.contains(key) {
+              seen.add(key)
+              result.push(item)
+            }
+          }
+          Ok(Array(result, Decor::empty()))
+        }
+        _ =>
+          Err(HCLError::type_error("setsymmetricdifference() requires arrays"))
+      }
+    _ => Err(HCLError::type_error("setsymmetricdifference() requires arrays"))
+  }
+}
+
+///|
+/// setproduct(s1, s2, ...) - Returns cartesian product of all arrays
+fn fn_setproduct(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  let mut results : Array[Array[HCLValue]] = [[]]
+  for arg in args {
+    match arg {
+      Array(arr, _) => {
+        let new_results : Array[Array[HCLValue]] = []
+        for partial in results {
+          for item in arr {
+            let extended : Array[HCLValue] = []
+            for elem in partial {
+              extended.push(elem)
+            }
+            extended.push(item)
+            new_results.push(extended)
+          }
+        }
+        results = new_results
+      }
+      _ => return Err(HCLError::type_error("setproduct() requires arrays"))
+    }
+  }
+  let out = []
+  for r in results {
+    out.push(HCLValue::Array(r, Decor::empty()))
+  }
+  Ok(HCLValue::Array(out, Decor::empty()))
+}
+
+///|
+/// setissubset(s1, s2) - Returns true if all items in s1 exist in s2
+fn fn_setissubset(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(s1, _) =>
+      match args[1] {
+        Array(s2, _) => {
+          let s2_keys = Set::new()
+          for item in s2 {
+            s2_keys.add(item.to_json_string())
+          }
+          for item in s1 {
+            if not(s2_keys.contains(item.to_json_string())) {
+              return Ok(HCLValue::Bool(false, Decor::empty()))
+            }
+          }
+          Ok(HCLValue::Bool(true, Decor::empty()))
+        }
+        _ => Err(HCLError::type_error("setissubset() requires arrays"))
+      }
+    _ => Err(HCLError::type_error("setissubset() requires arrays"))
   }
 }
 

@@ -2108,3 +2108,239 @@ test "one multiple elements" {
     _ => panic()
   }
 }
+
+///| =========================================================================
+/// Set Functions Tests
+
+///| =========================================================================
+
+///|
+test "setunion basic" {
+  let funcs = builtin_functions()
+  let f = funcs["setunion"]
+  let arr1 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  let arr2 = HCLValue::Array([num(2), num(3), num(4)], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 4)
+      assert_true(arr[0] == num(1))
+      assert_true(arr[1] == num(2))
+      assert_true(arr[2] == num(3))
+      assert_true(arr[3] == num(4))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setunion single array" {
+  let funcs = builtin_functions()
+  let f = funcs["setunion"]
+  let arr = HCLValue::Array([num(1), num(2), num(1)], Decor::empty())
+  match f.call([arr]) {
+    Ok(HCLValue::Array(result, _)) => assert_eq(result.length(), 2)
+    _ => panic()
+  }
+}
+
+///|
+test "setunion type error" {
+  let funcs = builtin_functions()
+  let f = funcs["setunion"]
+  match f.call([num(1), num(2)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "setintersection basic" {
+  let funcs = builtin_functions()
+  let f = funcs["setintersection"]
+  let arr1 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  let arr2 = HCLValue::Array([num(2), num(3), num(4)], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 2)
+      assert_true(arr[0] == num(2))
+      assert_true(arr[1] == num(3))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setintersection single array" {
+  let funcs = builtin_functions()
+  let f = funcs["setintersection"]
+  let arr = HCLValue::Array([num(1), num(2), num(1)], Decor::empty())
+  match f.call([arr]) {
+    Ok(HCLValue::Array(result, _)) => assert_eq(result.length(), 2)
+    _ => panic()
+  }
+}
+
+///|
+test "setintersection type error" {
+  let funcs = builtin_functions()
+  let f = funcs["setintersection"]
+  match f.call([num(1), num(2)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "setsubtract basic" {
+  let funcs = builtin_functions()
+  let f = funcs["setsubtract"]
+  let arr1 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  let arr2 = HCLValue::Array([num(2), num(4)], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 2)
+      assert_true(arr[0] == num(1))
+      assert_true(arr[1] == num(3))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setsubtract no overlap" {
+  let funcs = builtin_functions()
+  let f = funcs["setsubtract"]
+  let arr1 = HCLValue::Array([num(1), num(2)], Decor::empty())
+  let arr2 = HCLValue::Array([num(3), num(4)], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 2)
+      assert_true(arr[0] == num(1))
+      assert_true(arr[1] == num(2))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setsubtract type error" {
+  let funcs = builtin_functions()
+  let f = funcs["setsubtract"]
+  match f.call([num(1), num(2)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "setsymmetricdifference basic" {
+  let funcs = builtin_functions()
+  let f = funcs["setsymmetricdifference"]
+  let arr1 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  let arr2 = HCLValue::Array([num(2), num(3), num(4)], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 2)
+      assert_true(arr[0] == num(1))
+      assert_true(arr[1] == num(4))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setsymmetricdifference identical arrays" {
+  let funcs = builtin_functions()
+  let f = funcs["setsymmetricdifference"]
+  let arr1 = HCLValue::Array([num(1), num(2)], Decor::empty())
+  let arr2 = HCLValue::Array([num(1), num(2)], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => assert_eq(arr.length(), 0)
+    _ => panic()
+  }
+}
+
+///|
+test "setsymmetricdifference type error" {
+  let funcs = builtin_functions()
+  let f = funcs["setsymmetricdifference"]
+  match f.call([num(1), num(2)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "setproduct basic" {
+  let funcs = builtin_functions()
+  let f = funcs["setproduct"]
+  let arr1 = HCLValue::Array([num(1), num(2)], Decor::empty())
+  let arr2 = HCLValue::Array([str("a"), str("b")], Decor::empty())
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 4)
+      assert_true(arr[0] == HCLValue::Array([num(1), str("a")], Decor::empty()))
+      assert_true(arr[1] == HCLValue::Array([num(1), str("b")], Decor::empty()))
+      assert_true(arr[2] == HCLValue::Array([num(2), str("a")], Decor::empty()))
+      assert_true(arr[3] == HCLValue::Array([num(2), str("b")], Decor::empty()))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setproduct zero args" {
+  let funcs = builtin_functions()
+  let f = funcs["setproduct"]
+  match f.call([]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 1)
+      assert_true(arr[0] == HCLValue::Array([], Decor::empty()))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "setproduct type error" {
+  let funcs = builtin_functions()
+  let f = funcs["setproduct"]
+  match f.call([num(1)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "setissubset basic" {
+  let funcs = builtin_functions()
+  let f = funcs["setissubset"]
+  let s1 = HCLValue::Array([num(1), num(2)], Decor::empty())
+  let s2 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  match f.call([s1, s2]) {
+    Ok(HCLValue::Bool(b, _)) => assert_true(b)
+    _ => panic()
+  }
+}
+
+///|
+test "setissubset not subset" {
+  let funcs = builtin_functions()
+  let f = funcs["setissubset"]
+  let s1 = HCLValue::Array([num(1), num(4)], Decor::empty())
+  let s2 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  match f.call([s1, s2]) {
+    Ok(HCLValue::Bool(b, _)) => assert_true(not(b))
+    _ => panic()
+  }
+}
+
+///|
+test "setissubset type error" {
+  let funcs = builtin_functions()
+  let f = funcs["setissubset"]
+  match f.call([num(1), num(2)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}

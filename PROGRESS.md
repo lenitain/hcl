@@ -1,11 +1,11 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：集合/条件函数补齐 — 迭代 3 完成 ✅
+## 当前状态：集合论函数补齐 — 迭代 4 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/collection-funcs`
+- 分支：`lenitain/feat/set-funcs`
 - 状态：开发完成
-- 目标：补齐集合操作和条件函数
+- 目标：补齐集合运算函数
 
 ## 本次开发完成的任务
 
@@ -38,9 +38,19 @@
 - ✅ 新增 33+ 个测试
 - ✅ 所有 834 个测试通过
 
+### 集合论函数补齐 SetFuncs ✅
+- ✅ `setintersection(s1, s2, ...)` — 交集，variadic，去重
+- ✅ `setunion(s1, s2, ...)` — 并集，variadic，去重
+- ✅ `setsubtract(s1, s2)` — 差集，s1 中不在 s2 的元素
+- ✅ `setsymmetricdifference(s1, s2)` — 对称差集
+- ✅ `setproduct(s1, s2, ...)` — 笛卡尔积，迭代展开法
+- ✅ `setissubset(s1, s2)` — 子集判断
+- ✅ 18 个新测试（每个函数 3 个）
+- ✅ 所有 852 个测试通过
+
 ### 验证结果
 - ✅ moon check: 0 errors
-- ✅ moon test: 834 passed, 0 failed
+- ✅ moon test: 852 passed, 0 failed
 - ✅ moon fmt: 通过
 - ✅ moon info: 通过
 
@@ -275,7 +285,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 834 个测试全部通过
+- ✅ 852 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -285,7 +295,7 @@
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：JSON 语法解析（JSON→Body、标签嵌套、数组块、round-trip、terraform.tfvars.json）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
-- 覆盖：内置函数（数字、集合、字符串、类型转换，共50个函数）
+- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论，共56个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
@@ -328,10 +338,10 @@
 
 ### 内置函数 (funcs.mbt) - 新增
 - ✅ 数字函数 (abs, ceil, floor, log, max, min, parseint, pow, signum)
-- ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element, concat, coalesce, range, chunklist, lookup, zipmap, transpose, matchkeys)
+- ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element, concat, coalesce, range, chunklist, lookup, zipmap, transpose, matchkeys, setintersection, setunion, setsubtract, setsymmetricdifference, setproduct, setissubset)
 - ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist, startswith, endswith, title)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
-- ✅ 通过 builtin_functions() 获取所有内置函数（50 个）
+- ✅ 通过 builtin_functions() 获取所有内置函数（56 个）
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
 - ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
 - ✅ `FuncDefBuilder` — 链式 API 构建函数定义
@@ -433,7 +443,7 @@
 | 序列化 | `to_hcl_body`, `to_hcl_value`, `Formatter` | ✅ |
 | 反序列化 | `from_hcl_body`, `from_hcl_with_schema` | ✅ |
 | Trait 系统 | `ToHCL`, `FromHCL` | ✅ |
-| 表达式求值 | `eval_binary/unary`, 50 个内置函数 | ✅ |
+| 表达式求值 | `eval_binary/unary`, 56 个内置函数 | ✅ |
 | Schema 验证 | `TypeSchema`, `FieldSchema`, `validate` | ✅ |
 | JSON 转换 | `hcl_to_json`, `body_to_json_pretty` | ✅ |
 | Decor 系统 | `Decor`, `Decorated[T]` | ✅ |
@@ -836,7 +846,7 @@ hcl/
 
 ---
 
-### 迭代 4：集合论函数补齐 — SetFuncs
+### 迭代 4：集合论函数补齐 — SetFuncs ✅
 
 **目标**：补齐集合运算函数（HCL 中集合用数组表示）
 
@@ -844,14 +854,15 @@ hcl/
 
 | 函数 | 签名 | 实现要点 |
 |------|------|----------|
-| `setintersection(s1, s2, ...)` | `variadic array(array) -> array` | 交集，去重 |
-| `setunion(s1, s2, ...)` | `variadic array(array) -> array` | 并集，去重 |
-| `setsubtract(s1, s2)` | `(array, array) -> array` | 差集 |
-| `setsymmetricdifference(s1, s2)` | `(array, array) -> array` | 对称差集 |
-| `setproduct(s1, s2, ...)` | `variadic array(array) -> array(array)` | 笛卡尔积 |
-| `setissubset(s1, s2)` | `(array, array) -> bool` | 子集判断 |
+| `setintersection(s1, s2, ...)` | `variadic array(array) -> array` | 交集，去重，使用 `to_json_string()` 键 |
+| `setunion(s1, s2, ...)` | `variadic array(array) -> array` | 并集，去重，使用 `to_json_string()` 键 |
+| `setsubtract(s1, s2)` | `(array, array) -> array` | 差集，s1 中不在 s2 的元素 |
+| `setsymmetricdifference(s1, s2)` | `(array, array) -> array` | 对称差集，s1∪s2 - s1∩s2 |
+| `setproduct(s1, s2, ...)` | `variadic array(array) -> array(array)` | 笛卡尔积，迭代展开法 |
+| `setissubset(s1, s2)` | `(array, array) -> bool` | 子集判断，空集为任意集合子集 |
 
-**测试计数**：新增至少 18 个测试
+- ✅ 18 个新测试（每个函数 3 个：基本/边界/类型错误）
+- ✅ 所有 852 个测试通过
 
 ---
 
@@ -1008,7 +1019,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 1:  ParseErrorRecovery  — ✅ 已完成 (788 测试通过)
 迭代 2:  StringFuncsComplete  — ✅ 已完成 (801 测试通过)
 迭代 3:  CollectionFuncs     — ✅ 已完成 (834 测试通过)
-迭代 4:  SetFuncs            — 中优先级
+迭代 4:  SetFuncs            — ✅ 已完成 (852 测试通过)
 迭代 5:  EncodingFuncs       — 中优先级 (依赖 MoonBit 生态)
 迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
 迭代 7:  DateTimeFuncs       — 中优先级
@@ -1018,7 +1029,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 10 → 4 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 10 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 
