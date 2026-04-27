@@ -393,7 +393,7 @@ test "number to_string zero" {
 ///|
 test "number to_debug" {
   let n = Number::from_uint64(42UL)
-  assert_true(n.to_debug() == "Number(42)")
+  assert_true(n._to_debug() == "Number(42)")
 }
 
 // --- Edge case tests ---

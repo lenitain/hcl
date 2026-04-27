@@ -2,7 +2,7 @@
 /// Tests for implicit type conversion in HCL evaluation
 test "string to number conversion" {
   // Valid integer
-  let result = string_to_number("123")
+  let result = _string_to_number("123")
   assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_int(123))
@@ -10,7 +10,7 @@ test "string to number conversion" {
   }
 
   // Valid float
-  let result = string_to_number("123.45")
+  let result = _string_to_number("123.45")
   assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_finite_f64(123.45))
@@ -18,15 +18,15 @@ test "string to number conversion" {
   }
 
   // Invalid string
-  let result = string_to_number("abc")
+  let result = _string_to_number("abc")
   assert_true(result is Err(_))
 
   // Empty string
-  let result = string_to_number("")
+  let result = _string_to_number("")
   assert_true(result is Err(_))
 
   // Negative number
-  let result = string_to_number("-42")
+  let result = _string_to_number("-42")
   assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_int(-42))
@@ -37,14 +37,14 @@ test "string to number conversion" {
 ///|
 test "string to bool conversion" {
   // Valid true values
-  let result = string_to_bool("true")
+  let result = _string_to_bool("true")
   assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
   }
 
-  let result = string_to_bool("1")
+  let result = _string_to_bool("1")
   assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
@@ -52,14 +52,14 @@ test "string to bool conversion" {
   }
 
   // Valid false values
-  let result = string_to_bool("false")
+  let result = _string_to_bool("false")
   assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
     _ => panic()
   }
 
-  let result = string_to_bool("0")
+  let result = _string_to_bool("0")
   assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
@@ -67,11 +67,11 @@ test "string to bool conversion" {
   }
 
   // Invalid string
-  let result = string_to_bool("yes")
+  let result = _string_to_bool("yes")
   assert_true(result is Err(_))
 
   // Invalid string
-  let result = string_to_bool("TRUE")
+  let result = _string_to_bool("TRUE")
   assert_true(result is Err(_))
 }
 

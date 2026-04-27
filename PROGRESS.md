@@ -1,13 +1,30 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：迭代 12 完成 ✅ — RegexFuncs + TypeSystemEnhance
+## 当前状态：迭代 13 完成 ✅ — Warning Cleanup
 
 ## 当前分支
-- 分支：`lenitain/feat/regex-and-type-enhance`
+- 分支：`lenitain/fix/warning-cleanup`
 - 状态：开发完成
-- 目标：Regex 函数 + TDynamic 类型系统增强
+- 目标：修复 deprecated 警告，提升代码质量
 
 ## 本次开发完成的任务
+
+### 警告清理 WarningCleanup (迭代 13) ✅
+- ✅ `not()` → `!` — 6 个 deprecated 警告修复（funcs.mbt 5 + funcs_test.mbt 1）
+- ✅ `.is_ok()` → `is Ok(_)` — 5 个 deprecated 警告修复（splat_test.mbt）
+- ✅ `.is_some()` → `is Some(_)` — 1 个 deprecated 警告修复（unknown_test.mbt）
+- ✅ Json `as_*()` → `is` 模式匹配 — 6 个 deprecated 警告修复（funcs.mbt json_to_hcl_value）
+- ✅ 未使用变量 `args` → `_args` — 3 个修复（funcs_test.mbt）
+- ✅ 未使用函数前缀 `_` — 3 个修复（eval.mbt: string_to_bool/number, number.mbt: to_debug）
+- ✅ `core_package_not_imported` — moon.pkg 添加 math/debug/encoding_utf8 导入
+- ✅ 警告总数：50 → 19（剩余 19 个为 MoonBit trait 系统正常警告，不可修复）
+- ✅ 所有 921 个测试通过
+
+### 验证结果
+- ✅ moon check: 0 errors（19 warnings = unused trait impl，MoonBit 系统行为）
+- ✅ moon test: 921 passed, 0 failed
+- ✅ moon fmt: 通过
+- ✅ moon info: 通过
 
 ### Regex 函数 RegexFuncs ✅
 - ✅ `regex(pattern, str)` — 查找第一个匹配，返回捕获组数组
@@ -242,7 +259,8 @@
 - ✅ moon info: 通过
 
 ## 警告统计
-- 38 警告（主要是 trait impl 的 unused_value，这些是 MoonBit trait 系统的正常警告）
+- 19 警告（全部为 trait impl 的 unused_value，MoonBit trait 系统正常警告，不可修复）
+- 已修复 31 个 deprecated/unused 警告（迭代 13: WarningCleanup）
 
 ## 设计要点
 - 参考 hcl-rs 的 hcl2json CLI 设计
@@ -490,6 +508,7 @@
 迭代 10 (P2): 源位置 Span (#10) → ✅ 已完成（734 测试通过）
 迭代 11 (P2): 类型统一 (#12) → ✅ 已完成（778 测试通过）
 迭代 12:     RegexFuncs + TypeSystemEnhance → ✅ 已完成（921 测试通过）
+迭代 13:     WarningCleanup → ✅ 已完成（921 测试通过，警告 50→19）
 🎉 全部可实现迭代任务已完成！（CryptoFuncs 因 MoonBit 无 crypto 库跳过）
 ```
 
@@ -1120,9 +1139,11 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 9:  RegexFuncs          — ✅ 已完成 (921 测试通过)
 迭代 10: UserFuncRegistry    — ✅ 已完成 (878 测试通过)
 迭代 11: TypeSystemEnhance   — ✅ 已完成 (921 测试通过)
+迭代 12: RegexFuncs+TypeSys  — ✅ 已完成 (921 测试通过)
+迭代 13: WarningCleanup      — ✅ 已完成 (921 测试通过，警告 50→19)
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 ✅ → 8 ✅ → 9 ✅ → 11 ✅（CryptoFuncs 因 MoonBit 无 crypto 库跳过）
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 ✅ → 8 ✅ → 9 ✅ → 11 ✅ → 13 ✅（CryptoFuncs 因 MoonBit 无 crypto 库跳过）
 
 ---
 
@@ -1141,6 +1162,7 @@ lenitain/feat/regex-funcs              — 迭代 9 ✅
 lenitain/feat/user-func-registry       — 迭代 10
 lenitain/feat/type-system-enhance      — 迭代 11 ✅
 lenitain/feat/regex-and-type-enhance   — 迭代 12 ✅
+lenitain/fix/warning-cleanup           — 迭代 13 ✅
 ```
 
 ## 每次迭代完成后的验证命令

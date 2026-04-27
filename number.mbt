@@ -488,7 +488,7 @@ fn Number::to_string(self : Number) -> String {
 // Debug for Number
 
 ///|
-fn Number::to_debug(self : Number) -> String {
+fn Number::_to_debug(self : Number) -> String {
   "Number(" + N::to_string(self.n) + ")"
 }
 

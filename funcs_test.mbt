@@ -1743,7 +1743,7 @@ test "ParamType display_name" {
 }
 
 ///|
-fn fn_add_stub(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+fn fn_add_stub(_args : Array[HCLValue]) -> HCLResult[HCLValue] {
   Ok(Number(Number::from_int(0), Decor::empty()))
 }
 
@@ -2330,7 +2330,7 @@ test "setissubset not subset" {
   let s1 = HCLValue::Array([num(1), num(4)], Decor::empty())
   let s2 = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
   match f.call([s1, s2]) {
-    Ok(HCLValue::Bool(b, _)) => assert_true(not(b))
+    Ok(HCLValue::Bool(b, _)) => assert_true(!b)
     _ => panic()
   }
 }
@@ -2643,7 +2643,7 @@ test "FuncRegistry::register adds custom function" {
   let reg = FuncRegistry::new()
   let custom_fn = FuncDef::builder()
     .param(Any)
-    .build("greet", fn(args) { Ok(HCLValue::String("hello", Decor::empty())) })
+    .build("greet", fn(_args) { Ok(HCLValue::String("hello", Decor::empty())) })
   let built = reg.register("greet", custom_fn).build()
   assert_true(built.contains("greet"))
   match built["greet"].call([str("world")]) {
@@ -2667,7 +2667,7 @@ test "FuncRegistry::build returns correct map" {
 test "merge_funcs merges two maps" {
   let base = builtin_functions()
   let extra = Map::new()
-  let custom_fn = FuncDef::builder().build("custom_add", fn(args) {
+  let custom_fn = FuncDef::builder().build("custom_add", fn(_args) {
     Ok(HCLValue::Number(Number::from_int(99), Decor::empty()))
   })
   extra["custom_add"] = custom_fn

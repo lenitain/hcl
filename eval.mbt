@@ -13,7 +13,7 @@ fn is_unknown_value(v : HCLValue) -> Bool {
 
 ///|
 /// Convert string to bool value
-fn string_to_bool(s : String) -> HCLResult[HCLValue] {
+fn _string_to_bool(s : String) -> HCLResult[HCLValue] {
   match s {
     "true" | "1" => Ok(Bool(true, Decor::empty()))
     "false" | "0" => Ok(Bool(false, Decor::empty()))
@@ -24,7 +24,7 @@ fn string_to_bool(s : String) -> HCLResult[HCLValue] {
 
 ///|
 /// Convert string to number value
-fn string_to_number(s : String) -> HCLResult[HCLValue] {
+fn _string_to_number(s : String) -> HCLResult[HCLValue] {
   let trimmed = s.trim()
   if trimmed.length() == 0 {
     return Err(HCLError::type_error("Cannot convert empty string to number"))

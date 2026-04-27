@@ -143,7 +143,7 @@ test "validate unknown passes Any" {
 test "tostring unknown returns \"unknown\"" {
   let fns = builtin_functions()
   let tostring = fns.get("tostring")
-  assert_true(tostring.is_some())
+  assert_true(tostring is Some(_))
   let result = tostring.unwrap().call([HCLValue::unknown()])
   match result {
     Ok(String(s, _)) => assert_eq(s, "unknown")

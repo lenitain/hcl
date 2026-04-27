@@ -36,7 +36,7 @@ pub fn ParamType::is_satisfied_by(self : ParamType, value : HCLValue) -> Bool {
       match value {
         Object(o, _) => {
           for _, v in o {
-            if not(val_type.is_satisfied_by(v)) {
+            if !val_type.is_satisfied_by(v) {
               return false
             }
           }
@@ -100,7 +100,7 @@ pub fn FuncDef::call(
   }
 
   // Too many args without variadic
-  if not(self.variadic is Some(_)) && args_len > params_len {
+  if !(self.variadic is Some(_)) && args_len > params_len {
     return Err(
       HCLError::invalid_value(
         self.name +
@@ -114,7 +114,7 @@ pub fn FuncDef::call(
 
   // Type-check positional args
   for i in 0..<params_len {
-    if not(self.params[i].is_satisfied_by(args[i])) {
+    if !self.params[i].is_satisfied_by(args[i]) {
       return Err(
         HCLError::type_error(
           self.name +
@@ -133,7 +133,7 @@ pub fn FuncDef::call(
   match self.variadic {
     Some(var_type) =>
       for i in params_len..<args_len {
-        if not(var_type.is_satisfied_by(args[i])) {
+        if !var_type.is_satisfied_by(args[i]) {
           return Err(
             HCLError::type_error(
               self.name +
@@ -1473,7 +1473,7 @@ fn fn_setissubset(args : Array[HCLValue]) -> HCLResult[HCLValue] {
             s2_keys.add(item.to_json_string())
           }
           for item in s1 {
-            if not(s2_keys.contains(item.to_json_string())) {
+            if !s2_keys.contains(item.to_json_string()) {
               return Ok(HCLValue::Bool(false, Decor::empty()))
             }
           }
@@ -1918,26 +1918,25 @@ fn fn_tostring(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 /// Convert a parsed Json value to HCLValue recursively
 fn json_to_hcl_value(j : Json) -> HCLValue {
   match j {
-    _ if j.as_null() is Some(_) => Null(Decor::empty())
-    _ if j.as_bool() is Some(b) => Bool(b, Decor::empty())
-    _ if j.as_number() is Some(n) =>
-      Number(Number::from_finite_f64(n), Decor::empty())
-    _ if j.as_string() is Some(s) => String(s, Decor::empty())
-    _ if j.as_array() is Some(arr) => {
+    Null => Null(Decor::empty())
+    True => Bool(true, Decor::empty())
+    False => Bool(false, Decor::empty())
+    Number(n, ..) => Number(Number::from_finite_f64(n), Decor::empty())
+    String(s) => String(s, Decor::empty())
+    Array(arr) => {
       let result = []
       for item in arr {
         result.push(json_to_hcl_value(item))
       }
       Array(result, Decor::empty())
     }
-    _ if j.as_object() is Some(obj) => {
+    Object(obj) => {
       let result : Map[String, HCLValue] = {}
       for k, v in obj {
         result[k] = json_to_hcl_value(v)
       }
       Object(result, Decor::empty())
     }
-    _ => Null(Decor::empty())
   }
 }
 

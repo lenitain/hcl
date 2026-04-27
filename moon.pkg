@@ -2,6 +2,9 @@ import {
   "moonbitlang/core/json" @json,
   "moonbitlang/core/encoding/base64" @encoding/base64,
   "moonbitlang/x/time" @time,
+  "moonbitlang/core/math" @math,
+  "moonbitlang/core/debug" @debug,
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
 }
 
 warnings = "-unused_package"
