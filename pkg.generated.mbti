@@ -889,6 +889,7 @@ pub(all) enum TypeName {
   TArray
   TObject
   TUnknown
+  TDynamic
 } derive(Eq, @debug.Debug)
 
 pub(all) enum TypeSchema {

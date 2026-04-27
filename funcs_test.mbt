@@ -2363,6 +2363,12 @@ test "jsondecode basic" {
             _ => panic()
           }
         }
+        if k == "b" {
+          match v {
+            HCLValue::String(s, _) => assert_true(s == "hello")
+            _ => panic()
+          }
+        }
       }
     _ => panic()
   }
@@ -2985,6 +2991,136 @@ test "cidrsubnets basic" {
       assert_true(arr[2] == str("10.0.32.0/20"))
       assert_true(arr[3] == str("10.0.48.0/20"))
     }
+    _ => panic()
+  }
+}
+
+///| =========================================================================
+/// Regex Functions Tests
+
+///| =========================================================================
+
+///|
+test "regex basic match with groups" {
+  let funcs = builtin_functions()
+  let f = funcs["regex"]
+  match f.call([str("([0-9]+)-([a-z]+)"), str("abc-123-def-456")]) {
+    Ok(Array(arr, _)) => {
+      assert_true(arr.length() == 3)
+      assert_true(arr[0] == str("123-def"))
+      assert_true(arr[1] == str("123"))
+      assert_true(arr[2] == str("def"))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "regex no match" {
+  let funcs = builtin_functions()
+  let f = funcs["regex"]
+  match f.call([str("[0-9]+"), str("no-digits-here")]) {
+    Ok(Array(arr, _)) => assert_true(arr.length() == 0)
+    _ => panic()
+  }
+}
+
+///|
+test "regex pattern with no groups" {
+  let funcs = builtin_functions()
+  let f = funcs["regex"]
+  match f.call([str("[a-z]+"), str("hello-world")]) {
+    Ok(Array(arr, _)) => {
+      assert_true(arr.length() == 1)
+      assert_true(arr[0] == str("hello"))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "regexall multiple matches" {
+  let funcs = builtin_functions()
+  let f = funcs["regexall"]
+  match f.call([str("[0-9]+"), str("abc-123-def-456")]) {
+    Ok(Array(arr, _)) => {
+      assert_true(arr.length() == 2)
+      match arr[0] {
+        Array(inner, _) => {
+          assert_true(inner.length() == 1)
+          assert_true(inner[0] == str("123"))
+        }
+        _ => panic()
+      }
+      match arr[1] {
+        Array(inner, _) => {
+          assert_true(inner.length() == 1)
+          assert_true(inner[0] == str("456"))
+        }
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "regexall no matches" {
+  let funcs = builtin_functions()
+  let f = funcs["regexall"]
+  match f.call([str("[0-9]+"), str("no-digits")]) {
+    Ok(Array(arr, _)) => assert_true(arr.length() == 0)
+    _ => panic()
+  }
+}
+
+///|
+test "regexall single match with groups" {
+  let funcs = builtin_functions()
+  let f = funcs["regexall"]
+  match f.call([str("([a-z]+)-([0-9]+)"), str("foo-123 bar-456")]) {
+    Ok(Array(arr, _)) => {
+      assert_true(arr.length() == 2)
+      match arr[0] {
+        Array(inner, _) => {
+          assert_true(inner.length() == 3)
+          assert_true(inner[0] == str("foo-123"))
+          assert_true(inner[1] == str("foo"))
+          assert_true(inner[2] == str("123"))
+        }
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "regex_replace basic" {
+  let funcs = builtin_functions()
+  let f = funcs["regex_replace"]
+  match f.call([str("hello world"), str("world"), str("moonbit")]) {
+    Ok(String(s, _)) => assert_true(s == "hello moonbit")
+    _ => panic()
+  }
+}
+
+///|
+test "regex_replace with groups" {
+  let funcs = builtin_functions()
+  let f = funcs["regex_replace"]
+  match f.call([str("abc-123-def-456"), str("([0-9]+)"), str("N$1N")]) {
+    Ok(String(s, _)) => assert_true(s == "abc-N123N-def-N456N")
+    _ => panic()
+  }
+}
+
+///|
+test "regex_replace no match" {
+  let funcs = builtin_functions()
+  let f = funcs["regex_replace"]
+  match f.call([str("hello world"), str("xyz"), str("abc")]) {
+    Ok(String(s, _)) => assert_true(s == "hello world")
     _ => panic()
   }
 }

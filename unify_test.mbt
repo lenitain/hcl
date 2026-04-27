@@ -137,6 +137,56 @@ test "unify_types object and object" {
   }
 }
 
+// TDynamic tests
+
+///|
+test "unify_types dynamic and number" {
+  match unify_types(TDynamic, TNumber) {
+    Ok(TNumber) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "unify_types number and dynamic" {
+  match unify_types(TNumber, TDynamic) {
+    Ok(TNumber) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "unify_types dynamic and dynamic" {
+  match unify_types(TDynamic, TDynamic) {
+    Ok(TDynamic) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "unify_types dynamic and string" {
+  match unify_types(TDynamic, TString) {
+    Ok(TString) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "unify_types dynamic and array" {
+  match unify_types(TDynamic, TArray) {
+    Ok(TArray) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "unify_types null and dynamic" {
+  match unify_types(TNull, TDynamic) {
+    Ok(TDynamic) => assert_true(true)
+    _ => panic()
+  }
+}
+
 // unify_types invalid combinations
 
 ///|

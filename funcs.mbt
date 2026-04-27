@@ -477,6 +477,21 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .variadic(ParamNumber)
     .build("cidrsubnets", fn_cidrsubnets)
 
+  // Regex functions
+  funcs["regex"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("regex", fn_regex)
+  funcs["regexall"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("regexall", fn_regexall)
+  funcs["regex_replace"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .param(ParamString)
+    .build("regex_replace", fn_regex_replace)
+
   funcs
 }
 
@@ -2608,5 +2623,110 @@ fn fn_cidrsubnets(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
     _ =>
       Err(HCLError::type_error("cidrsubnets: first argument must be a string"))
+  }
+}
+
+///|
+/// regex(pattern, str) - Match a regex pattern and return groups
+fn fn_regex(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(pattern, _), String(s, _)) =>
+      try {
+        let re = Regex::new(pattern[:])
+        match re.execute(s[:]) {
+          Some(m) => {
+            let groups : Array[HCLValue] = Array::new()
+            groups.push(String(m.content().to_string(), Decor::empty()))
+            let mut i = 1
+            while m.group(i) is Some(g) {
+              groups.push(String(g.to_string(), Decor::empty()))
+              i = i + 1
+            }
+            Ok(Array(groups, Decor::empty()))
+          }
+          None => Ok(Array([], Decor::empty()))
+        }
+      } catch {
+        _ => Err(HCLError::invalid_value("regex: invalid pattern: " + pattern))
+      }
+    _ => Err(HCLError::type_error("regex: both arguments must be strings"))
+  }
+}
+
+///|
+/// regexall(pattern, str) - Find all matches of a regex pattern
+fn fn_regexall(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(pattern, _), String(s, _)) =>
+      try {
+        let re = Regex::new(pattern[:])
+        let results : Array[HCLValue] = Array::new()
+        for m in re.find(s[:]) {
+          let groups : Array[HCLValue] = Array::new()
+          groups.push(String(m.content().to_string(), Decor::empty()))
+          let mut i = 1
+          while m.group(i) is Some(g) {
+            groups.push(String(g.to_string(), Decor::empty()))
+            i = i + 1
+          }
+          results.push(Array(groups, Decor::empty()))
+        }
+        Ok(Array(results, Decor::empty()))
+      } catch {
+        _ =>
+          Err(HCLError::invalid_value("regexall: invalid pattern: " + pattern))
+      }
+    _ => Err(HCLError::type_error("regexall: both arguments must be strings"))
+  }
+}
+
+///|
+/// regex_replace(s, pattern, replacement) - Replace matches using regex
+fn fn_regex_replace(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1], args[2]) {
+    (String(s, _), String(pattern, _), String(replacement, _)) =>
+      try {
+        let re = Regex::new(pattern[:])
+        let result = re.replace_by(s[:], fn(m) {
+          let buf : StringBuilder = StringBuilder::new()
+          let len = replacement.length()
+          let mut i = 0
+          while i < len {
+            match replacement.get_char(i) {
+              Some('$') if i + 1 < len =>
+                match replacement.get_char(i + 1) {
+                  Some(next) if next >= '0' && next <= '9' => {
+                    let group_idx = next.to_int() - '0'.to_int()
+                    match m.group(group_idx) {
+                      Some(g) => buf.write_string(g.to_string())
+                      None => ()
+                    }
+                    i = i + 2
+                  }
+                  _ => {
+                    buf.write_char('$')
+                    i = i + 1
+                  }
+                }
+              Some(c) => {
+                buf.write_char(c)
+                i = i + 1
+              }
+              None => i = i + 1
+            }
+          }
+          buf.to_string()
+        })
+        Ok(String(result.to_string(), Decor::empty()))
+      } catch {
+        _ =>
+          Err(
+            HCLError::invalid_value(
+              "regex_replace: invalid pattern: " + pattern,
+            ),
+          )
+      }
+    _ =>
+      Err(HCLError::type_error("regex_replace: all arguments must be strings"))
   }
 }

@@ -12,6 +12,7 @@ pub(all) enum TypeName {
   TArray
   TObject
   TUnknown
+  TDynamic
 } derive(Debug, Eq)
 
 ///|
@@ -34,6 +35,7 @@ pub fn unify_types(a : TypeName, b : TypeName) -> HCLResult[TypeName] {
   match (a, b) {
     (x, y) if x == y => Ok(x)
     (TNull, x) | (x, TNull) => Ok(x)
+    (TDynamic, x) | (x, TDynamic) => Ok(x)
     (TUnknown, _) | (_, TUnknown) => Ok(TUnknown)
     (TNumber, TString) | (TString, TNumber) => Ok(TString)
     (TBool, TString) | (TString, TBool) => Ok(TString)
@@ -82,6 +84,7 @@ fn type_name_str(t : TypeName) -> String {
     TArray => "array"
     TObject => "object"
     TUnknown => "unknown"
+    TDynamic => "dynamic"
   }
 }
 
@@ -96,6 +99,7 @@ pub fn convert_value(v : HCLValue, target : TypeName) -> HCLResult[HCLValue] {
     (TNull, _) => Ok(v)
     (TUnknown, _) => Ok(v)
     (_, TUnknown) => Ok(v)
+    (_, TDynamic) => Ok(v)
     (TNumber, TString) =>
       match v {
         Number(n, _) => Ok(String(n.to_string(), Decor::empty()))

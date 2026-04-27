@@ -1,92 +1,43 @@
-# Splat + Strip Markers + Unicode Ident Implementation Plan
+# 迭代 12 开发计划：RegexFuncs + TypeSystemEnhance
 
-> **For agentic workers:** Use subagent-driven-development to implement task-by-task.
+## 目标
+补齐剩余可实现的内置函数（regex）并增强类型系统。
 
-**Goal:** Implement 3 P1 features: Splat operator (`.*`/`[*]`), Template strip markers (`${~ expr ~}`), and Unicode identifiers (XID_Start/XID_Continue).
+## 分支
+`lenitain/feat/regex-and-type-enhance`
 
-**Architecture:** 
-- Splat: Add `Splat` variant to `TraversalOperator`, update parser/eval/visit/serialization
-- Strip markers: Extend `TemplatePart` with strip-aware variants, strip whitespace during evaluation
-- Unicode: Replace ASCII-only checks with Unicode XID_Start/XID_Continue validation
+## 任务拆分
 
-**Branch:** `lenitain/feat/splat-strip-unicode`
+### Task 1: Regex 函数 — RegexFuncs (funcs.mbt + funcs_test.mbt)
+依赖: MoonBit core `@string.Regex`（已内置，无需新增依赖）
 
----
+| 函数 | 签名 | 实现 |
+|------|------|------|
+| `regex(pattern, str)` | `(string, string) -> array(string)` | `Regex::unsafe_from_string` + `execute`，返回 `[full, group0, group1, ...]` |
+| `regexall(pattern, str)` | `(string, string) -> array(array(string))` | `Regex::find` 迭代，每个 match 展开 groups |
+| `regex_replace(pattern, str, repl)` | `(string, string, string) -> string` | `Regex::replace_by`，repl 中 `$N` 替换为 group |
 
-## Files to Modify
+关键点:
+- `StringView` → `String` 需 `.to_string()`
+- `MatchResult::content()` 完整匹配，`group(i)` 捕获组
+- `regex_replace` 解析 `$N` 占位符
+- 无效 regex pattern → `HCLError::invalid_value`
 
-| File | Changes |
-|------|---------|
-| `expr.mbt` | Add `Splat` to `TraversalOperator`, update `expr_to_string` |
-| `parser.mbt` | Parse `.*` and `[*]` in `parse_property_access` |
-| `eval.mbt` | Evaluate `Splat` operator (map over array elements) |
-| `visit.mbt` | Handle `Splat` in `visit_traversal_operator_default` |
-| `visit_mut.mbt` | Handle `Splat` in `visit_traversal_operator_mut_default` |
-| `template.mbt` | Add strip-aware `InterpolationStrip`/`ConditionalStartStrip` etc., update `evaluate` |
-| `ident.mbt` | Add Unicode XID_Start/XID_Continue validation |
-| `lexer.mbt` | Support Unicode identifier chars in token reading |
-| `expr_wbtest.mbt` | Add splat tests |
-| `template_test.mbt` | Add strip marker tests |
-| New: `splat_test.mbt` | Splat operator integration tests |
+测试: 9 个（regex 3 + regexall 3 + regex_replace 3）
 
----
+### Task 2: TypeSystemEnhance (unify.mbt + unify_test.mbt)
+- `TypeName` 新增 `TDynamic` 变体
+- `type_of` 空数组→`TArray(TDynamic)`，空对象→`TObject(TDynamic)`
+- `unify_types`: TDynamic + X → Ok(X)
 
-### Task 1: Splat - Add `Splat` variant to `TraversalOperator`
+测试: 6 个
 
-**Files:** `expr.mbt:104-109`
+### Task 3: 跳过 CryptoFuncs
+MoonBit 无 SHA/MD5 crypto 模块。
 
-- [ ] Add `Splat` variant to `TraversalOperator` enum
-- [ ] Add `splat()` method to `TraversalBuilder`
-- [ ] Update `expr_to_string` to output `.*` for `Splat`
-- [ ] Update `visit.mbt` and `visit_mut.mbt` for `Splat` case
-- [ ] Run `moon check`
+### Task 4: 更新 PROGRESS.md
 
-### Task 2: Splat - Parser support for `.*` and `[*]`
-
-**Files:** `parser.mbt:735-790`
-
-- [ ] In `parse_property_access`, after `.`, check if next token is `Star` → emit `Splat`
-- [ ] In `parse_property_access`, after `[`, check if next token is `Star` → consume `]` → emit `Splat`
-- [ ] Write parser tests
-- [ ] Run `moon check && moon test`
-
-### Task 3: Splat - Evaluation
-
-**Files:** `eval.mbt:399-470`
-
-- [ ] In `eval_expr` traversal loop, handle `Splat` operator:
-  - If current value is array, map over elements applying remaining operators
-  - If current value is object, map over values applying remaining operators
-  - Otherwise return type error
-- [ ] Write eval tests
-- [ ] Run `moon check && moon test`
-
-### Task 4: Strip markers - Template parsing
-
-**Files:** `template.mbt`
-
-- [ ] Add `InterpolationStrip(Expression)` variant to `TemplatePart`
-- [ ] In `Template::from_string`, detect `${~` and `~}` patterns
-- [ ] Store strip info in template parts
-- [ ] In `evaluate`, strip adjacent whitespace for strip-marked parts
-- [ ] Write tests
-- [ ] Run `moon check && moon test`
-
-### Task 5: Unicode identifiers
-
-**Files:** `ident.mbt`, `lexer.mbt`
-
-- [ ] Implement `is_xid_start(ch : Char) -> Bool` (Unicode property check)
-- [ ] Implement `is_xid_continue(ch : Char) -> Bool`
-- [ ] Update `is_id_start` and `is_id_continue` to include Unicode chars
-- [ ] Update lexer to read Unicode identifier characters
-- [ ] Write tests with Unicode identifiers
-- [ ] Run `moon check && moon test`
-
-### Task 6: Final verification
-
-- [ ] `moon check` — 0 errors
-- [ ] `moon test` — all tests pass
-- [ ] `moon fmt` — passes
-- [ ] `moon info` — passes
-- [ ] Update PROGRESS.md
+## 验证
+```bash
+moon check && moon test && moon info && moon fmt
+```
