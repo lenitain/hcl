@@ -1,46 +1,109 @@
 ///|
-/// HCL CLI Tool - converts HCL to JSON
+/// HCL CLI Tool - converts HCL to JSON, formats HCL, validates HCL
 /// Run with `moon run cmd/main` from the project root.
-///
-/// Usage: moon run cmd/main [OPTIONS]
-///
-/// Options:
-///   -h, --help         Show this help message
-///   -p, --pretty       Pretty-print JSON output
-///   -s, --simplify     Simplify constant expressions
-///   -f, --file PATH    Read HCL from file (default: use example HCL)
+const VERSION = "0.3.0"
 
 ///|
-/// Show help message
-fn show_help(program_name : String) -> Unit {
-  println("HCL CLI Tool - converts HCL to JSON or formats HCL")
-  println("")
-  println("Usage: " + program_name + " [OPTIONS]")
-  println("")
-  println("Options:")
-  println("  -h, --help         Show this help message")
-  println("  -p, --pretty       Pretty-print JSON output")
-  println("  -s, --simplify     Simplify constant expressions")
-  println("  -f, --file PATH    Read HCL from file (default: use example HCL)")
-  println("  -F, --format       Output formatted HCL instead of JSON")
-  println("  -v, --validate     Validate HCL and exit with code 0 or 1")
+struct CliConfig {
+  help : Bool
+  version : Bool
+  pretty : Bool
+  simplify : Bool
+  format : Bool
+  validate : Bool
+  json_input : Bool
+  output_file : String?
+  indent : Int
+  force_color : Bool
+  no_color : Bool
+  file_paths : Array[String]
 }
 
 ///|
-/// Parse CLI arguments
-/// Returns (help, pretty, simplify, format, validate, file_path)
-fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, Bool, String?) {
+fn repeat_str(s : String, n : Int) -> String {
+  let mut result = ""
+  for _ in 0..<n {
+    result = result + s
+  }
+  result
+}
+
+///|
+fn should_use_color(no_color : Bool, force_color : Bool) -> Bool {
+  if no_color {
+    false
+  } else if force_color {
+    true
+  } else {
+    @env.get_env_var("NO_COLOR") == None
+  }
+}
+
+///|
+fn show_help(program_name : String) -> Unit {
+  println("HCL CLI v" + VERSION + " - Convert, format, and validate HCL")
+  println("")
+  println("Usage: " + program_name + " [OPTIONS] [FILES...]")
+  println("")
+  println("Options:")
+  println("  -h, --help         Show this help message")
+  println("  --version          Show version")
+  println("  -p, --pretty       Pretty-print JSON output")
+  println("  -s, --simplify     Simplify constant expressions")
+  println("  -f, --file PATH    Read HCL from file")
+  println("  -F, --format       Output formatted HCL instead of JSON")
+  println("  -v, --validate     Validate HCL and exit with code 0 or 1")
+  println(
+    "  -j, --json-input   Input is JSON, output as HCL (implies --format)",
+  )
+  println("  -o, --output FILE  Write output to file")
+  println("  --indent N         Indent width (default 2)")
+  println("  --color            Force enable ANSI color output")
+  println("  --no-color         Disable ANSI color output")
+}
+
+///|
+fn parse_int(s : String) -> Int {
+  let mut n = 0
+  for c in s {
+    n = n * 10 + (c.to_int() - 48)
+  }
+  n
+}
+
+///|
+fn get_line(input : String, line_num : Int) -> String {
+  let mut i = 1
+  for line in input.split("\n") {
+    if i == line_num {
+      return line.to_string()
+    }
+    i = i + 1
+  }
+  ""
+}
+
+///|
+fn parse_args(args : Array[String]) -> CliConfig {
   let mut help = false
+  let mut version = false
   let mut pretty = false
   let mut simplify = false
   let mut format = false
   let mut validate = false
-  let mut file_path : String? = None
+  let mut json_input = false
+  let mut output_file : String? = None
+  let mut indent = 2
+  let mut force_color = false
+  let mut no_color = false
+  let file_paths : Array[String] = []
   let mut i = 1
   while i < args.length() {
     let arg = args[i]
     if arg == "-h" || arg == "--help" {
       help = true
+    } else if arg == "--version" {
+      version = true
     } else if arg == "-p" || arg == "--pretty" {
       pretty = true
     } else if arg == "-s" || arg == "--simplify" {
@@ -49,108 +112,261 @@ fn parse_args(args : Array[String]) -> (Bool, Bool, Bool, Bool, Bool, String?) {
       format = true
     } else if arg == "-v" || arg == "--validate" {
       validate = true
+    } else if arg == "-j" || arg == "--json-input" {
+      json_input = true
+    } else if arg == "--color" {
+      force_color = true
+    } else if arg == "--no-color" {
+      no_color = true
     } else if arg == "-f" || arg == "--file" {
       if i + 1 < args.length() {
-        file_path = Some(args[i + 1])
+        file_paths.push(args[i + 1])
         i = i + 1
       } else {
         println("Error: -f/--file requires a path argument")
       }
+    } else if arg == "-o" || arg == "--output" {
+      if i + 1 < args.length() {
+        output_file = Some(args[i + 1])
+        i = i + 1
+      } else {
+        println("Error: -o/--output requires a path argument")
+      }
+    } else if arg == "--indent" {
+      if i + 1 < args.length() {
+        indent = parse_int(args[i + 1])
+        i = i + 1
+      } else {
+        println("Error: --indent requires a number argument")
+      }
     } else if !arg.has_prefix("-") {
-      file_path = Some(arg)
+      file_paths.push(arg)
     } else {
       println("Error: Unknown option: " + arg)
     }
     i = i + 1
   }
-  (help, pretty, simplify, format, validate, file_path)
+  {
+    help,
+    version,
+    pretty,
+    simplify,
+    format,
+    validate,
+    json_input,
+    output_file,
+    indent,
+    force_color,
+    no_color,
+    file_paths,
+  }
 }
 
 ///|
-/// Convert HCL string to JSON string
-fn hcl_to_json_string(
-  hcl_content : String,
-  pretty : Bool,
-  simplify : Bool,
+fn format_error(
+  err : @hcl.HCLError,
+  input : String,
+  use_color : Bool,
 ) -> String {
-  match @hcl.parse(hcl_content) {
-    Ok(body) =>
-      if simplify {
-        let simplified = @hcl.simplify_body(body)
-        if pretty {
-          @hcl.body_to_json_pretty(simplified)
-        } else {
-          @hcl.body_to_json(simplified)
-        }
-      } else if pretty {
-        @hcl.body_to_json_pretty(body)
+  match err {
+    ParseError(msg, line, col, _, _) => {
+      let line_str = if line > 0 { get_line(input, line) } else { "" }
+      let header = if use_color {
+        "\u001b[31;1mError at line " +
+        line.to_string() +
+        ", column " +
+        col.to_string() +
+        " (ParseError):\u001b[0m"
       } else {
-        @hcl.body_to_json(body)
+        "Error at line " +
+        line.to_string() +
+        ", column " +
+        col.to_string() +
+        " (ParseError):"
       }
-    Err(e) => "Error: " + e.message()
-  }
-}
-
-///|
-/// Convert HCL string to formatted HCL string
-fn hcl_to_format_string(hcl_content : String, simplify : Bool) -> String {
-  match @hcl.parse(hcl_content) {
-    Ok(body) =>
-      if simplify {
-        @hcl.to_hcl_body(@hcl.simplify_body(body))
+      let pointer = if col > 0 && line_str.length() > 0 {
+        "  | " + repeat_str(" ", col - 1) + "^"
       } else {
-        @hcl.to_hcl_body(body)
+        ""
       }
-    Err(e) => "Error: " + e.message()
+      header + "\n  | " + line_str + "\n" + pointer + "\n  | " + msg
+    }
+    _ => {
+      let msg = err.message()
+      if use_color {
+        "\u001b[31;1mError:\u001b[0m " + msg
+      } else {
+        "Error: " + msg
+      }
+    }
   }
 }
 
 ///|
-/// Get example HCL
-fn get_example_hcl() -> String {
-  "name = \"hcl2json\"\nversion = \"1.0.0\"\nfeatures = [\"parse\", \"format\", \"convert\"]\n\nserver {\n  host = \"localhost\"\n  port = 8080\n}"
-}
-
-///|
-/// Main entry point
-fn main {
-  let args = @sys.get_cli_args()
-  let program_name = if args.length() > 0 { args[0] } else { "hcl" }
-  let (help, pretty, simplify, format, validate, file_path) = parse_args(args)
-
-  if help {
-    show_help(program_name)
-    return
+fn process_file(config : CliConfig, path : String, use_color : Bool) -> String? {
+  let input = @fs.read_file_to_string(path) catch {
+    _ => {
+      let err_msg = if use_color {
+        "\u001b[31;1mError:\u001b[0m Failed to read file: " + path
+      } else {
+        "Error: Failed to read file: " + path
+      }
+      println(err_msg)
+      return None
+    }
   }
 
-  let hcl_content : String = match file_path {
-    Some(path) =>
-      @fs.read_file_to_string(path) catch {
-        _ => {
-          println("Error: Failed to read file: " + path)
-          return
-        }
-      }
-    None => get_example_hcl()
-  }
-
-  if validate {
-    match @hcl.parse(hcl_content) {
-      Ok(_) => {
-        println("Valid HCL")
-        @sys.exit(0)
-      }
+  let body = if config.json_input {
+    match @hcl.json_to_body(input) {
+      Ok(b) => b
       Err(e) => {
-        println(e.message())
-        @sys.exit(1)
+        println(format_error(e, input, use_color))
+        return None
+      }
+    }
+  } else {
+    match @hcl.parse(input) {
+      Ok(b) => b
+      Err(e) => {
+        println(format_error(e, input, use_color))
+        return None
       }
     }
   }
 
-  let output : String = if format {
-    hcl_to_format_string(hcl_content, simplify)
+  let processed_body = if config.simplify {
+    @hcl.simplify_body(body)
   } else {
-    hcl_to_json_string(hcl_content, pretty, simplify)
+    body
   }
-  println(output)
+
+  let is_format_mode = config.json_input || config.format
+
+  let output = if is_format_mode {
+    if config.indent == 2 {
+      @hcl.to_hcl_body(processed_body)
+    } else {
+      @hcl.Formatter::new()
+      .set_indent(repeat_str(" ", config.indent))
+      .format_body(processed_body)
+    }
+  } else if config.pretty {
+    @hcl.body_to_json_pretty(processed_body, indent=config.indent)
+  } else {
+    @hcl.body_to_json(processed_body)
+  }
+
+  Some(output)
+}
+
+///|
+fn main {
+  let args = @sys.get_cli_args()
+  let program_name = if args.length() > 0 { args[0] } else { "hcl" }
+  let config = parse_args(args)
+
+  if config.help {
+    show_help(program_name)
+    @sys.exit(0)
+  }
+
+  if config.version {
+    println("hcl-moonbit v" + VERSION)
+    @sys.exit(0)
+  }
+
+  let use_color = should_use_color(config.no_color, config.force_color)
+  let file_paths = config.file_paths
+
+  if file_paths.is_empty() {
+    let err = if use_color {
+      "\u001b[31;1mError:\u001b[0m No input files specified"
+    } else {
+      "Error: No input files specified"
+    }
+    println(err)
+    println("Usage: " + program_name + " [OPTIONS] [FILES...]")
+    println("Use --help for more information")
+    @sys.exit(1)
+  }
+
+  if file_paths.length() > 1 && config.output_file != None {
+    let err = if use_color {
+      "\u001b[31;1mError:\u001b[0m --output cannot be used with multiple input files"
+    } else {
+      "Error: --output cannot be used with multiple input files"
+    }
+    println(err)
+    @sys.exit(1)
+  }
+
+  if config.validate {
+    let mut failures = 0
+    for path in file_paths {
+      let input = @fs.read_file_to_string(path) catch {
+        _ => {
+          let err = if use_color {
+            "\u001b[31;1mError:\u001b[0m Failed to read file: " + path
+          } else {
+            "Error: Failed to read file: " + path
+          }
+          println(err)
+          failures = failures + 1
+          continue
+        }
+      }
+      let parse_result = if config.json_input {
+        @hcl.json_to_body(input)
+      } else {
+        @hcl.parse(input)
+      }
+      match parse_result {
+        Ok(_) =>
+          if use_color {
+            println("\u001b[32mValid HCL\u001b[0m: " + path)
+          } else {
+            println("Valid HCL: " + path)
+          }
+        Err(e) => {
+          println(format_error(e, input, use_color))
+          failures = failures + 1
+        }
+      }
+    }
+    @sys.exit(failures)
+  }
+
+  let results : Array[(String, String)] = []
+
+  for path in file_paths {
+    match process_file(config, path, use_color) {
+      Some(output) => results.push((path, output))
+      None => @sys.exit(1)
+    }
+  }
+
+  let combined = if file_paths.length() == 1 {
+    results[0].1
+  } else if config.json_input || config.format {
+    results.map(fn(p) { "/* file: " + p.0 + " */\n" + p.1 }).join("\n\n")
+  } else {
+    let parts = results.map(fn(p) { "\"" + p.0 + "\": " + p.1 })
+    "{\n" + parts.map(fn(s) { "  " + s }).join(",\n") + "\n}"
+  }
+
+  match config.output_file {
+    Some(path) =>
+      @fs.write_string_to_file(path, combined) catch {
+        _ => {
+          let err = if use_color {
+            "\u001b[31;1mError:\u001b[0m Failed to write to file: " + path
+          } else {
+            "Error: Failed to write to file: " + path
+          }
+          println(err)
+          @sys.exit(1)
+        }
+      }
+    None => println(combined)
+  }
 }

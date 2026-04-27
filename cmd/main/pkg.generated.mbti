@@ -6,6 +6,7 @@ package "lenitain/hcl/cmd/main"
 // Errors
 
 // Types and methods
+type CliConfig
 
 // Type aliases
 
