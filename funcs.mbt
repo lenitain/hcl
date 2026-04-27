@@ -446,6 +446,20 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamString)
     .build("urlencode", fn_urlencode)
 
+  // Date/time functions
+  funcs["formatdate"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("formatdate", fn_formatdate)
+  funcs["timeadd"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("timeadd", fn_timeadd)
+  funcs["timecmp"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("timecmp", fn_timecmp)
+
   funcs
 }
 
@@ -2081,5 +2095,215 @@ fn fn_urlencode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       Ok(String(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("urlencode() requires a string"))
+  }
+}
+
+///| =========================================================================
+/// Date/Time Helpers
+
+///| =========================================================================
+
+///|
+/// Strip timezone suffix from RFC3339 string
+fn strip_rfc3339_tz(s : String) -> String {
+  let len = s.length()
+  if len == 0 {
+    return s
+  }
+  let mut t_pos = -1
+  let mut i = 0
+  while i < len {
+    if s.code_unit_at(i) == 'T'.to_int().to_uint16() {
+      t_pos = i
+      break
+    }
+    i = i + 1
+  }
+  if t_pos < 0 {
+    return s
+  }
+  let after_t = t_pos + 1
+  i = after_t + 8
+  while i < len {
+    let ch = s.code_unit_at(i)
+    if ch == 'Z'.to_int().to_uint16() ||
+      ch == '+'.to_int().to_uint16() ||
+      ch == '-'.to_int().to_uint16() {
+      return substring(s, 0, i)
+    }
+    i = i + 1
+  }
+  s
+}
+
+///|
+/// Parse RFC3339 timestamp string to PlainDateTime
+fn parse_rfc3339(s : String) -> @time.PlainDateTime raise {
+  let cleaned = strip_rfc3339_tz(s)
+  @time.PlainDateTime::from_string(cleaned)
+}
+
+///|
+/// Format PlainDateTime as RFC3339 UTC string
+fn format_rfc3339(dt : @time.PlainDateTime) -> String {
+  dt.to_string() + "Z"
+}
+
+///|
+/// Pad integer to specified width with leading zeros
+fn pad_int(n : Int, width : Int) -> String {
+  let s = n.to_string()
+  let pad = width - s.length()
+  if pad <= 0 {
+    return s
+  }
+  let buf = StringBuilder::new(size_hint=width)
+  let mut j = 0
+  while j < pad {
+    buf.write_char('0')
+    j = j + 1
+  }
+  buf.write_string(s)
+  buf.to_string()
+}
+
+///|
+/// Apply date format tokens to PlainDateTime
+fn apply_date_format(fmt : String, dt : @time.PlainDateTime) -> String {
+  let buf = StringBuilder::new(size_hint=fmt.length())
+  let len = fmt.length()
+  let mut i = 0
+  while i < len {
+    let remaining = len - i
+    if fmt.code_unit_at(i) == '\''.to_int().to_uint16() {
+      i = i + 1
+      while i < len && fmt.code_unit_at(i) != '\''.to_int().to_uint16() {
+        buf.write_char(fmt.code_unit_at(i).to_int().unsafe_to_char())
+        i = i + 1
+      }
+      i = i + 1
+    } else if remaining >= 4 && substring(fmt, i, i + 4) == "YYYY" {
+      buf.write_string(pad_int(dt.year(), 4))
+      i = i + 4
+    } else if remaining >= 2 && substring(fmt, i, i + 2) == "YY" {
+      buf.write_string(pad_int(dt.year() % 100, 2))
+      i = i + 2
+    } else if remaining >= 2 && substring(fmt, i, i + 2) == "MM" {
+      buf.write_string(pad_int(dt.month(), 2))
+      i = i + 2
+    } else if remaining >= 2 && substring(fmt, i, i + 2) == "DD" {
+      buf.write_string(pad_int(dt.day(), 2))
+      i = i + 2
+    } else if remaining >= 2 && substring(fmt, i, i + 2) == "hh" {
+      buf.write_string(pad_int(dt.hour(), 2))
+      i = i + 2
+    } else if remaining >= 2 && substring(fmt, i, i + 2) == "mm" {
+      buf.write_string(pad_int(dt.minute(), 2))
+      i = i + 2
+    } else if remaining >= 2 && substring(fmt, i, i + 2) == "ss" {
+      buf.write_string(pad_int(dt.second(), 2))
+      i = i + 2
+    } else if fmt.code_unit_at(i) == 'Z'.to_int().to_uint16() {
+      buf.write_char('Z')
+      i = i + 1
+    } else {
+      buf.write_char(fmt.code_unit_at(i).to_int().unsafe_to_char())
+      i = i + 1
+    }
+  }
+  buf.to_string()
+}
+
+///| =========================================================================
+/// Date/Time Functions
+
+///| =========================================================================
+
+///|
+/// formatdate(format, timestamp) - Format a timestamp string
+fn fn_formatdate(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(fmt, _), String(ts, _)) =>
+      try {
+        let dt = parse_rfc3339(ts)
+        Ok(String(apply_date_format(fmt, dt), Decor::empty()))
+      } catch {
+        _ =>
+          Err(HCLError::invalid_value("formatdate: invalid RFC3339 timestamp"))
+      }
+    _ =>
+      Err(HCLError::invalid_value("formatdate: both arguments must be strings"))
+  }
+}
+
+///|
+/// Convert HCL duration "1h30m5s" to ISO 8601 "PT1H30M5S"
+fn hcl_duration_to_iso(s : String) -> String {
+  if s.is_empty() {
+    return "PT0S"
+  }
+  let buf = StringBuilder::new(size_hint=s.length() + 2)
+  buf.write_char('P')
+  buf.write_char('T')
+  let len = s.length()
+  let mut i = 0
+  if i < len && s.code_unit_at(i) == '-'.to_int().to_uint16() {
+    buf.write_char('-')
+    i = i + 1
+  }
+  while i < len {
+    let ch = s.code_unit_at(i)
+    if ch == 'h'.to_int().to_uint16() {
+      buf.write_char('H')
+      i = i + 1
+    } else if ch == 'm'.to_int().to_uint16() {
+      buf.write_char('M')
+      i = i + 1
+    } else if ch == 's'.to_int().to_uint16() {
+      buf.write_char('S')
+      i = i + 1
+    } else {
+      buf.write_char(ch.to_int().unsafe_to_char())
+      i = i + 1
+    }
+  }
+  buf.to_string()
+}
+
+///|
+/// timeadd(timestamp, duration) - Add duration to timestamp
+fn fn_timeadd(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(ts, _), String(dur_str, _)) =>
+      try {
+        let dt = parse_rfc3339(ts)
+        let iso_dur = hcl_duration_to_iso(dur_str)
+        let dur = @time.Duration::from_string(iso_dur)
+        let result = dt.add_duration(dur)
+        Ok(String(format_rfc3339(result), Decor::empty()))
+      } catch {
+        _ =>
+          Err(HCLError::invalid_value("timeadd: invalid timestamp or duration"))
+      }
+    _ => Err(HCLError::invalid_value("timeadd: both arguments must be strings"))
+  }
+}
+
+///|
+/// timecmp(t1, t2) - Compare two timestamps
+fn fn_timecmp(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(t1, _), String(t2, _)) =>
+      try {
+        let dt1 = parse_rfc3339(t1)
+        let dt2 = parse_rfc3339(t2)
+        let s1 = dt1.to_unix_second()
+        let s2 = dt2.to_unix_second()
+        let cmp = if s1 < s2 { -1 } else if s1 > s2 { 1 } else { 0 }
+        Ok(Number(Number::from_int(cmp), Decor::empty()))
+      } catch {
+        _ => Err(HCLError::invalid_value("timecmp: invalid timestamp"))
+      }
+    _ => Err(HCLError::invalid_value("timecmp: both arguments must be strings"))
   }
 }

@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/json" @json,
   "moonbitlang/core/encoding/base64" @encoding/base64,
+  "moonbitlang/x/time" @time,
 }
 
 warnings = "-unused_package"

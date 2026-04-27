@@ -1,13 +1,36 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：函数注册 API — 迭代 10 完成 ✅
+## 当前状态：日期时间函数 — 迭代 7 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/user-func-registry`
+- 分支：`lenitain/feat/datetime-funcs`
 - 状态：开发完成
-- 目标：用户自定义函数注册 API
+- 目标：日期时间函数（formatdate, timeadd, timecmp）
 
 ## 本次开发完成的任务
+
+### 日期时间函数 DateTimeFuncs ✅
+- ✅ `formatdate(format, timestamp)` — 按格式字符串格式化 RFC3339 时间戳
+  - 支持令牌：YYYY, YY, MM, DD, hh, mm, ss, Z
+  - 支持单引号字面量（`'year'` → `year`）
+  - 自定义 `apply_date_format` + `pad_int` 辅助函数
+- ✅ `timeadd(timestamp, duration)` — 对 RFC3339 时间戳增加时长
+  - HCL 时长格式（`1h30m5s`）→ ISO 8601（`PT1H30M5S`）转换
+  - 使用 `@time.Duration::from_string` + `PlainDateTime::add_duration`
+- ✅ `timecmp(t1, t2)` — 比较两个 RFC3339 时间戳
+  - 返回 -1（前 < 后）、0（相等）、1（前 > 后）
+  - 使用 `PlainDateTime::to_unix_second` 比较
+- ✅ `timestamp()` — 跳过（MoonBit 无公开系统时钟 API）
+- ✅ RFC3339 解析辅助函数：`parse_rfc3339`, `strip_rfc3339_tz`, `format_rfc3339`
+- ✅ 依赖添加：`"moonbitlang/x/time" @time`
+- ✅ 13 个新测试（formatdate 5 + timeadd 4 + timecmp 4）
+- ✅ 所有 891 个测试通过
+
+### 验证结果
+- ✅ moon check: 0 errors
+- ✅ moon test: 891 passed, 0 failed
+- ✅ moon fmt: 通过
+- ✅ moon info: 通过
 
 ### 函数注册 API UserFuncRegistry ✅
 - ✅ `FuncRegistry` 结构体 — 封装 `Map[String, FuncDef]`
@@ -313,7 +336,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 878 个测试全部通过
+- ✅ 891 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -323,7 +346,7 @@
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：JSON 语法解析（JSON→Body、标签嵌套、数组块、round-trip、terraform.tfvars.json）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
-- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论、编码，共62个函数）
+- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论、编码、日期时间，共65个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
@@ -337,6 +360,7 @@
 - 覆盖：静态分析 API（collect_variables/functions/traversals、表达式级、去重、排序）
 - 覆盖：源位置 Span（Span 类型、Spanned[T]、Parser span 捕获、Attr/Body/Block span）
 - 覆盖：类型统一（TypeName、unify_types、convert_value、条件分支类型检查、Null/Unknown 传播）
+- 覆盖：日期时间函数（formatdate 令牌格式化、timeadd 时长加法、timecmp 比较、RFC3339 解析）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -370,7 +394,7 @@
 - ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist, startswith, endswith, title)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
 - ✅ 编码函数 (jsondecode, jsonencode, base64decode, base64encode, csvdecode, urlencode)
-- ✅ 通过 builtin_functions() 获取所有内置函数（62 个）
+- ✅ 通过 builtin_functions() 获取所有内置函数（65 个）
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
 - ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
 - ✅ `FuncDefBuilder` — 链式 API 构建函数定义
@@ -472,7 +496,7 @@
 | 序列化 | `to_hcl_body`, `to_hcl_value`, `Formatter` | ✅ |
 | 反序列化 | `from_hcl_body`, `from_hcl_with_schema` | ✅ |
 | Trait 系统 | `ToHCL`, `FromHCL` | ✅ |
-| 表达式求值 | `eval_binary/unary`, 56 个内置函数 | ✅ |
+| 表达式求值 | `eval_binary/unary`, 59 个内置函数 | ✅ |
 | Schema 验证 | `TypeSchema`, `FieldSchema`, `validate` | ✅ |
 | JSON 转换 | `hcl_to_json`, `body_to_json_pretty` | ✅ |
 | Decor 系统 | `Decor`, `Decorated[T]` | ✅ |
@@ -939,22 +963,23 @@ hcl/
 
 ---
 
-### 迭代 7：日期/时间函数补齐 — DateTimeFuncs
+### 迭代 7：日期/时间函数补齐 — DateTimeFuncs ✅
 
 **目标**：补齐日期时间函数
 
-**改动文件**：`funcs.mbt` + `funcs_test.mbt`
-
-**注意**：这些函数的输出依赖于当前时间或平台，测试需要 mock 或容差判断
+**改动文件**：`funcs.mbt` + `funcs_test.mbt` + `moon.pkg`
 
 | 函数 | 签名 | 实现要点 |
 |------|------|----------|
-| `formatdate(format, timestamp)` | `(string, string) -> string` | 解析 RFC3339 时间戳并格式化 |
-| `timeadd(timestamp, duration)` | `(string, string) -> string` | 时间加减 |
-| `timecmp(t1, t2)` | `(string, string) -> number` | 时间比较 |
-| `timestamp()` | `() -> string` | 返回当前 UTC 时间（RFC3339） |
+| `formatdate(format, timestamp)` | `(string, string) -> string` | RFC3339 解析 + Go ref date 令牌格式化 |
+| `timeadd(timestamp, duration)` | `(string, string) -> string` | HCL 时长→ISO 8601 转换 + Duration 加法 |
+| `timecmp(t1, t2)` | `(string, string) -> number` | Unix 秒比较，返回 -1/0/1 |
+| `timestamp()` | `() -> string` | ⚠️ 跳过 — MoonBit 无公开系统时钟 API |
 
-**测试计数**：新增至少 12 个测试
+- ✅ 依赖添加：`"moonbitlang/x/time" @time`
+- ✅ RFC3339 辅助函数：`parse_rfc3339`, `strip_rfc3339_tz`, `format_rfc3339`
+- ✅ 13 个新测试（formatdate 5 + timeadd 4 + timecmp 4）
+- ✅ 所有 891 个测试通过
 
 ---
 
@@ -1058,14 +1083,14 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 4:  SetFuncs            — ✅ 已完成 (852 测试通过)
 迭代 5:  EncodingFuncs       — ✅ 已完成 (871 测试通过)
 迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
-迭代 7:  DateTimeFuncs       — 中优先级
+迭代 7:  DateTimeFuncs       — ✅ 已完成 (891 测试通过)
 迭代 8:  NetworkFuncs        — 低优先级
 迭代 9:  RegexFuncs          — 低优先级 (依赖 MoonBit 生态)
 迭代 10: UserFuncRegistry    — ✅ 已完成 (878 测试通过)
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 → 8 → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 ✅ → 8 → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 

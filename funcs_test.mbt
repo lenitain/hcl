@@ -2697,3 +2697,138 @@ test "custom function overrides builtin" {
     _ => panic()
   }
 }
+
+///| =========================================================================
+/// Date/Time Functions Tests
+
+///| =========================================================================
+
+///|
+test "formatdate basic tokens" {
+  let funcs = builtin_functions()
+  let f = funcs["formatdate"]
+  match f.call([str("YYYY-MM-DD"), str("2023-06-15T12:30:45Z")]) {
+    Ok(v) => assert_true(v == str("2023-06-15"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "formatdate time tokens" {
+  let funcs = builtin_functions()
+  let f = funcs["formatdate"]
+  match f.call([str("hh:mm:ss"), str("2023-06-15T12:30:45Z")]) {
+    Ok(v) => assert_true(v == str("12:30:45"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "formatdate combined format" {
+  let funcs = builtin_functions()
+  let f = funcs["formatdate"]
+  match f.call([str("YYYY-MM-DDThh:mm:ssZ"), str("2023-06-15T12:30:45Z")]) {
+    Ok(v) => assert_true(v == str("2023-06-15T12:30:45Z"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "formatdate quoted literal" {
+  let funcs = builtin_functions()
+  let f = funcs["formatdate"]
+  match f.call([str("YYYY 'year' MM 'month'"), str("2023-06-15T12:30:45Z")]) {
+    Ok(v) => assert_true(v == str("2023 year 06 month"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "formatdate error on invalid timestamp" {
+  let funcs = builtin_functions()
+  let f = funcs["formatdate"]
+  match f.call([str("YYYY"), str("not-a-date")]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
+
+///|
+test "timeadd hours" {
+  let funcs = builtin_functions()
+  let f = funcs["timeadd"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("2h")]) {
+    Ok(v) => assert_true(v == str("2023-06-15T14:00:00Z"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "timeadd minutes" {
+  let funcs = builtin_functions()
+  let f = funcs["timeadd"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("30m")]) {
+    Ok(v) => assert_true(v == str("2023-06-15T12:30:00Z"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "timeadd combined duration" {
+  let funcs = builtin_functions()
+  let f = funcs["timeadd"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("1h30m5s")]) {
+    Ok(v) => assert_true(v == str("2023-06-15T13:30:05Z"))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "timeadd error on invalid duration" {
+  let funcs = builtin_functions()
+  let f = funcs["timeadd"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("invalid")]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
+
+///|
+test "timecmp equal timestamps" {
+  let funcs = builtin_functions()
+  let f = funcs["timecmp"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("2023-06-15T12:00:00Z")]) {
+    Ok(v) => assert_true(v == num(0))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "timecmp first before second" {
+  let funcs = builtin_functions()
+  let f = funcs["timecmp"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("2023-06-15T14:00:00Z")]) {
+    Ok(v) => assert_true(v == num(-1))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "timecmp first after second" {
+  let funcs = builtin_functions()
+  let f = funcs["timecmp"]
+  match f.call([str("2023-06-15T14:00:00Z"), str("2023-06-15T12:00:00Z")]) {
+    Ok(v) => assert_true(v == num(1))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "timecmp error on invalid timestamp" {
+  let funcs = builtin_functions()
+  let f = funcs["timecmp"]
+  match f.call([str("2023-06-15T12:00:00Z"), str("not-a-date")]) {
+    Ok(_) => panic()
+    Err(_) => assert_true(true)
+  }
+}
