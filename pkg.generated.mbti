@@ -8,7 +8,7 @@ import {
 // Values
 pub fn body_to_json(Body) -> String
 
-pub fn body_to_json_pretty(Body) -> String
+pub fn body_to_json_pretty(Body, indent? : Int) -> String
 
 pub fn builtin_functions() -> Map[String, FuncDef]
 
@@ -120,7 +120,7 @@ pub fn hcl_str(String) -> HCLValue
 
 pub fn hcl_to_json(String) -> Result[String, HCLError]
 
-pub fn hcl_to_json_pretty(String) -> Result[String, HCLError]
+pub fn hcl_to_json_pretty(String, indent? : Int) -> Result[String, HCLError]
 
 pub fn hcl_value_to_expression(HCLValue) -> Expression
 
