@@ -333,6 +333,38 @@ test "extract_body with simple attrs" {
 }
 
 ///|
+test "extract_body with blocks" {
+  let body = parse("server \"web\" {\n  port = 8080\n}\nserver \"api\" {\n  port = 3000\n}").unwrap()
+  let schema = BodySchema::new()
+    .with_blocks({
+      "server": BlockSchema::new(
+        BodySchema::new().with_attrs({
+          "port": AttrSchema::required(TypeSchema::int()),
+        })
+      ).with_labels([LabelSchema::required()]).with_max_items(2)
+    })
+  let result = extract_body(body, schema)
+  match result {
+    Ok(extracted) => {
+      let servers = extracted.get_blocks("server")
+      assert_eq(servers.length(), 2)
+      let first = servers[0]
+      assert_eq(first.get_label(0), Some("web"))
+      assert_true(first.body.get_attr("port") is Some(_))
+      let second = servers[1]
+      assert_eq(second.get_label(0), Some("api"))
+      assert_true(second.body.get_attr("port") is Some(_))
+    }
+    Err(e) => {
+      for err in e {
+        println(err.message())
+      }
+      assert_true(false)
+    }
+  }
+}
+
+///|
 test "from_hcl_with_schema_full - multiple errors" {
   let hcl = "config {\n}"
   let schema = TypeSchema::object({

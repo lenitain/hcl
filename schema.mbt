@@ -361,6 +361,15 @@ pub fn BlockSchema::with_max_items(
 }
 
 ///|
+/// Set labels for block
+pub fn BlockSchema::with_labels(
+  self : BlockSchema,
+  labels : Array[LabelSchema],
+) -> BlockSchema {
+  { ..self, labels }
+}
+
+///|
 /// Create a required LabelSchema
 pub fn LabelSchema::required() -> LabelSchema {
   { required: true }
@@ -568,6 +577,40 @@ pub fn ExtractedBlock::get_label(self : ExtractedBlock, index : Int) -> String? 
 }
 
 ///|
+/// Validate block labels against label schemas
+fn validate_labels(
+  labels : Array[String],
+  label_schemas : Array[LabelSchema],
+  path : String,
+) -> Array[HCLError] {
+  let errors = []
+  for i in 0..<label_schemas.length() {
+    let label_schema = label_schemas[i]
+    if label_schema.required && i >= labels.length() {
+      errors.push(
+        HCLError::validation_error(
+          path + "[" + i.to_string() + "]",
+          "required label missing",
+        ),
+      )
+    }
+  }
+  if labels.length() > label_schemas.length() {
+    errors.push(
+      HCLError::validation_error(
+        path,
+        "unexpected labels (got " +
+        labels.length().to_string() +
+        ", expected at most " +
+        label_schemas.length().to_string() +
+        ")",
+      ),
+    )
+  }
+  errors
+}
+
+///|
 /// Extract structured data from an HCL Body using a BodySchema
 pub fn extract_body(
   body : Body,
@@ -603,18 +646,33 @@ pub fn extract_body(
       Block(block) => {
         let type_name = block.get_type_name()
         match schema.blocks.get(type_name) {
-          Some(_) => {
-            let extracted = {
-              labels: block.get_labels(),
-              body: ExtractedBody::new(),
+          Some(block_schema) => {
+            let labels = block.get_labels()
+            let label_errors = validate_labels(
+              labels,
+              block_schema.labels,
+              "$." + type_name,
+            )
+            for e in label_errors {
+              errors.push(e)
             }
-            match blocks.get(type_name) {
-              Some(arr) => {
-                let new_arr = arr.copy()
-                new_arr.push(extracted)
-                blocks[type_name] = new_arr
+            match extract_body(block.get_body(), block_schema.body) {
+              Ok(nested_body) => {
+                let extracted = { labels, body: nested_body }
+                match blocks.get(type_name) {
+                  Some(arr) => {
+                    let new_arr = arr.copy()
+                    new_arr.push(extracted)
+                    blocks[type_name] = new_arr
+                  }
+                  None => blocks[type_name] = [extracted]
+                }
               }
-              None => blocks[type_name] = [extracted]
+              Err(nested_errors) => {
+                for e in nested_errors {
+                  errors.push(e)
+                }
+              }
             }
           }
           None =>
@@ -637,6 +695,28 @@ pub fn extract_body(
           )
         Some(_) => ()
       }
+    }
+  }
+
+  for type_name, block_schema in schema.blocks {
+    match block_schema.max_items {
+      Some(max) =>
+        match blocks.get(type_name) {
+          Some(arr) =>
+            if arr.length() > max {
+              errors.push(
+                HCLError::validation_error(
+                  "$." + type_name,
+                  "expected at most " +
+                  max.to_string() +
+                  " blocks, got " +
+                  arr.length().to_string(),
+                ),
+              )
+            }
+          None => ()
+        }
+      None => ()
     }
   }
 
