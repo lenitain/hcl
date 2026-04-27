@@ -3,8 +3,8 @@
 ## 当前状态：Schema Body Extraction 全部完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/schema-comprehensive-tests`
-- 状态：Task 7 完成（全量测试验证 + 进度更新）
+- 分支：`lenitain/feat/schema-body-extraction`
+- 状态：开发完成
 - 目标：Schema 驱动的 body 提取 (#9)
 
 ## 本次开发完成的任务
