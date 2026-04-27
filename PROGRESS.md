@@ -670,3 +670,330 @@ hcl/
 - hcl-rs 源码：`/home/pilot/.projects/hcl-rs/`
 - HCL 规范：https://github.com/hashicorp/hcl/blob/main/spec.md
 - MoonBit 文档：https://docs.moonbitlang.com
+
+---
+
+# 下一阶段开发计划：补齐缺口，实现"一库通吃"
+
+## 现状评估
+
+**核心 HCL 规范完整度：~97%** ✅
+- 解析、求值、序列化、反序列化、Schema 验证、模板、CLI 均已完成
+- 数值字面量（hex/octal/binary/科学计数法/下划线）已完整实现
+- Unicode 标识符、Splat、Strip markers、类型统一、静态分析均已实现
+
+**剩余缺口评估：约 3% 规范 + ~60 个内置函数**
+
+| 缺口类型 | 数量 | 影响范围 | 开发难度 |
+|----------|------|----------|----------|
+| 内置函数缺失 | ~60 | 大（Terraform 配置可能用到） | 低（模板式添加） |
+| 解析错误恢复 | 1项 | 中（IDE/CLI 体验） | 中（架构改动） |
+| 类型系统增强 | 3项 | 小（特殊场景） | 中 |
+| 字符串 contains | 1项 | 小 | 低 |
+| 函数注册 API | 1项 | 中（开发者体验） | 低 |
+
+---
+
+## 缺口详细规划
+
+### 迭代 1（当前分支）：解析错误恢复 — ParseErrorRecovery
+
+**目标**：从单错误模式升级为多错误积累模式，让用户一次看到所有错误
+
+**改动文件**：
+
+| 文件 | 改动内容 |
+|------|----------|
+| `error.mbt` | `HCLError` 新增 `MultipleErrors(Array[HCLError])` 变体；`HCLResult` 改为 `Result[T, Array[HCLError]]`（注意：此为破坏性变更，需要别名方案） |
+| `HCLError` 新增方法 | `fn HCLError::multi(errors: Array[HCLError]) -> HCLError` — 将多个错误包装为单个 |
+| 维持 `HCLResult[T]` 不变 | 引入新类型 `HCLParseResult[T] = Result[T, Array[HCLError]]` |
+| `parser.mbt` | 所有 `return Err(e)` 改为收集错误后继续解析（skip to next newline/block boundary），最后返回收集到的所有错误 |
+| `parse` 函数签 | 新增 `parse_with_recovery(String) -> (Body?, Array[HCLError])` |
+| `spec_test.mbt` | 增加多错误场景测试：同一文件多个语法错误 |
+| `decor_test.mbt` | 验证部分解析时 decoration 仍然正确收集 |
+
+**设计要点**：
+- 解析器遇到错误时，跳过到下一个换行或块结束符（`}`），然后继续解析
+- 收集所有错误到 `Array[HCLError]`
+- 如果解析过程中没有产生任何有效 Body，返回 `(None, errors)`
+- 即使有错误也返回部分解析的 Body（如有）
+- 保持 `parse` 向后兼容（用 `try` 封装第一个错误）
+
+**验证**：
+```moonbit
+// 输入：a = 1\nb = \nc = 3\n
+// 期望：2 个错误（b 缺少值），但 c=3 仍被解析
+```
+
+**测试计数**：新增至少 10 个测试
+
+---
+
+### 迭代 2：字符串函数补齐 — StringFuncsComplete
+
+**目标**：补齐所有常见 Terraform 字符串函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `startswith(str, prefix)` | `(string, string) -> bool` | `String.has_prefix` |
+| `endswith(str, suffix)` | `(string, string) -> bool` | `String.has_suffix` |
+| `title(str)` | `(string) -> string` | 每个单词首字母大写 |
+| `contains(str, search)` | `(string, string) -> bool` | 注意：现有 `contains` 仅支持 array，需扩展参数类型或新增 |
+
+**注意**：`contains` 目前仅支持 array（`ParamArray(Any)`）。HCL 规范中 `contains` 也支持 string。需要将参数类型改为 `OneOf([ParamArray(Any), ParamString])` 并修改实现。
+
+**测试计数**：新增至少 12 个测试（startswith/endswith/title × 正常/边界/错误）
+
+---
+
+### 迭代 3：集合/条件函数补齐 — CollectionFuncs
+
+**目标**：补齐集合操作和条件函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `concat(list1, list2, ...)` | `variadic array(array) -> array` | 拼接多个数组 |
+| `coalesce(val1, val2, ...)` | `variadic any -> any` | 返回第一个非 null 值 |
+| `range(max)` / `range(start, limit)` | `(number) -> array` | 生成数字序列 |
+| `chunklist(list, size)` | `(array, number) -> array(array)` | 将数组分块 |
+| `lookup(map, key, default?)` | `(object, string, any?) -> any` | 安全访问 map 键 |
+| `zipmap(keys, values)` | `(array(string), array) -> object` | 两个数组合并成 map |
+| `transpose(map)` | `(object) -> object` | map 的键值转置 |
+| `matchkeys(search, keys, values)` | `(array, array, array) -> array` | 匹配键模式 |
+| `sum(list)` | `(array(number)) -> number` | 数字数组求和 |
+| `alltrue(list)` | `(array(bool)) -> bool` | 全为真 |
+| `anytrue(list)` | `(array(bool)) -> bool` | 任一为真 |
+| `one(list)` | `(array(any)) -> any` | 确保列表只有一个元素并返回 |
+| `can(expr)` | 特殊（需要延迟求值） | ⚠️ 难度高，Terraform 中为特殊表达式 |
+| `try(expr, default)` | 特殊（需要延迟求值） | ⚠️ 难度高 |
+
+**注意**：`can` 和 `try` 需要表达式级别的延迟求值，当前 `FuncDef` 架构不支持。需要先实现 `LazyFuncDef` 或类似机制。这两个可暂缓。
+
+**实现顺序建议**：
+1. concat, coalesce, range — 简单，直接实现
+2. chunklist, lookup, zipmap, transpose, matchkeys — 中等
+3. sum, alltrue, anytrue, one — 简单
+4. can, try — ⚠️ 需要设计变更，暂缓
+
+**测试计数**：新增至少 40 个测试（每个函数至少 3 个）
+
+---
+
+### 迭代 4：集合论函数补齐 — SetFuncs
+
+**目标**：补齐集合运算函数（HCL 中集合用数组表示）
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `setintersection(s1, s2, ...)` | `variadic array(array) -> array` | 交集，去重 |
+| `setunion(s1, s2, ...)` | `variadic array(array) -> array` | 并集，去重 |
+| `setsubtract(s1, s2)` | `(array, array) -> array` | 差集 |
+| `setsymmetricdifference(s1, s2)` | `(array, array) -> array` | 对称差集 |
+| `setproduct(s1, s2, ...)` | `variadic array(array) -> array(array)` | 笛卡尔积 |
+| `setissubset(s1, s2)` | `(array, array) -> bool` | 子集判断 |
+
+**测试计数**：新增至少 18 个测试
+
+---
+
+### 迭代 5：编码函数补齐 — EncodingFuncs
+
+**目标**：补齐编码/解码函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+**依赖**：MoonBit 标准库是否提供 base64/json 编码接口
+
+| 函数 | 签名 | MoonBit 支持 |
+|------|------|-------------|
+| `csvdecode(str)` | `(string) -> array(object)` | 需自行解析 CSV |
+| `jsondecode(str)` | `(string) -> any` | ✅ `@json` 库可用 |
+| `jsonencode(val)` | `(any) -> string` | ✅ `@json` 库可用 |
+| `base64decode(str)` | `(string) -> string` | ❓ 需要检查 `@encoding/base64` |
+| `base64encode(str)` | `(string) -> string` | ❓ 需要检查 `@encoding/base64` |
+| `urlencode(str)` | `(string) -> string` | ❓ MoonBit 可能无此功能 |
+
+**测试计数**：新增至少 15 个测试
+
+---
+
+### 迭代 6：加密切密函数补齐 — CryptoFuncs
+
+**目标**：补齐加密切密函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+**依赖**：MoonBit 标准库是否提供 hash 函数
+
+| 函数 | 签名 | MoonBit 支持 |
+|------|------|-------------|
+| `sha256(str)` | `(string) -> string` | ❓ 需检查 `@encoding/sha256` |
+| `sha512(str)` | `(string) -> string` | ❓ 需检查 |
+| `sha1(str)` | `(string) -> string` | ❓ 需检查 |
+| `md5(str)` | `(string) -> string` | ❓ 需检查 |
+| `bcrypt(str)` | `(string) -> string` | ❌ 可能无支持 |
+
+**测试计数**：新增至少 10 个测试
+
+---
+
+### 迭代 7：日期/时间函数补齐 — DateTimeFuncs
+
+**目标**：补齐日期时间函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+**注意**：这些函数的输出依赖于当前时间或平台，测试需要 mock 或容差判断
+
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `formatdate(format, timestamp)` | `(string, string) -> string` | 解析 RFC3339 时间戳并格式化 |
+| `timeadd(timestamp, duration)` | `(string, string) -> string` | 时间加减 |
+| `timecmp(t1, t2)` | `(string, string) -> number` | 时间比较 |
+| `timestamp()` | `() -> string` | 返回当前 UTC 时间（RFC3339） |
+
+**测试计数**：新增至少 12 个测试
+
+---
+
+### 迭代 8：网络函数补齐 — NetworkFuncs
+
+**目标**：补齐 CIDR 网络函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `cidrhost(prefix, hostnum)` | `(string, number) -> string` | 计算 CIDR 中第 N 个主机地址 |
+| `cidrnetmask(prefix)` | `(string) -> string` | 返回子网掩码 |
+| `cidrsubnet(prefix, newbits, netnum)` | `(string, number, number) -> string` | 计算子网 |
+| `cidrsubnets(prefix, newbits...)` | `(string, variadic number) -> array(string)` | 多个子网计算 |
+
+**测试计数**：新增至少 12 个测试
+
+---
+
+### 迭代 9：Regex 函数补齐 — RegexFuncs
+
+**目标**：补齐正则表达式函数
+
+**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+
+**依赖**：MoonBit 标准库的 `Regex` 类型
+
+```moonbit
+// MoonBit 标准库有 @regex 包
+```
+
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `regex(pattern, str)` | `(string, string) -> array(string)` | 查找第一个匹配的子串和捕获组 |
+| `regexall(pattern, str)` | `(string, string) -> array(array(string))` | 查找所有匹配 |
+| `regex_replace(pattern, str, replacement)` | `(string, string, string) -> string` | 替换匹配 |
+
+**测试计数**：新增至少 9 个测试
+
+---
+
+### 迭代 10：函数注册 API — UserFuncRegistry
+
+**目标**：允许用户注册自定义函数到求值环境
+
+**改动文件**：`funcs.mbt` + `eval.mbt`
+
+**当前问题**：用户只能使用 `builtin_functions()`，无法扩展。
+
+**解决方案**：
+
+```moonbit
+/// 用户自定义函数注册
+pub struct FuncRegistry {
+  funcs : Map[String, FuncDef]
+}
+
+pub fn FuncRegistry::new() -> FuncRegistry { ... }
+pub fn FuncRegistry::register(self, name: String, def: FuncDef) -> FuncRegistry { ... }
+pub fn FuncRegistry::build(self) -> Map[String, FuncDef] { ... }
+```
+
+或者更简单：直接暴露 `Map[String, FuncDef]` 的合并 API：
+
+```moonbit
+pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> Map[String, FuncDef]
+```
+
+**测试计数**：新增至少 5 个测试
+
+---
+
+### 迭代 11：类型系统增强 — TypeSystemEnhance
+
+**目标**：补齐类型系统缺口
+
+**改动文件**：`unify.mbt` + `value.mbt` + `unify_test.mbt`
+
+| 特性 | 说明 | 难度 |
+|------|------|------|
+| `TDynamic` 类型 | 与任意类型可统一 | 低 |
+| `type_of` 对空数组/空对象 | 返回 `TArray(TDynamic)` / `TObject(TDynamic)` 而非 `TArray` / `TObject` | 低 |
+
+**注意**：HCL spec 中的 `capsule` 类型主要用于 Terraform provider 内部，MoonBit 环境无需实现。
+
+**测试计数**：新增至少 6 个测试
+
+---
+
+## 优先级路线图
+
+```
+迭代 1:  ParseErrorRecovery  — 高优先级 (IDE/CLI 体验)
+迭代 2:  StringFuncsComplete  — 高优先级 (常用函数)
+迭代 3:  CollectionFuncs     — 高优先级 (常用函数)
+迭代 4:  SetFuncs            — 中优先级
+迭代 5:  EncodingFuncs       — 中优先级 (依赖 MoonBit 生态)
+迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
+迭代 7:  DateTimeFuncs       — 中优先级
+迭代 8:  NetworkFuncs        — 低优先级
+迭代 9:  RegexFuncs          — 低优先级 (依赖 MoonBit 生态)
+迭代 10: UserFuncRegistry    — 低优先级 (增强 API)
+迭代 11: TypeSystemEnhance   — 低优先级
+```
+
+**建议开发顺序**：按迭代 1 → 2 → 3 → 10 → 4 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+
+---
+
+## 分支命名规范
+
+```
+lenitain/fix/parse-error-recovery     — 迭代 1
+lenitain/feat/string-funcs-complete    — 迭代 2
+lenitain/feat/collection-funcs         — 迭代 3
+lenitain/feat/set-funcs                — 迭代 4
+lenitain/feat/encoding-funcs           — 迭代 5
+lenitain/feat/crypto-funcs             — 迭代 6
+lenitain/feat/datetime-funcs           — 迭代 7
+lenitain/feat/network-funcs            — 迭代 8
+lenitain/feat/regex-funcs              — 迭代 9
+lenitain/feat/user-func-registry       — 迭代 10
+lenitain/feat/type-system-enhance      — 迭代 11
+```
+
+## 每次迭代完成后的验证命令
+
+```bash
+moon check && moon test && moon info && moon fmt
+```
+
+每次迭代应确保：
+1. `moon check` — 0 errors
+2. `moon test` — 全部通过（总数递增）
+3. `moon info` — `.mbti` 接口文件更新
+4. `moon fmt` — 格式化通过
+5. 添加新测试覆盖所有变更
