@@ -46,6 +46,8 @@ pub fn expr_to_string(Expression) -> String
 
 pub fn expr_unknown() -> Expression
 
+pub fn extract_body(Body, BodySchema) -> Result[ExtractedBody, Array[HCLError]]
+
 pub fn format_attr_with_decor(Attr) -> String
 
 pub fn format_body(Body) -> String
@@ -304,8 +306,8 @@ pub struct BlockSchema {
   labels : Array[LabelSchema]
   body : BodySchema
 } derive(Eq, @debug.Debug)
-pub fn BlockSchema::new(BodySchema) -> Self
 pub fn BlockSchema::mark_required(Self) -> Self
+pub fn BlockSchema::new(BodySchema) -> Self
 pub fn BlockSchema::with_max_items(Self, Int) -> Self
 
 pub struct Body {
@@ -401,6 +403,21 @@ pub(all) enum Expression {
   ExprFor(ForExpr)
   ExprUnknown
 } derive(Eq, @debug.Debug)
+
+pub struct ExtractedBlock {
+  labels : Array[String]
+  body : ExtractedBody
+} derive(Eq, @debug.Debug)
+pub fn ExtractedBlock::get_label(Self, Int) -> String?
+
+pub struct ExtractedBody {
+  attrs : Map[String, HCLValue]
+  blocks : Map[String, Array[ExtractedBlock]]
+} derive(Eq, @debug.Debug)
+pub fn ExtractedBody::get_attr(Self, String) -> HCLValue?
+pub fn ExtractedBody::get_block(Self, String) -> ExtractedBlock?
+pub fn ExtractedBody::get_blocks(Self, String) -> Array[ExtractedBlock]
+pub fn ExtractedBody::new() -> Self
 
 pub struct FieldSchema {
   schema : TypeSchema

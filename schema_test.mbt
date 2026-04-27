@@ -315,6 +315,24 @@ test "from_hcl_with_schema - invalid config" {
 }
 
 ///|
+test "extract_body with simple attrs" {
+  let body = parse("name = \"test\"\ncount = 42").unwrap()
+  let schema = BodySchema::new().with_attrs({
+    "name": AttrSchema::required(TypeSchema::string()),
+    "count": AttrSchema::required(TypeSchema::int()),
+  })
+  let result = extract_body(body, schema)
+  assert_true(result is Ok(_))
+  match result {
+    Ok(extracted) => {
+      assert_true(extracted.get_attr("name") is Some(_))
+      assert_true(extracted.get_attr("count") is Some(_))
+    }
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
 test "from_hcl_with_schema_full - multiple errors" {
   let hcl = "config {\n}"
   let schema = TypeSchema::object({

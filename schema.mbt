@@ -315,7 +315,7 @@ pub fn BodySchema::with_attrs(
   self : BodySchema,
   attrs : Map[String, AttrSchema],
 ) -> BodySchema {
-  { ..self, attrs }
+  { ..self, attrs, }
 }
 
 ///|
@@ -324,7 +324,7 @@ pub fn BodySchema::with_blocks(
   self : BodySchema,
   blocks : Map[String, BlockSchema],
 ) -> BodySchema {
-  { ..self, blocks }
+  { ..self, blocks, }
 }
 
 ///|
@@ -559,13 +559,90 @@ pub fn ExtractedBody::get_block(
 
 ///|
 /// Get a label by index from a block
-pub fn ExtractedBlock::get_label(
-  self : ExtractedBlock,
-  index : Int,
-) -> String? {
+pub fn ExtractedBlock::get_label(self : ExtractedBlock, index : Int) -> String? {
   if index >= 0 && index < self.labels.length() {
     Some(self.labels[index])
   } else {
     None
+  }
+}
+
+///|
+/// Extract structured data from an HCL Body using a BodySchema
+pub fn extract_body(
+  body : Body,
+  schema : BodySchema,
+) -> Result[ExtractedBody, Array[HCLError]] {
+  let errors = []
+  let attrs : Map[String, HCLValue] = {}
+  let blocks : Map[String, Array[ExtractedBlock]] = {}
+
+  for item in body.get_items() {
+    match item {
+      Attribute(attr) => {
+        let key = attr.get_key()
+        match schema.attrs.get(key) {
+          Some(attr_schema) => {
+            let value = expr_to_hcl_value(attr.get_value())
+            let validation_errors = validate(value, attr_schema.type_schema)
+            for e in validation_errors {
+              errors.push(e)
+            }
+            attrs[key] = value
+          }
+          None => {
+            if !schema.extra_attrs {
+              errors.push(
+                HCLError::validation_error("$." + key, "unexpected attribute"),
+              )
+            }
+            attrs[key] = expr_to_hcl_value(attr.get_value())
+          }
+        }
+      }
+      Block(block) => {
+        let type_name = block.get_type_name()
+        match schema.blocks.get(type_name) {
+          Some(_) => {
+            let extracted = {
+              labels: block.get_labels(),
+              body: ExtractedBody::new(),
+            }
+            match blocks.get(type_name) {
+              Some(arr) => {
+                let new_arr = arr.copy()
+                new_arr.push(extracted)
+                blocks[type_name] = new_arr
+              }
+              None => blocks[type_name] = [extracted]
+            }
+          }
+          None =>
+            if !schema.extra_blocks {
+              errors.push(
+                HCLError::validation_error("$." + type_name, "unexpected block"),
+              )
+            }
+        }
+      }
+    }
+  }
+
+  for key, attr_schema in schema.attrs {
+    if attr_schema.required {
+      match attrs.get(key) {
+        None =>
+          errors.push(
+            HCLError::validation_error("$." + key, "required attribute missing"),
+          )
+        Some(_) => ()
+      }
+    }
+  }
+
+  if errors.is_empty() {
+    Ok({ attrs, blocks })
+  } else {
+    Err(errors)
   }
 }
