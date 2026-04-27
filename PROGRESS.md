@@ -1,13 +1,21 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：解析错误恢复 — 迭代 1 完成 ✅
+## 当前状态：字符串函数补齐 — 迭代 2 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/fix/parse-error-recovery`
+- 分支：`lenitain/feat/string-funcs-complete`
 - 状态：开发完成
-- 目标：解析错误恢复（ParseErrorRecovery）
+- 目标：补齐常见 Terraform 字符串函数
 
 ## 本次开发完成的任务
+
+### 字符串函数补齐 StringFuncsComplete ✅
+- ✅ `startswith(str, prefix)` — 字符串前缀检查，使用 `s.has_prefix()`
+- ✅ `endswith(str, suffix)` — 字符串后缀检查，使用 `s.has_suffix()`
+- ✅ `title(str)` — 每个单词首字母大写，逐字符遍历实现
+- ✅ `contains` 扩展 — 支持字符串子串搜索（`OneOf([ParamArray(Any), ParamString])`）
+- ✅ 13 个新测试（startswith/endswith/title/contains string × 正常/边界/错误）
+- ✅ 所有 801 个测试通过
 
 ### 解析错误恢复 ParseErrorRecovery ✅
 - ✅ `MultipleErrors(Array[HCLError])` 变体 — HCLError 新增多错误包装
@@ -108,7 +116,7 @@
 
 ### 验证结果
 - ✅ moon check: 0 errors
-- ✅ moon test: 778 passed, 0 failed
+- ✅ moon test: 801 passed, 0 failed
 - ✅ moon fmt: 通过
 - ✅ moon info: 通过
 
@@ -232,7 +240,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 778 个测试全部通过
+- ✅ 801 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -242,7 +250,7 @@
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：JSON 语法解析（JSON→Body、标签嵌套、数组块、round-trip、terraform.tfvars.json）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
-- 覆盖：内置函数（数字、集合、字符串、类型转换，共45个函数）
+- 覆盖：内置函数（数字、集合、字符串、类型转换，共48个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
@@ -286,9 +294,9 @@
 ### 内置函数 (funcs.mbt) - 新增
 - ✅ 数字函数 (abs, ceil, floor, log, max, min, parseint, pow, signum)
 - ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element)
-- ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist)
+- ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist, startswith, endswith, title)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
-- ✅ 通过 builtin_functions() 获取所有内置函数
+- ✅ 通过 builtin_functions() 获取所有内置函数（48 个）
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
 - ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
 - ✅ `FuncDefBuilder` — 链式 API 构建函数定义
@@ -390,7 +398,7 @@
 | 序列化 | `to_hcl_body`, `to_hcl_value`, `Formatter` | ✅ |
 | 反序列化 | `from_hcl_body`, `from_hcl_with_schema` | ✅ |
 | Trait 系统 | `ToHCL`, `FromHCL` | ✅ |
-| 表达式求值 | `eval_binary/unary`, 45 个内置函数 | ✅ |
+| 表达式求值 | `eval_binary/unary`, 48 个内置函数 | ✅ |
 | Schema 验证 | `TypeSchema`, `FieldSchema`, `validate` | ✅ |
 | JSON 转换 | `hcl_to_json`, `body_to_json_pretty` | ✅ |
 | Decor 系统 | `Decor`, `Decorated[T]` | ✅ |
@@ -741,7 +749,7 @@ hcl/
 
 ---
 
-### 迭代 2：字符串函数补齐 — StringFuncsComplete
+### 迭代 2：字符串函数补齐 — StringFuncsComplete ✅
 
 **目标**：补齐所有常见 Terraform 字符串函数
 
@@ -751,12 +759,10 @@ hcl/
 |------|------|----------|
 | `startswith(str, prefix)` | `(string, string) -> bool` | `String.has_prefix` |
 | `endswith(str, suffix)` | `(string, string) -> bool` | `String.has_suffix` |
-| `title(str)` | `(string) -> string` | 每个单词首字母大写 |
-| `contains(str, search)` | `(string, string) -> bool` | 注意：现有 `contains` 仅支持 array，需扩展参数类型或新增 |
+| `title(str)` | `(string) -> string` | 逐字符遍历，空格后首字母大写 |
+| `contains(str, search)` | `(string/any, any) -> bool` | 扩展为 `OneOf([ParamArray(Any), ParamString])`，支持字符串子串搜索 |
 
-**注意**：`contains` 目前仅支持 array（`ParamArray(Any)`）。HCL 规范中 `contains` 也支持 string。需要将参数类型改为 `OneOf([ParamArray(Any), ParamString])` 并修改实现。
-
-**测试计数**：新增至少 12 个测试（startswith/endswith/title × 正常/边界/错误）
+**测试计数**：13 个新测试，总计 801 个测试通过 ✅
 
 ---
 
@@ -965,7 +971,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 
 ```
 迭代 1:  ParseErrorRecovery  — ✅ 已完成 (788 测试通过)
-迭代 2:  StringFuncsComplete  — 高优先级 (常用函数)
+迭代 2:  StringFuncsComplete  — ✅ 已完成 (801 测试通过)
 迭代 3:  CollectionFuncs     — 高优先级 (常用函数)
 迭代 4:  SetFuncs            — 中优先级
 迭代 5:  EncodingFuncs       — 中优先级 (依赖 MoonBit 生态)
@@ -977,7 +983,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 1 → 2 → 3 → 10 → 4 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 → 10 → 4 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 
