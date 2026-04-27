@@ -241,3 +241,18 @@ test "FuncCall inequality" {
   let b = FuncCall::builder("g").arg(ExprInt(1)).build()
   assert_true(a != b)
 }
+
+///|
+test "TraversalBuilder splat builds .* traversal" {
+  let expr = ExprVariable({ name: "list" })
+  let traversal = TraversalBuilder::new(expr).splat().attr("name").build()
+  assert_true(traversal.operators.length() == 2)
+  assert_true(expr_to_string(ExprTraversal(traversal)) == "list.*.name")
+}
+
+///|
+test "TraversalBuilder splat chained with index" {
+  let expr = ExprVariable({ name: "list" })
+  let traversal = TraversalBuilder::new(expr).splat().index(ExprInt(0)).build()
+  assert_true(expr_to_string(ExprTraversal(traversal)) == "list.*[0]")
+}

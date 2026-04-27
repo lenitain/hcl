@@ -137,6 +137,7 @@ pub fn[V : Visit] visit_traversal_operator_default(
   match op {
     Attr(_) => ()
     Index(expr) => v.visit_expr(expr)
+    Splat => ()
   }
 }
 

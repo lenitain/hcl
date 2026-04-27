@@ -738,48 +738,75 @@ fn Parser::parse_property_access(
 ) -> HCLResult[(Expression, Parser)] {
   if self.check(Dot) {
     match self.advance() {
-      Ok(parser) => {
-        let property = match parser.current {
-          Ident(name) => name
-          _ => {
-            let (line, col, offset) = parser.lexer.location()
-            return Err(
-              HCLError::parse_error_with_context(
-                "Expected property name",
-                line,
-                col,
-                offset,
-                parser.lexer.get_line(line),
-              ),
-            )
+      Ok(parser) =>
+        // Check for splat: .*
+        if parser.check(Star) {
+          match parser.advance() {
+            Ok(p) => {
+              let builder = TraversalBuilder::new(obj).splat()
+              let traversal = builder.build()
+              p.parse_property_access(ExprTraversal(traversal))
+            }
+            Err(e) => Err(e)
           }
-        }
+        } else {
+          let property = match parser.current {
+            Ident(name) => name
+            _ => {
+              let (line, col, offset) = parser.lexer.location()
+              return Err(
+                HCLError::parse_error_with_context(
+                  "Expected property name",
+                  line,
+                  col,
+                  offset,
+                  parser.lexer.get_line(line),
+                ),
+              )
+            }
+          }
 
-        match parser.advance() {
-          Ok(p) => {
-            let builder = TraversalBuilder::new(obj).attr(property)
-            let traversal = builder.build()
-            p.parse_property_access(ExprTraversal(traversal))
+          match parser.advance() {
+            Ok(p) => {
+              let builder = TraversalBuilder::new(obj).attr(property)
+              let traversal = builder.build()
+              p.parse_property_access(ExprTraversal(traversal))
+            }
+            Err(e) => Err(e)
           }
-          Err(e) => Err(e)
         }
-      }
       Err(e) => Err(e)
     }
   } else if self.check(LBracket) {
     match self.advance() {
       Ok(parser) =>
-        match parser.parse_value() {
-          Ok((key, parser)) =>
-            match parser.expect(RBracket) {
-              Ok(p) => {
-                let builder = TraversalBuilder::new(obj).index(key)
-                let traversal = builder.build()
-                p.parse_property_access(ExprTraversal(traversal))
+        // Check for splat: [*]
+        if parser.check(Star) {
+          match parser.advance() {
+            Ok(parser) =>
+              match parser.expect(RBracket) {
+                Ok(p) => {
+                  let builder = TraversalBuilder::new(obj).splat()
+                  let traversal = builder.build()
+                  p.parse_property_access(ExprTraversal(traversal))
+                }
+                Err(e) => Err(e)
               }
-              Err(e) => Err(e)
-            }
-          Err(e) => Err(e)
+            Err(e) => Err(e)
+          }
+        } else {
+          match parser.parse_value() {
+            Ok((key, parser)) =>
+              match parser.expect(RBracket) {
+                Ok(p) => {
+                  let builder = TraversalBuilder::new(obj).index(key)
+                  let traversal = builder.build()
+                  p.parse_property_access(ExprTraversal(traversal))
+                }
+                Err(e) => Err(e)
+              }
+            Err(e) => Err(e)
+          }
         }
       Err(e) => Err(e)
     }

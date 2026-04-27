@@ -344,3 +344,84 @@ test "Ident::new_sanitized handles hyphens in middle" {
   let id = Ident::new_sanitized("foo-bar")
   assert_eq(id.as_str(), "foo-bar")
 }
+
+///|
+test "is_id_start Unicode CJK" {
+  assert_true(is_id_start('中'))
+  assert_true(is_id_start('文'))
+  assert_true(is_id_start('日'))
+  assert_true(is_id_start('한'))
+}
+
+///|
+test "is_id_start Unicode Latin extended" {
+  assert_true(is_id_start('ä'))
+  assert_true(is_id_start('ö'))
+  assert_true(is_id_start('ü'))
+  assert_true(is_id_start('é'))
+  assert_true(is_id_start('ñ'))
+}
+
+///|
+test "is_id_start Unicode Cyrillic" {
+  assert_true(is_id_start('Д'))
+  assert_true(is_id_start('ж'))
+}
+
+///|
+test "is_id_start Unicode Greek" {
+  assert_true(is_id_start('Ω'))
+  assert_true(is_id_start('α'))
+}
+
+///|
+test "is_id_start Unicode excludes multiplication and division" {
+  assert_false(is_id_start('×'))
+  assert_false(is_id_start('÷'))
+}
+
+///|
+test "is_id_continue Unicode CJK" {
+  assert_true(is_id_continue('中'))
+  assert_true(is_id_continue('文'))
+}
+
+///|
+test "is_id_continue Unicode Latin extended" {
+  assert_true(is_id_continue('ä'))
+  assert_true(is_id_continue('é'))
+}
+
+///|
+test "is_ident Unicode" {
+  assert_true(is_ident("名字"))
+  assert_true(is_ident("名前"))
+  assert_true(is_ident("이름"))
+  assert_true(is_ident("café"))
+  assert_true(is_ident("имя"))
+  assert_true(is_ident("变量_名"))
+}
+
+///|
+test "is_ident Unicode mixed with ASCII" {
+  assert_true(is_ident("var_名字"))
+  assert_true(is_ident("name_名"))
+}
+
+///|
+test "Ident::try_new Unicode" {
+  let result = Ident::try_new("变量")
+  assert_true(result is Ok(_))
+}
+
+///|
+test "Ident::try_new Unicode mixed" {
+  let result = Ident::try_new("var_名字")
+  assert_true(result is Ok(_))
+}
+
+///|
+test "Ident::new_sanitized Unicode keeps valid" {
+  let id = Ident::new_sanitized("名字")
+  assert_eq(id.as_str(), "名字")
+}

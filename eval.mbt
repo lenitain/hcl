@@ -397,17 +397,23 @@ pub fn eval_expr(
         None => Err(HCLError::undefined_variable(v.name))
       }
     ExprTraversal(trav) =>
-      // Evaluate base expression
       match eval_expr(trav.base, variables, functions) {
         Ok(base_value) => {
           let mut current = base_value
-          for op in trav.operators {
+          let ops = trav.operators
+          let mut i = 0
+          let ops_len = ops.length()
+          while i < ops_len {
+            let op = ops[i]
             match op {
               Attr(name) =>
                 match current {
                   Object(target_obj, _) =>
                     match target_obj.get(name) {
-                      Some(value) => current = value
+                      Some(value) => {
+                        current = value
+                        i = i + 1
+                      }
                       None => return Err(HCLError::undefined_property(name))
                     }
                   _ =>
@@ -421,9 +427,10 @@ pub fn eval_expr(
                     match (current, index_value) {
                       (Array(arr, _), Number(n, _)) =>
                         match n.as_int() {
-                          Some(i) =>
-                            if i >= 0 && i < arr.length() {
-                              current = arr[i]
+                          Some(idx) =>
+                            if idx >= 0 && idx < arr.length() {
+                              current = arr[idx]
+                              i = i + 1
                             } else {
                               return Err(
                                 HCLError::invalid_value(
@@ -440,7 +447,10 @@ pub fn eval_expr(
                         }
                       (Object(target_obj, _), String(key, _)) =>
                         match target_obj.get(key) {
-                          Some(value) => current = value
+                          Some(value) => {
+                            current = value
+                            i = i + 1
+                          }
                           None => return Err(HCLError::undefined_property(key))
                         }
                       (_, _) =>
@@ -448,6 +458,15 @@ pub fn eval_expr(
                     }
                   Err(e) => return Err(e)
                 }
+              Splat => {
+                let remaining_ops = []
+                let mut j = i + 1
+                while j < ops_len {
+                  remaining_ops.push(ops[j])
+                  j = j + 1
+                }
+                return eval_splat(current, remaining_ops, variables, functions)
+              }
             }
           }
           Ok(current)
@@ -484,6 +503,116 @@ pub fn eval_expr(
     ExprFor(for_expr) => eval_for_expr(for_expr, variables, functions)
     ExprUnknown => Ok(Unknown(Decor::empty()))
   }
+}
+
+///|
+/// Evaluate splat: apply remaining traversal operators to each element of a collection
+fn eval_splat(
+  value : HCLValue,
+  remaining_ops : Array[TraversalOperator],
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[HCLValue] {
+  match value {
+    Array(arr, _) => {
+      let result = []
+      for elem in arr {
+        match apply_traversal_ops(elem, remaining_ops, variables, functions) {
+          Ok(v) => result.push(v)
+          Err(e) => return Err(e)
+        }
+      }
+      Ok(Array(result, Decor::empty()))
+    }
+    Object(obj, _) => {
+      let result = []
+      for _key, val in obj {
+        match apply_traversal_ops(val, remaining_ops, variables, functions) {
+          Ok(v) => result.push(v)
+          Err(e) => return Err(e)
+        }
+      }
+      Ok(Array(result, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("Splat requires array or object"))
+  }
+}
+
+///|
+/// Apply a sequence of traversal operators to a value
+fn apply_traversal_ops(
+  value : HCLValue,
+  ops : Array[TraversalOperator],
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[HCLValue] {
+  let mut current = value
+  let mut i = 0
+  let ops_len = ops.length()
+  while i < ops_len {
+    let op = ops[i]
+    match op {
+      Attr(name) =>
+        match current {
+          Object(target_obj, _) =>
+            match target_obj.get(name) {
+              Some(v) => {
+                current = v
+                i = i + 1
+              }
+              None => return Err(HCLError::undefined_property(name))
+            }
+          _ => return Err(HCLError::type_error("Property access on non-object"))
+        }
+      Index(idx_expr) =>
+        match eval_expr(idx_expr, variables, functions) {
+          Ok(index_value) =>
+            match (current, index_value) {
+              (Array(arr, _), Number(n, _)) =>
+                match n.as_int() {
+                  Some(idx) =>
+                    if idx >= 0 && idx < arr.length() {
+                      current = arr[idx]
+                      i = i + 1
+                    } else {
+                      return Err(
+                        HCLError::invalid_value("Array index out of bounds"),
+                      )
+                    }
+                  None =>
+                    return Err(
+                      HCLError::type_error("Array index must be integer"),
+                    )
+                }
+              (Object(target_obj, _), String(key, _)) =>
+                match target_obj.get(key) {
+                  Some(v) => {
+                    current = v
+                    i = i + 1
+                  }
+                  None => return Err(HCLError::undefined_property(key))
+                }
+              (_, _) => return Err(HCLError::type_error("Invalid index access"))
+            }
+          Err(e) => return Err(e)
+        }
+      Splat =>
+        return eval_splat(current, drop_first(ops, i + 1), variables, functions)
+    }
+  }
+  Ok(current)
+}
+
+///|
+/// Drop first n elements from array (returns new array)
+fn[T] drop_first(arr : Array[T], n : Int) -> Array[T] {
+  let result = []
+  let mut i = n
+  while i < arr.length() {
+    result.push(arr[i])
+    i = i + 1
+  }
+  result
 }
 
 ///|

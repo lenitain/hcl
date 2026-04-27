@@ -21,6 +21,20 @@ pub(all) enum TemplatePart {
   ForStart(String, Expression)
   /// End of for %{endfor}
   ForEnd
+  /// String interpolation with strip markers ${~ expr ~}
+  InterpolationStrip(Expression, Bool, Bool)
+  /// Conditional directive with strip markers %{~ if cond ~}
+  ConditionalStartStrip(Expression, Bool, Bool)
+  /// Else-if with strip markers %{~ else if cond ~}
+  ConditionalElseIfStrip(Expression, Bool, Bool)
+  /// Else with strip markers %{~ else ~}
+  ConditionalElseStrip(Bool, Bool)
+  /// Endif with strip markers %{~ endif ~}
+  ConditionalEndStrip(Bool, Bool)
+  /// For with strip markers %{~ for var in col ~}
+  ForStartStrip(String, Expression, Bool, Bool)
+  /// Endfor with strip markers %{~ endfor ~}
+  ForEndStrip(Bool, Bool)
 } derive(Debug, Eq)
 
 ///|
@@ -69,8 +83,14 @@ pub fn Template::from_string(input : String) -> HCLResult[Template] {
 
       // Parse interpolation
       match parse_interpolation(input, i + 2) {
-        Ok((expr, end_pos)) => {
-          template.parts.push(Interpolation(expr))
+        Ok((expr, end_pos, strip_before, strip_after)) => {
+          if strip_before || strip_after {
+            template.parts.push(
+              InterpolationStrip(expr, strip_before, strip_after),
+            )
+          } else {
+            template.parts.push(Interpolation(expr))
+          }
           i = end_pos
           text_start = i
         }
@@ -109,13 +129,22 @@ pub fn Template::from_string(input : String) -> HCLResult[Template] {
 }
 
 ///|
-/// Parse interpolation expression ${expr}
+/// Parse interpolation expression ${expr} or ${~ expr ~}
 fn parse_interpolation(
   input : String,
   start : Int,
-) -> HCLResult[(Expression, Int)] {
-  let mut i = start
+) -> HCLResult[(Expression, Int, Bool, Bool)] {
   let len = input.length()
+  let mut i = start
+  let mut strip_before = false
+  let mut strip_after = false
+
+  // Check for strip marker after opening ${
+  if i < len && input.code_unit_at(i) == '~'.to_int().to_uint16() {
+    strip_before = true
+    i += 1
+  }
+
   let mut depth = 1
   let expr_start = i
 
@@ -127,11 +156,20 @@ fn parse_interpolation(
     } else if c == '}'.to_int().to_uint16() {
       depth -= 1
       if depth == 0 {
+        // Check for strip marker before closing }
+        let mut expr_end = i
+        if expr_end > expr_start {
+          let last_char = input.code_unit_at(expr_end - 1)
+          if last_char == '~'.to_int().to_uint16() {
+            strip_after = true
+            expr_end -= 1
+          }
+        }
         // Extract expression
-        let expr_str = substring(input, expr_start, i)
+        let expr_str = substring(input, expr_start, expr_end)
         // Parse expression
         match parse_template_expression(expr_str) {
-          Ok(expr) => return Ok((expr, i + 1))
+          Ok(expr) => return Ok((expr, i + 1, strip_before, strip_after))
           Err(e) => return Err(e)
         }
       }
@@ -155,13 +193,22 @@ fn parse_interpolation(
 }
 
 ///|
-/// Parse template directive %{directive}
+/// Parse template directive %{directive} or %{~ directive ~}
 fn parse_directive(
   input : String,
   start : Int,
 ) -> HCLResult[(TemplatePart, Int)] {
-  let mut i = start
   let len = input.length()
+  let mut i = start
+  let mut strip_before = false
+  let mut strip_after = false
+
+  // Check for strip marker after opening %{
+  if i < len && input.code_unit_at(i) == '~'.to_int().to_uint16() {
+    strip_before = true
+    i += 1
+  }
+
   let mut depth = 1
   let content_start = i
 
@@ -173,10 +220,19 @@ fn parse_directive(
     } else if c == '}'.to_int().to_uint16() {
       depth -= 1
       if depth == 0 {
+        // Check for strip marker before closing }
+        let mut content_end = i
+        if content_end > content_start {
+          let last_char = input.code_unit_at(content_end - 1)
+          if last_char == '~'.to_int().to_uint16() {
+            strip_after = true
+            content_end -= 1
+          }
+        }
         // Extract directive content
-        let content = substring(input, content_start, i)
-        // Parse directive
-        match parse_directive_content(content) {
+        let content = substring(input, content_start, content_end)
+        // Parse directive with strip info
+        match parse_directive_content(content, strip_before, strip_after) {
           Ok(part) => return Ok((part, i + 1))
           Err(e) => return Err(e)
         }
@@ -202,38 +258,69 @@ fn parse_directive(
 
 ///|
 /// Parse directive content
-fn parse_directive_content(content : String) -> HCLResult[TemplatePart] {
+fn parse_directive_content(
+  content : String,
+  strip_before : Bool,
+  strip_after : Bool,
+) -> HCLResult[TemplatePart] {
   let trimmed = content.trim().to_string()
 
   if has_prefix(trimmed, "if ") {
     // %{if cond}
     let cond_str = substring(trimmed, 3, trimmed.length())
     match parse_template_expression(cond_str) {
-      Ok(cond) => Ok(ConditionalStart(cond))
+      Ok(cond) =>
+        if strip_before || strip_after {
+          Ok(ConditionalStartStrip(cond, strip_before, strip_after))
+        } else {
+          Ok(ConditionalStart(cond))
+        }
       Err(e) => Err(e)
     }
   } else if has_prefix(trimmed, "else if ") {
     // %{else if cond}
     let cond_str = substring(trimmed, 8, trimmed.length())
     match parse_template_expression(cond_str) {
-      Ok(cond) => Ok(ConditionalElseIf(cond))
+      Ok(cond) =>
+        if strip_before || strip_after {
+          Ok(ConditionalElseIfStrip(cond, strip_before, strip_after))
+        } else {
+          Ok(ConditionalElseIf(cond))
+        }
       Err(e) => Err(e)
     }
   } else if trimmed == "else" {
     // %{else}
-    Ok(ConditionalElse)
+    if strip_before || strip_after {
+      Ok(ConditionalElseStrip(strip_before, strip_after))
+    } else {
+      Ok(ConditionalElse)
+    }
   } else if trimmed == "endif" {
     // %{endif}
-    Ok(ConditionalEnd)
+    if strip_before || strip_after {
+      Ok(ConditionalEndStrip(strip_before, strip_after))
+    } else {
+      Ok(ConditionalEnd)
+    }
   } else if has_prefix(trimmed, "for ") {
     // %{for var in collection}
     match parse_for_directive(trimmed) {
-      Ok((var_name, collection)) => Ok(ForStart(var_name, collection))
+      Ok((var_name, collection)) =>
+        if strip_before || strip_after {
+          Ok(ForStartStrip(var_name, collection, strip_before, strip_after))
+        } else {
+          Ok(ForStart(var_name, collection))
+        }
       Err(e) => Err(e)
     }
   } else if trimmed == "endfor" {
     // %{endfor}
-    Ok(ForEnd)
+    if strip_before || strip_after {
+      Ok(ForEndStrip(strip_before, strip_after))
+    } else {
+      Ok(ForEnd)
+    }
   } else {
     Err(
       HCLError::parse_error_with_context(
@@ -380,6 +467,50 @@ fn parse_template_expression(expr_str : String) -> HCLResult[Expression] {
 }
 
 ///|
+/// Trim trailing whitespace from string
+fn trim_trailing_whitespace(s : String) -> String {
+  let len = s.length()
+  if len == 0 {
+    return s
+  }
+  let mut end = len
+  while end > 0 {
+    let c = s.code_unit_at(end - 1)
+    if c == ' '.to_int().to_uint16() ||
+      c == '\t'.to_int().to_uint16() ||
+      c == '\n'.to_int().to_uint16() ||
+      c == '\r'.to_int().to_uint16() {
+      end = end - 1
+    } else {
+      break
+    }
+  }
+  substring(s, 0, end)
+}
+
+///|
+/// Trim leading whitespace from string
+fn trim_leading_whitespace(s : String) -> String {
+  let len = s.length()
+  if len == 0 {
+    return s
+  }
+  let mut start = 0
+  while start < len {
+    let c = s.code_unit_at(start)
+    if c == ' '.to_int().to_uint16() ||
+      c == '\t'.to_int().to_uint16() ||
+      c == '\n'.to_int().to_uint16() ||
+      c == '\r'.to_int().to_uint16() {
+      start = start + 1
+    } else {
+      break
+    }
+  }
+  substring(s, start, len)
+}
+
+///|
 /// Evaluate template with given context
 pub fn Template::evaluate(
   self : Template,
@@ -389,17 +520,37 @@ pub fn Template::evaluate(
   let mut result = ""
   let mut i = 0
   let parts = self.parts
+  let mut pending_strip_after = false
 
   while i < parts.length() {
     let part = parts[i]
     match part {
       Text(text) => {
-        result = result + text
+        let t = if pending_strip_after {
+          trim_leading_whitespace(text)
+        } else {
+          text
+        }
+        pending_strip_after = false
+        result = result + t
         i += 1
       }
       Interpolation(expr) =>
         match eval_expr(expr, variables, functions) {
           Ok(value) => {
+            pending_strip_after = false
+            result = result + value_to_string(value)
+            i += 1
+          }
+          Err(e) => return Err(e)
+        }
+      InterpolationStrip(expr, strip_before, strip_after) =>
+        match eval_expr(expr, variables, functions) {
+          Ok(value) => {
+            if strip_before {
+              result = trim_trailing_whitespace(result)
+            }
+            pending_strip_after = strip_after
             result = result + value_to_string(value)
             i += 1
           }
@@ -454,6 +605,60 @@ pub fn Template::evaluate(
             }
           Err(e) => return Err(e)
         }
+      ConditionalStartStrip(condition, strip_before, strip_after) =>
+        match eval_expr(condition, variables, functions) {
+          Ok(cond_value) =>
+            match cond_value {
+              Bool(b, _) => {
+                if strip_before {
+                  result = trim_trailing_whitespace(result)
+                }
+                pending_strip_after = strip_after
+                match find_conditional_boundary(parts, i + 1) {
+                  Ok((boundary, has_more)) =>
+                    if b {
+                      match
+                        evaluate_body_range(
+                          parts,
+                          i + 1,
+                          boundary,
+                          variables,
+                          functions,
+                        ) {
+                        Ok(body_result) => {
+                          result = result + body_result
+                          if has_more {
+                            match skip_to_conditional_end(parts, boundary) {
+                              Ok(end) => i = end + 1
+                              Err(e) => return Err(e)
+                            }
+                          } else {
+                            i = boundary + 1
+                          }
+                        }
+                        Err(e) => return Err(e)
+                      }
+                    } else if has_more {
+                      match
+                        evaluate_else_chain(
+                          parts, boundary, variables, functions,
+                        ) {
+                        Ok((chain_result, end_pos)) => {
+                          result = result + chain_result
+                          i = end_pos + 1
+                        }
+                        Err(e) => return Err(e)
+                      }
+                    } else {
+                      i = boundary + 1
+                    }
+                  Err(e) => return Err(e)
+                }
+              }
+              _ => return Err(HCLError::type_error("Condition must be boolean"))
+            }
+          Err(e) => return Err(e)
+        }
       ForStart(var_name, collection) =>
         match eval_expr(collection, variables, functions) {
           Ok(collection_value) =>
@@ -480,9 +685,43 @@ pub fn Template::evaluate(
             }
           Err(e) => return Err(e)
         }
+      ForStartStrip(var_name, collection, strip_before, strip_after) =>
+        match eval_expr(collection, variables, functions) {
+          Ok(collection_value) =>
+            match collection_value {
+              Array(arr, _) => {
+                if strip_before {
+                  result = trim_trailing_whitespace(result)
+                }
+                pending_strip_after = strip_after
+                match
+                  evaluate_for_body(
+                    parts,
+                    i + 1,
+                    var_name,
+                    arr,
+                    variables,
+                    functions,
+                  ) {
+                  Ok((body_result, end_pos)) => {
+                    result = result + body_result
+                    i = end_pos + 1
+                  }
+                  Err(e) => return Err(e)
+                }
+              }
+              _ =>
+                return Err(HCLError::type_error("For collection must be array"))
+            }
+          Err(e) => return Err(e)
+        }
       ConditionalEnd | ForEnd | ConditionalElse | ConditionalElseIf(_) =>
         // These should be handled by their respective start directives
         i += 1
+      ConditionalEndStrip(_, _)
+      | ForEndStrip(_, _)
+      | ConditionalElseStrip(_, _)
+      | ConditionalElseIfStrip(_, _, _) => i += 1
     }
   }
 
@@ -534,8 +773,8 @@ fn find_for_end(parts : Array[TemplatePart], start : Int) -> Int {
   while i < parts.length() {
     let part = parts[i]
     match part {
-      ForStart(_, _) => depth += 1
-      ForEnd => {
+      ForStart(_, _) | ForStartStrip(_, _, _, _) => depth += 1
+      ForEnd | ForEndStrip(_, _) => {
         if depth == 0 {
           return i
         }
@@ -560,10 +799,16 @@ fn find_conditional_boundary(
   while i < parts.length() {
     let part = parts[i]
     match part {
-      ConditionalStart(_) => depth += 1
-      ConditionalElseIf(_) => if depth == 0 { return Ok((i, true)) }
-      ConditionalElse => if depth == 0 { return Ok((i, true)) }
-      ConditionalEnd => {
+      ConditionalStart(_) | ConditionalStartStrip(_, _, _) => depth += 1
+      ConditionalElseIf(_) | ConditionalElseIfStrip(_, _, _) =>
+        if depth == 0 {
+          return Ok((i, true))
+        }
+      ConditionalElse | ConditionalElseStrip(_, _) =>
+        if depth == 0 {
+          return Ok((i, true))
+        }
+      ConditionalEnd | ConditionalEndStrip(_, _) => {
         if depth == 0 {
           return Ok((i, false))
         }
@@ -589,8 +834,8 @@ fn find_conditional_end(
   while i < parts.length() {
     let part = parts[i]
     match part {
-      ConditionalStart(_) => depth += 1
-      ConditionalEnd => {
+      ConditionalStart(_) | ConditionalStartStrip(_, _, _) => depth += 1
+      ConditionalEnd | ConditionalEndStrip(_, _) => {
         if depth == 0 {
           return Ok(i)
         }
@@ -624,7 +869,7 @@ fn evaluate_else_chain(
 ) -> HCLResult[(String, Int)] {
   let part = parts[pos]
   match part {
-    ConditionalElseIf(cond_expr) =>
+    ConditionalElseIf(cond_expr) | ConditionalElseIfStrip(cond_expr, _, _) =>
       match eval_expr(cond_expr, variables, functions) {
         Ok(cond_value) =>
           match cond_value {
@@ -664,7 +909,7 @@ fn evaluate_else_chain(
           }
         Err(e) => Err(e)
       }
-    ConditionalElse =>
+    ConditionalElse | ConditionalElseStrip(_, _) =>
       match find_conditional_end(parts, pos + 1) {
         Ok(end) =>
           match evaluate_body_range(parts, pos + 1, end, variables, functions) {
@@ -703,7 +948,7 @@ fn evaluate_body_range(
           }
           Err(e) => return Err(e)
         }
-      ConditionalStart(condition) =>
+      ConditionalStart(condition) | ConditionalStartStrip(condition, _, _) =>
         match eval_expr(condition, variables, functions) {
           Ok(cond_value) =>
             match cond_value {
@@ -797,8 +1042,14 @@ pub fn Template::from_heredoc(
 
       // Parse interpolation
       match parse_interpolation(processed_input, i + 2) {
-        Ok((expr, end_pos)) => {
-          template.parts.push(Interpolation(expr))
+        Ok((expr, end_pos, strip_before, strip_after)) => {
+          if strip_before || strip_after {
+            template.parts.push(
+              InterpolationStrip(expr, strip_before, strip_after),
+            )
+          } else {
+            template.parts.push(Interpolation(expr))
+          }
           i = end_pos
           text_start = i
         }

@@ -106,6 +106,8 @@ pub(all) enum TraversalOperator {
   Attr(String)
   /// Index access (obj[index])
   Index(Expression)
+  /// Splat access (obj.* or obj[*])
+  Splat
 } derive(Debug, Eq)
 
 ///|
@@ -138,6 +140,13 @@ pub fn TraversalBuilder::index(
   expr : Expression,
 ) -> TraversalBuilder {
   self.operators.push(Index(expr))
+  self
+}
+
+///|
+/// Add a splat access operator (.*)
+pub fn TraversalBuilder::splat(self : TraversalBuilder) -> TraversalBuilder {
+  self.operators.push(Splat)
   self
 }
 
@@ -357,6 +366,7 @@ pub fn expr_to_string(expr : Expression) -> String {
         match op {
           Attr(name) => result = result + "." + name
           Index(idx) => result = result + "[" + expr_to_string(idx) + "]"
+          Splat => result = result + ".*"
         }
       }
       result

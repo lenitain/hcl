@@ -647,6 +647,13 @@ pub(all) enum TemplatePart {
   ConditionalEnd
   ForStart(String, Expression)
   ForEnd
+  InterpolationStrip(Expression, Bool, Bool)
+  ConditionalStartStrip(Expression, Bool, Bool)
+  ConditionalElseIfStrip(Expression, Bool, Bool)
+  ConditionalElseStrip(Bool, Bool)
+  ConditionalEndStrip(Bool, Bool)
+  ForStartStrip(String, Expression, Bool, Bool)
+  ForEndStrip(Bool, Bool)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Token {
@@ -708,10 +715,12 @@ pub fn TraversalBuilder::attr(Self, String) -> Self
 pub fn TraversalBuilder::build(Self) -> Traversal
 pub fn TraversalBuilder::index(Self, Expression) -> Self
 pub fn TraversalBuilder::new(Expression) -> Self
+pub fn TraversalBuilder::splat(Self) -> Self
 
 pub(all) enum TraversalOperator {
   Attr(String)
   Index(Expression)
+  Splat
 } derive(Eq, @debug.Debug)
 
 pub(all) enum TypeSchema {

@@ -734,17 +734,79 @@ fn is_digit(c : UInt16) -> Bool {
 }
 
 ///|
-/// Check if char code is valid identifier start
+/// Check if char code is valid identifier start (Unicode XID_Start)
 fn is_ident_start(c : UInt16) -> Bool {
-  (c >= 'a'.to_int().to_uint16() && c <= 'z'.to_int().to_uint16()) ||
-  (c >= 'A'.to_int().to_uint16() && c <= 'Z'.to_int().to_uint16()) ||
-  c == '_'.to_int().to_uint16()
+  let cp = c.to_int()
+  if (cp >= 0x0041 && cp <= 0x005A) ||
+    (cp >= 0x0061 && cp <= 0x007A) ||
+    cp == 0x005F {
+    return true
+  }
+  // Latin Extended (À-ÿ) excluding × and ÷
+  if cp >= 0x00C0 && cp <= 0x00FF && cp != 0x00D7 && cp != 0x00F7 {
+    return true
+  }
+  // Latin Extended-A
+  if cp >= 0x0100 && cp <= 0x017F {
+    return true
+  }
+  // Latin Extended-B
+  if cp >= 0x0180 && cp <= 0x024F {
+    return true
+  }
+  // Greek
+  if cp >= 0x0370 && cp <= 0x03FF {
+    return true
+  }
+  // Cyrillic
+  if cp >= 0x0400 && cp <= 0x04FF {
+    return true
+  }
+  // Arabic
+  if cp >= 0x0600 && cp <= 0x06FF {
+    return true
+  }
+  // Devanagari
+  if cp >= 0x0900 && cp <= 0x097F {
+    return true
+  }
+  // Thai
+  if cp >= 0x0E00 && cp <= 0x0E7F {
+    return true
+  }
+  // CJK Extension A
+  if cp >= 0x3400 && cp <= 0x4DBF {
+    return true
+  }
+  // CJK Unified Ideographs
+  if cp >= 0x4E00 && cp <= 0x9FFF {
+    return true
+  }
+  // Hangul Syllables
+  if cp >= 0xAC00 && cp <= 0xD7AF {
+    return true
+  }
+  false
 }
 
 ///|
-/// Check if char code is valid identifier continue
+/// Check if char code is valid identifier continue (Unicode XID_Continue)
 fn is_ident_continue(c : UInt16) -> Bool {
-  is_ident_start(c) || is_digit(c) || c == '-'.to_int().to_uint16()
+  if is_ident_start(c) {
+    return true
+  }
+  let cp = c.to_int()
+  if cp >= 0x0030 && cp <= 0x0039 {
+    return true
+  }
+  if cp == 0x002D {
+    return true
+  }
+  // Combining Diacritical Marks
+  if cp >= 0x0300 && cp <= 0x036F {
+    return true
+  }
+  false
 }
 
 ///|

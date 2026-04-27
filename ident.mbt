@@ -4,11 +4,9 @@
 /// Represents a validated HCL identifier. Identifiers are used for attribute
 /// names, block labels, variable references, etc.
 ///
-/// Validation uses ASCII character rules matching the lexer:
-/// - First character: a-z, A-Z, underscore
-/// - Remaining characters: a-z, A-Z, 0-9, underscore, hyphen
-///
-/// Note: Unicode identifiers (XID_Start/XID_Continue) are not supported yet.
+/// Validation uses Unicode XID_Start/XID_Continue rules matching the lexer:
+/// - First character: a-z, A-Z, underscore, Latin extended, CJK, Hangul, etc.
+/// - Remaining characters: all of the above plus 0-9, hyphen, combining marks
 pub struct Ident {
   inner : String
 } derive(Eq)
@@ -101,17 +99,81 @@ pub fn Ident::len(self : Ident) -> Int {
 ///|
 /// Determines if ch is a valid HCL identifier start character.
 ///
-/// Valid start: a-z, A-Z, underscore
+/// Valid start: a-z, A-Z, underscore, and Unicode XID_Start characters
+/// (Latin extended, CJK, Hangul, Cyrillic, Greek, Arabic, etc.)
 pub fn is_id_start(ch : Char) -> Bool {
-  (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
+  if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' {
+    return true
+  }
+  let cp = ch.to_int()
+  // Latin Extended (À-ÿ) excluding × and ÷
+  if cp >= 0x00C0 && cp <= 0x00FF && cp != 0x00D7 && cp != 0x00F7 {
+    return true
+  }
+  // Latin Extended-A
+  if cp >= 0x0100 && cp <= 0x017F {
+    return true
+  }
+  // Latin Extended-B
+  if cp >= 0x0180 && cp <= 0x024F {
+    return true
+  }
+  // Greek
+  if cp >= 0x0370 && cp <= 0x03FF {
+    return true
+  }
+  // Cyrillic
+  if cp >= 0x0400 && cp <= 0x04FF {
+    return true
+  }
+  // Arabic
+  if cp >= 0x0600 && cp <= 0x06FF {
+    return true
+  }
+  // Devanagari
+  if cp >= 0x0900 && cp <= 0x097F {
+    return true
+  }
+  // Thai
+  if cp >= 0x0E00 && cp <= 0x0E7F {
+    return true
+  }
+  // CJK Extension A
+  if cp >= 0x3400 && cp <= 0x4DBF {
+    return true
+  }
+  // CJK Unified Ideographs
+  if cp >= 0x4E00 && cp <= 0x9FFF {
+    return true
+  }
+  // Hangul Syllables
+  if cp >= 0xAC00 && cp <= 0xD7AF {
+    return true
+  }
+  false
 }
 
 ///|
 /// Determines if ch is a valid HCL identifier continue character.
 ///
-/// Valid continue: a-z, A-Z, 0-9, underscore, hyphen
+/// Valid continue: a-z, A-Z, 0-9, underscore, hyphen,
+/// and Unicode XID_Continue characters (combining marks)
 pub fn is_id_continue(ch : Char) -> Bool {
-  is_id_start(ch) || (ch >= '0' && ch <= '9') || ch == '-'
+  if is_id_start(ch) {
+    return true
+  }
+  if ch >= '0' && ch <= '9' {
+    return true
+  }
+  if ch == '-' {
+    return true
+  }
+  let cp = ch.to_int()
+  // Combining Diacritical Marks
+  if cp >= 0x0300 && cp <= 0x036F {
+    return true
+  }
+  false
 }
 
 ///|
