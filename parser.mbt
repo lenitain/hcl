@@ -93,6 +93,31 @@ fn Parser::skip_newlines(self : Parser) -> HCLResult[Parser] {
 }
 
 ///|
+/// Skip to next item by consuming tokens until newline or EOF
+fn Parser::skip_to_next_item(self : Parser) -> HCLResult[Parser] {
+  let mut parser = self
+  let mut done = false
+  while !done {
+    match parser.current {
+      Newline | EOF => done = true
+      _ =>
+        match parser.advance() {
+          Ok(p) => parser = p
+          Err(e) => return Err(e)
+        }
+    }
+  }
+  match parser.current {
+    Newline =>
+      match parser.advance() {
+        Ok(p) => Ok(p)
+        Err(e) => Err(e)
+      }
+    _ => Ok(parser)
+  }
+}
+
+///|
 /// Parse HCL input into a Body
 pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
   match self.skip_newlines() {
@@ -153,6 +178,114 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
       Ok(Body::from_items(items).set_span(span))
     }
     Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse HCL input into a Body with error recovery
+pub fn Parser::parse_body_with_recovery(
+  self : Parser,
+) -> (HCLResult[Body], Array[HCLError]) {
+  match self.skip_newlines() {
+    Ok(start_parser) => {
+      let (start_line, start_col, start_offset) = start_parser.current_location()
+      let items = []
+      let errors : Array[HCLError] = []
+      let mut parser = start_parser
+
+      while !parser.check(EOF) {
+        match parser.current {
+          Ident(_) =>
+            if parser.check(Equals) || parser.peek == Equals {
+              match parser.parse_attr() {
+                Ok((attr, new_parser)) => {
+                  items.push(Attribute(attr))
+                  parser = new_parser
+                }
+                Err(e) => {
+                  errors.push(e)
+                  match parser.skip_to_next_item() {
+                    Ok(p) => parser = p
+                    Err(e2) => {
+                      errors.push(e2)
+                      break
+                    }
+                  }
+                }
+              }
+            } else {
+              match parser.parse_block() {
+                Ok((block, new_parser)) => {
+                  items.push(Block(block))
+                  parser = new_parser
+                }
+                Err(e) => {
+                  errors.push(e)
+                  match parser.skip_to_next_item() {
+                    Ok(p) => parser = p
+                    Err(e2) => {
+                      errors.push(e2)
+                      break
+                    }
+                  }
+                }
+              }
+            }
+          Newline =>
+            match parser.advance() {
+              Ok(p) => parser = p
+              Err(e) => {
+                errors.push(e)
+                break
+              }
+            }
+          EOF => break
+          _ => {
+            let (line, col, offset) = parser.lexer.location()
+            errors.push(
+              HCLError::parse_error_with_context(
+                "Unexpected token: " + token_to_string(parser.current),
+                line,
+                col,
+                offset,
+                parser.lexer.get_line(line),
+              ),
+            )
+            match parser.skip_to_next_item() {
+              Ok(p) => parser = p
+              Err(e2) => {
+                errors.push(e2)
+                break
+              }
+            }
+          }
+        }
+        match parser.skip_newlines() {
+          Ok(p) => parser = p
+          Err(e) => {
+            errors.push(e)
+            break
+          }
+        }
+      }
+
+      if errors.length() == 0 {
+        let (end_line, end_col, end_offset) = parser.current_location()
+        let span = Span::new(
+          start_line, start_col, start_offset, end_line, end_col, end_offset,
+        )
+        (Ok(Body::from_items(items).set_span(span)), errors)
+      } else if items.length() > 0 {
+        let (end_line, end_col, end_offset) = parser.current_location()
+        let span = Span::new(
+          start_line, start_col, start_offset, end_line, end_col, end_offset,
+        )
+        (Ok(Body::from_items(items).set_span(span)), errors)
+      } else {
+        (Err(errors[0]), errors)
+      }
+    }
+    Err(e) => (Err(e), [e])
   }
 }
 
@@ -1365,6 +1498,21 @@ pub fn parse(input : String) -> HCLResult[Body] {
         Err(e) => Err(e)
       }
     Err(e) => Err(e)
+  }
+}
+
+///|
+/// Parse HCL string into Body with error recovery
+pub fn parse_with_recovery(
+  input : String,
+) -> (HCLResult[Body], Array[HCLError]) {
+  match Lexer::validate_input(input) {
+    Ok(_) =>
+      match Parser::new(input) {
+        Ok(parser) => parser.parse_body_with_recovery()
+        Err(e) => (Err(e), [e])
+      }
+    Err(e) => (Err(e), [e])
   }
 }
 

@@ -6,14 +6,15 @@
 /// Read version from moon.mod.json with fallback
 fn get_version() -> String {
   let fallback = "0.1.2"
-  let content = @fs.read_file_to_string("moon.mod.json") catch { _ => return fallback }
+  let content = @fs.read_file_to_string("moon.mod.json") catch {
+    _ => return fallback
+  }
   match content.split_once("\"version\": \"") {
-    Some((_, after)) => {
+    Some((_, after)) =>
       match after.split_once("\"") {
         Some((ver, _)) => ver.to_string()
         None => fallback
       }
-    }
     None => fallback
   }
 }

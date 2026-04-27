@@ -1,11 +1,23 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：类型统一 (#12) 全部完成 ✅ — 所有 14 个迭代任务已完成！
+## 当前状态：解析错误恢复 — 迭代 1 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/type-unification`
+- 分支：`lenitain/fix/parse-error-recovery`
 - 状态：开发完成
-- 目标：类型统一 (#12)
+- 目标：解析错误恢复（ParseErrorRecovery）
+
+## 本次开发完成的任务
+
+### 解析错误恢复 ParseErrorRecovery ✅
+- ✅ `MultipleErrors(Array[HCLError])` 变体 — HCLError 新增多错误包装
+- ✅ `HCLError::multi(errors)` 工厂方法
+- ✅ `HCLError::message()` 处理 MultipleErrors — 用换行连接子错误消息
+- ✅ `Parser::skip_to_next_item()` 辅助方法 — 错误恢复时跳过到下一个换行/EOF
+- ✅ `Parser::parse_body_with_recovery()` — 收集错误继续解析，返回部分 Body
+- ✅ `parse_with_recovery(input)` — 公共 API 入口
+- ✅ 10 个新测试（多错误、意外 token、部分解析、空输入、边界情况）
+- ✅ 所有 788 个测试通过
 
 ## 本次开发完成的任务
 
@@ -687,7 +699,7 @@ hcl/
 | 缺口类型 | 数量 | 影响范围 | 开发难度 |
 |----------|------|----------|----------|
 | 内置函数缺失 | ~60 | 大（Terraform 配置可能用到） | 低（模板式添加） |
-| 解析错误恢复 | 1项 | 中（IDE/CLI 体验） | 中（架构改动） |
+| 解析错误恢复 | ✅ 已完成 | 中（IDE/CLI 体验） | 中（架构改动） |
 | 类型系统增强 | 3项 | 小（特殊场景） | 中 |
 | 字符串 contains | 1项 | 小 | 低 |
 | 函数注册 API | 1项 | 中（开发者体验） | 低 |
@@ -696,7 +708,7 @@ hcl/
 
 ## 缺口详细规划
 
-### 迭代 1（当前分支）：解析错误恢复 — ParseErrorRecovery
+### 迭代 1 ✅：解析错误恢复 — ParseErrorRecovery
 
 **目标**：从单错误模式升级为多错误积累模式，让用户一次看到所有错误
 
@@ -952,7 +964,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 ## 优先级路线图
 
 ```
-迭代 1:  ParseErrorRecovery  — 高优先级 (IDE/CLI 体验)
+迭代 1:  ParseErrorRecovery  — ✅ 已完成 (788 测试通过)
 迭代 2:  StringFuncsComplete  — 高优先级 (常用函数)
 迭代 3:  CollectionFuncs     — 高优先级 (常用函数)
 迭代 4:  SetFuncs            — 中优先级
