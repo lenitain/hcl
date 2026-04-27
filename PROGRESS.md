@@ -1,11 +1,11 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：函数参数定义系统 (#13) 全部完成 ✅
+## 当前状态：静态分析 API (#14) 全部完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/func-param-defs`
+- 分支：`lenitain/feat/static-analysis-api`
 - 状态：开发完成
-- 目标：函数参数定义系统 (#13)
+- 目标：静态分析 API (#14)
 
 ## 本次开发完成的任务
 
@@ -20,6 +20,18 @@
 - ✅ Visit/VisitMut 支持 Splat
 - ✅ 7 个新测试（解析 + 序列化 + round-trip）
 - ✅ 所有 682 个测试通过（相比之前增加 10 个）
+
+### 静态分析 API (#14) ✅
+- ✅ `collect_variables(body)` — 收集所有唯一变量名（ExprVariable 节点）
+- ✅ `collect_functions(body)` — 收集所有唯一函数名（ExprFuncCall 节点）
+- ✅ `collect_traversals(body)` — 收集所有唯一 traversal 根变量名
+- ✅ `collect_variables_from_expr(expr)` — 单表达式版本
+- ✅ `collect_functions_from_expr(expr)` — 单表达式版本
+- ✅ `collect_traversals_from_expr(expr)` — 单表达式版本
+- ✅ 使用 Visit trait 实现递归 AST 遍历
+- ✅ 结果去重 + 排序（确定性输出）
+- ✅ 15 个新测试（黑盒 + 白盒）
+- ✅ 所有 718 个测试通过
 
 ### 函数参数定义系统 (#13) ✅
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
@@ -279,7 +291,7 @@
 | 11 | **UTF-8 BOM 拒绝 + UTF-8 验证** | Lexer 不做 BOM 检查和 UTF-8 合法性验证。 |
 | 12 | **类型统一 (Type unification)** | 条件表达式、函数返回值等需要 unification lattice 找到共同类型。 |
 | 13 | **函数参数定义系统** | ✅ 已完成。`ParamType` 枚举 + `FuncDef` 结构体 + `FuncDefBuilder`。自动参数数量/类型验证，无需手动 `check_args`。 |
-| 14 | **静态分析 API** | 没有 `visit.mbt` 之外的静态分析工具（list/map/call/traversal 分析）。 |
+| 14 | **静态分析 API** | ✅ 已完成。`collect_variables`/`collect_functions`/`collect_traversals` + 表达式级变体。 |
 
 ### 优先级排序（建议下次迭代顺序）
 
@@ -292,7 +304,8 @@
 迭代 6 (P1):  Splat (#6) + Strip markers (#7) + Unicode ident (#8) → ✅ 已完成
 迭代 7 (P1):  Schema body 提取 (#9) → ✅ 已完成（全量测试验证通过）
 迭代 8 (P2):  函数参数定义系统 (#13) → ✅ 已完成（697 测试通过）
-迭代 9 (P2):  剩余功能 (#10, #11, #12, #14)
+迭代 9 (P2):  剩余功能 (#10, #11, #12)
+迭代 10 (P2):  静态分析 API (#14) → ✅ 已完成（718 测试通过）
 ```
 
 ### 实现建议
