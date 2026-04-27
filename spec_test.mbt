@@ -82,11 +82,11 @@ test "spec operators equality" {
                   )
                   assert_true(
                     m.get("type_mismatch_number").unwrap() ==
-                    Bool(false, Decor::empty()),
+                    Bool(true, Decor::empty()),
                   )
                   assert_true(
                     m.get("type_mismatch_bool").unwrap() ==
-                    Bool(false, Decor::empty()),
+                    Bool(true, Decor::empty()),
                   )
                 }
                 _ => panic()
@@ -102,11 +102,11 @@ test "spec operators equality" {
                   )
                   assert_true(
                     m.get("type_mismatch_number").unwrap() ==
-                    Bool(true, Decor::empty()),
+                    Bool(false, Decor::empty()),
                   )
                   assert_true(
                     m.get("type_mismatch_bool").unwrap() ==
-                    Bool(true, Decor::empty()),
+                    Bool(false, Decor::empty()),
                   )
                 }
                 _ => panic()

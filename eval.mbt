@@ -100,7 +100,7 @@ fn bool_to_string(b : Bool) -> String {
 
 ///|
 /// Try to convert value to target type for implicit conversion
-pub fn try_convert(
+fn try_convert(
   value : HCLValue,
   target_type : String,
 ) -> HCLResult[HCLValue] {
@@ -169,6 +169,10 @@ fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Number(a + b, Decor::empty()))
     (String(a, _), String(b, _)) => Ok(String(a + b, Decor::empty()))
+    (String(a, _), Number(b, _)) => Ok(String(a + number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) => Ok(String(number_to_string(a) + b, Decor::empty()))
+    (String(a, _), Bool(b, _)) => Ok(String(a + bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) => Ok(String(bool_to_string(a) + b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for addition"))
   }
 }
@@ -224,49 +228,77 @@ fn eval_mod(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 }
 
 ///|
-/// Evaluate equality
+/// Evaluate equality with implicit conversion
 fn eval_eq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
-  Ok(Bool(left == right, Decor::empty()))
+  if left == right {
+    return Ok(Bool(true, Decor::empty()))
+  }
+  match (left, right) {
+    (String(s, _), Number(n, _)) => Ok(Bool(s == number_to_string(n), Decor::empty()))
+    (Number(n, _), String(s, _)) => Ok(Bool(number_to_string(n) == s, Decor::empty()))
+    (String(s, _), Bool(b, _)) => Ok(Bool(s == bool_to_string(b), Decor::empty()))
+    (Bool(b, _), String(s, _)) => Ok(Bool(bool_to_string(b) == s, Decor::empty()))
+    _ => Ok(Bool(false, Decor::empty()))
+  }
 }
 
 ///|
-/// Evaluate inequality
+/// Evaluate inequality with implicit conversion
 fn eval_neq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
-  Ok(Bool(left != right, Decor::empty()))
+  match eval_eq(left, right) {
+    Ok(Bool(b, _)) => Ok(Bool(!b, Decor::empty()))
+    other => other
+  }
 }
 
 ///|
-/// Evaluate less than
+/// Evaluate less than with implicit conversion
 fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a < b, Decor::empty()))
+    (String(a, _), Number(b, _)) => Ok(Bool(a < number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) < b, Decor::empty()))
+    (String(a, _), Bool(b, _)) => Ok(Bool(a < bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) < b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than"))
   }
 }
 
 ///|
-/// Evaluate greater than
+/// Evaluate greater than with implicit conversion
 fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a > b, Decor::empty()))
+    (String(a, _), Number(b, _)) => Ok(Bool(a > number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) > b, Decor::empty()))
+    (String(a, _), Bool(b, _)) => Ok(Bool(a > bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) > b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than"))
   }
 }
 
 ///|
-/// Evaluate less than or equal
+/// Evaluate less than or equal with implicit conversion
 fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a <= b, Decor::empty()))
+    (String(a, _), Number(b, _)) => Ok(Bool(a <= number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) <= b, Decor::empty()))
+    (String(a, _), Bool(b, _)) => Ok(Bool(a <= bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) <= b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than or equal"))
   }
 }
 
 ///|
-/// Evaluate greater than or equal
+/// Evaluate greater than or equal with implicit conversion
 fn eval_gte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a >= b, Decor::empty()))
+    (String(a, _), Number(b, _)) => Ok(Bool(a >= number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) >= b, Decor::empty()))
+    (String(a, _), Bool(b, _)) => Ok(Bool(a >= bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) >= b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than or equal"))
   }
 }
@@ -497,8 +529,8 @@ fn eval_binary_op(
     Mul => eval_mul(left, right)
     Div => eval_div(left, right)
     Mod => eval_mod(left, right)
-    Eq => Ok(Bool(left == right, Decor::empty()))
-    Neq => Ok(Bool(left != right, Decor::empty()))
+    Eq => eval_eq(left, right)
+    Neq => eval_neq(left, right)
     Lt => eval_lt(left, right)
     Gt => eval_gt(left, right)
     Lte => eval_lte(left, right)
