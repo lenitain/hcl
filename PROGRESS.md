@@ -1,26 +1,27 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：表达式类型安全重构完成 ✅
+## 当前状态：未知值 (Unknown values) 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/expression-type-refactoring`
+- 分支：`lenitain/feat/unknown-values`
 - 状态：开发完成
-- 目标：Expression 类型安全重构（P0 #5）
+- 目标：Unknown values 支持（P0 #1）
 
 ## 本次开发完成的任务
-- ✅ Parser 产出 `Expression` enum 而非 tagged `HCLValue::Object`
-- ✅ Eval 使用 pattern matching 而非 string-based dispatch
-- ✅ Visit/VisitMut 在 Expression 上正确工作
-- ✅ `Attr.value` 类型从 `HCLValue` 改为 `Expression`
-- ✅ `expr_to_hcl_value` / `hcl_value_to_expression` 桥接函数
-- ✅ 序列化层通过桥接兼容原有 HCLValue 代码
-- ✅ 所有 570 个测试通过（相比之前增加 22 个）
+- ✅ `HCLValue::Unknown(Decor)` 变体
+- ✅ `Expression::ExprUnknown` 变体
+- ✅ `expr_to_hcl_value` / `hcl_value_to_expression` 桥接 Unknown
+- ✅ 序列化输出 `"unknown"`（非 `"null"`）
+- ✅ JSON 输出 `"null"`（JSON 无 unknown 概念）
+- ✅ Eval 传播：binary/unary/conditional 遇 Unknown 返回 Unknown
+- ✅ Schema 验证：Unknown 通过所有 schema
+- ✅ `tostring(unknown)` 返回 `"unknown"`
+- ✅ 所有 588 个测试通过（相比之前增加 18 个）
 - ✅ moon check: 0 errors
 - ✅ moon fmt: 通过
 
 ## 警告统计
-- 修复前：~100+ 警告
-- 修复后：25 警告（主要是 trait impl 的 unused_value，这些是 MoonBit trait 系统的正常警告）
+- 25 警告（主要是 trait impl 的 unused_value，这些是 MoonBit trait 系统的正常警告）
 
 ## 设计要点
 - 参考 hcl-rs 的 hcl2json CLI 设计
@@ -51,6 +52,7 @@
 | ForExpr 类型 | ✅ 已包含 | Expression |
 | Operation 类型 | ✅ 已包含 | Expression |
 | Parenthesis 支持 | ✅ 已包含 | Expression |
+| ExprUnknown 类型 | ✅ 完成 | Expression |
 
 ### 第三阶段：Builder 模式
 | 任务 | 状态 | 依赖 |
@@ -137,7 +139,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 570 个测试全部通过
+- ✅ 588 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -151,6 +153,7 @@
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
 - 覆盖：simplify 功能（二元运算、比较、条件、一元运算、数组、嵌套表达式）
+- 覆盖：Unknown 值（HCLValue::Unknown、Expression::ExprUnknown、桥接函数、工厂函数）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -203,7 +206,7 @@
 
 | # | 功能 | 说明 | 影响 |
 |---|------|------|------|
-| 1 | **未知值 (Unknown values)** | `HCLValue` 缺少 `Unknown` 变体。Terraform plan 阶段依赖 unknown value propagation（例如 `length(unknown_list)` 应返回 unknown 而非报错）。 | Terraform 兼容性完全不可用 |
+| 1 | **未知值 (Unknown values)** | ✅ 已完成。`HCLValue::Unknown(Decor)` + `Expression::ExprUnknown` + 桥接函数。Unknown 通过所有 schema 验证 + tostring 返回 "unknown"。 | Terraform 兼容性已可用 |
 | 2 | **隐式类型转换** | 无 string↔number、string↔bool 自动转换。Go HCL 在比较/运算时会自动转换，当前 `eval.mbt` 严格类型检查。 | 现有 `.tf` 文件大量依赖隐式转换 |
 | 3 | **JSON 语法解析** | `json.mbt` 只有 HCL→JSON 序列化，没有 JSON→HCL body 解析。HCL spec 定义了一套 JSON 等效语法。 | 无法读取 `terraform.tfvars.json` |
 | 4 | **模板 else 子句** | `%{if cond}...%{else}...%{endif}` 未实现，`template.mbt` 只处理 if/endif。 | 大量 Terraform 模板不可用 |
@@ -232,7 +235,7 @@
 
 ```
 迭代 1 (P0):  表达式类型安全重构 (#5) → ✅ 已完成
-迭代 2 (P0):  未知值 Unknown (#1) → Terraform 兼容的前提
+迭代 2 (P0):  未知值 Unknown (#1) → ✅ 已完成
 迭代 3 (P0):  模板 else (#4) → 影响面广
 迭代 4 (P0):  隐式类型转换 (#2) → 关系到所有表达式求值
 迭代 5 (P0):  JSON 语法解析 (#3) → 独立模块，可并行

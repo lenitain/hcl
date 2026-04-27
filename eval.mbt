@@ -3,12 +3,24 @@
 /// Simple implementation without complex expression tree
 
 ///|
+/// Check if value is Unknown
+fn is_unknown_value(v : HCLValue) -> Bool {
+  match v {
+    Unknown(_) => true
+    _ => false
+  }
+}
+
+///|
 /// Evaluate binary operation on two HCLValues
 pub fn eval_binary(
   left : HCLValue,
   op : String,
   right : HCLValue,
 ) -> HCLResult[HCLValue] {
+  if is_unknown_value(left) || is_unknown_value(right) {
+    return Ok(Unknown(Decor::empty()))
+  }
   match op {
     "+" => eval_add(left, right)
     "-" => eval_sub(left, right)
@@ -30,6 +42,9 @@ pub fn eval_binary(
 ///|
 /// Evaluate unary operation on HCLValue
 pub fn eval_unary(op : String, operand : HCLValue) -> HCLResult[HCLValue] {
+  if is_unknown_value(operand) {
+    return Ok(Unknown(Decor::empty()))
+  }
   match op {
     "-" => eval_negate(operand)
     "!" => eval_not(operand)
@@ -188,6 +203,9 @@ pub fn eval_conditional(
   true_expr : HCLValue,
   false_expr : HCLValue,
 ) -> HCLResult[HCLValue] {
+  if is_unknown_value(condition) {
+    return Ok(Unknown(Decor::empty()))
+  }
   match condition {
     Bool(b, _) => if b { Ok(true_expr) } else { Ok(false_expr) }
     _ => Err(HCLError::type_error("Condition must be boolean"))
@@ -321,6 +339,7 @@ pub fn eval_expr(
     ExprOperation(op) => eval_operation(op, variables, functions)
     ExprTemplate(tmpl) => eval_template(tmpl, variables, functions)
     ExprFor(for_expr) => eval_for_expr(for_expr, variables, functions)
+    ExprUnknown => Ok(Unknown(Decor::empty()))
   }
 }
 
@@ -358,6 +377,9 @@ fn eval_binary_op(
   left : HCLValue,
   right : HCLValue,
 ) -> HCLResult[HCLValue] {
+  if is_unknown_value(left) || is_unknown_value(right) {
+    return Ok(Unknown(Decor::empty()))
+  }
   match op {
     Plus => eval_add(left, right)
     Minus => eval_sub(left, right)
@@ -378,6 +400,9 @@ fn eval_binary_op(
 ///|
 /// Evaluate unary operation with typed operator
 fn eval_unary_op(op : UnaryOperator, operand : HCLValue) -> HCLResult[HCLValue] {
+  if is_unknown_value(operand) {
+    return Ok(Unknown(Decor::empty()))
+  }
   match op {
     Negate => eval_negate(operand)
     Not => eval_not(operand)

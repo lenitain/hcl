@@ -50,6 +50,8 @@ pub(all) enum Expression {
   ExprOperation(Operation)
   /// For expression (list/object comprehension)
   ExprFor(ForExpr)
+  /// Unknown value (Terraform plan-stage)
+  ExprUnknown
 } derive(Debug, Eq)
 
 ///|
@@ -370,6 +372,7 @@ pub fn expr_to_string(expr : Expression) -> String {
       expr_to_string(c.false_expr)
     ExprOperation(op) => op_to_string(op)
     ExprFor(f) => for_expr_to_string(f)
+    ExprUnknown => "unknown"
   }
 }
 
@@ -431,6 +434,7 @@ pub fn expr_to_hcl_value(expr : Expression) -> HCLValue {
       }
       Object(result, Decor::empty())
     }
+    ExprUnknown => Unknown(Decor::empty())
     _ => String(expr_to_string(expr), Decor::empty())
   }
 }
@@ -459,6 +463,7 @@ pub fn hcl_value_to_expression(value : HCLValue) -> Expression {
       }
       ExprObject(pairs)
     }
+    Unknown(_) => ExprUnknown
   }
 }
 
@@ -533,4 +538,10 @@ pub fn expr_array(items : Array[Expression]) -> Expression {
 /// Create Expression from FuncCall
 pub fn expr_func_call(fc : FuncCall) -> Expression {
   ExprFuncCall(fc)
+}
+
+///|
+/// Unknown Expression (Terraform plan-stage)
+pub fn expr_unknown() -> Expression {
+  ExprUnknown
 }

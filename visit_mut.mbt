@@ -73,6 +73,7 @@ pub fn[V : VisitMut] visit_value_mut_default(v : V, value : HCLValue) -> Unit {
       for _k, val in obj {
         v.visit_value_mut(val)
       }
+    Unknown(_) => ()
   }
 }
 
@@ -104,6 +105,7 @@ pub fn[V : VisitMut] visit_expr_mut_default(v : V, expr : Expression) -> Unit {
     ExprConditional(cond) => v.visit_conditional_mut(cond)
     ExprOperation(op) => v.visit_operation_mut(op)
     ExprFor(for_expr) => v.visit_for_expr_mut(for_expr)
+    ExprUnknown => ()
   }
 }
 

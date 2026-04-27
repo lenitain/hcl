@@ -957,6 +957,7 @@ fn fn_tostring(args : Array[HCLValue]) -> HCLResult[HCLValue] {
     Number(n, _) => Ok(String(n.to_string(), Decor::empty()))
     Bool(b, _) => Ok(String(if b { "true" } else { "false" }, Decor::empty()))
     Null(_) => Ok(String("null", Decor::empty()))
+    Unknown(_) => Ok(String("unknown", Decor::empty()))
     _ => Ok(String(args[0].to_json_string(), Decor::empty()))
   }
 }

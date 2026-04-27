@@ -70,6 +70,7 @@ fn format_hcl_value(value : HCLValue, indent : Int) -> String {
         }
         "{\n" + items.join("\n") + "\n" + prefix + "}"
       }
+    Unknown(_) => "unknown"
   }
 }
 
@@ -259,6 +260,7 @@ pub fn format_value_content(value : HCLValue) -> String {
         }
         "{" + items.join(", ") + "}"
       }
+    Unknown(_) => "unknown"
   }
 }
 
@@ -522,6 +524,7 @@ fn Formatter::format_hcl_value_impl(
         }
         "{\n" + items.join("\n") + "\n" + prefix + "}"
       }
+    Unknown(_) => "unknown"
   }
 }
 

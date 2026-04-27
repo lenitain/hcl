@@ -150,6 +150,7 @@ fn value_to_json(value : HCLValue) -> String {
         }
         result + "}"
       }
+    Unknown(_) => "null"
   }
 }
 
@@ -158,6 +159,7 @@ fn value_to_json(value : HCLValue) -> String {
 fn value_to_json_pretty(value : HCLValue, indent : Int) -> String {
   match value {
     Null(_) => "null"
+    Unknown(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
     Number(n, _) => n.to_string()
     String(s, _) => escape_json_string(s)

@@ -13,6 +13,8 @@ pub(all) enum HCLValue {
   Array(Array[HCLValue], Decor)
   /// Object (ordered map of string to value) with decoration
   Object(HCLObject, Decor)
+  /// Unknown value (Terraform plan-stage) with decoration
+  Unknown(Decor)
 } derive(Debug, Eq)
 
 ///|
@@ -25,6 +27,7 @@ pub fn HCLValue::get_decor(self : HCLValue) -> Decor {
     String(_, decor) => decor
     Array(_, decor) => decor
     Object(_, decor) => decor
+    Unknown(decor) => decor
   }
 }
 
@@ -38,6 +41,7 @@ pub fn HCLValue::set_decor(self : HCLValue, decor : Decor) -> HCLValue {
     String(s, _) => String(s, decor)
     Array(a, _) => Array(a, decor)
     Object(o, _) => Object(o, decor)
+    Unknown(_) => Unknown(decor)
   }
 }
 
@@ -91,6 +95,15 @@ pub fn HCLValue::is_array(self : HCLValue) -> Bool {
 pub fn HCLValue::is_object(self : HCLValue) -> Bool {
   match self {
     Object(_, _) => true
+    _ => false
+  }
+}
+
+///|
+/// Check if value is unknown (Terraform plan-stage)
+pub fn HCLValue::is_unknown(self : HCLValue) -> Bool {
+  match self {
+    Unknown(_) => true
     _ => false
   }
 }
@@ -216,10 +229,17 @@ pub fn HCLValue::object(obj : HCLObject) -> HCLValue {
 }
 
 ///|
+/// Create unknown value with empty decor (Terraform plan-stage)
+pub fn HCLValue::unknown() -> HCLValue {
+  Unknown(Decor::empty())
+}
+
+///|
 /// Convert HCLValue to JSON-compatible string representation
 pub fn HCLValue::to_json_string(self : HCLValue) -> String {
   match self {
     Null(_) => "null"
+    Unknown(_) => "null"
     Bool(b, _) => if b { "true" } else { "false" }
     Number(n, _) => n.to_string()
     String(s, _) => escape_string(s)

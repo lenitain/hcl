@@ -20,6 +20,7 @@ fn type_name_of(value : HCLValue) -> String {
     String(_, _) => "string"
     Array(_, _) => "array"
     Object(_, _) => "object"
+    Unknown(_) => "unknown"
   }
 }
 

@@ -840,6 +840,7 @@ fn value_to_string(value : HCLValue) -> String {
     String(s, _) => s
     Array(_, _) => "[array]"
     Object(_, _) => "[object]"
+    Unknown(_) => "(unknown)"
   }
 }
 

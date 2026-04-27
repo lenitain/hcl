@@ -131,6 +131,9 @@ fn validate_at(
   schema : TypeSchema,
   path : String,
 ) -> Array[HCLError] {
+  if value.is_unknown() {
+    return []
+  }
   match schema {
     Any => []
     NullSchema =>

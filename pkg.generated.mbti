@@ -44,6 +44,8 @@ pub fn expr_to_hcl_value(Expression) -> HCLValue
 
 pub fn expr_to_string(Expression) -> String
 
+pub fn expr_unknown() -> Expression
+
 pub fn format_attr_with_decor(Attr) -> String
 
 pub fn format_body(Body) -> String
@@ -366,6 +368,7 @@ pub(all) enum Expression {
   ExprConditional(Conditional)
   ExprOperation(Operation)
   ExprFor(ForExpr)
+  ExprUnknown
 } derive(Eq, @debug.Debug)
 
 pub struct FieldSchema {
@@ -488,6 +491,7 @@ pub(all) enum HCLValue {
   String(String, Decor)
   Array(Array[HCLValue], Decor)
   Object(Map[String, HCLValue], Decor)
+  Unknown(Decor)
 } derive(Eq, @debug.Debug)
 pub fn HCLValue::array(Array[Self]) -> Self
 pub fn HCLValue::as_array(Self) -> Array[Self]?
@@ -509,11 +513,13 @@ pub fn HCLValue::is_null(Self) -> Bool
 pub fn HCLValue::is_number(Self) -> Bool
 pub fn HCLValue::is_object(Self) -> Bool
 pub fn HCLValue::is_string(Self) -> Bool
+pub fn HCLValue::is_unknown(Self) -> Bool
 pub fn HCLValue::null() -> Self
 pub fn HCLValue::object(Map[String, Self]) -> Self
 pub fn HCLValue::set_decor(Self, Decor) -> Self
 pub fn HCLValue::string(String) -> Self
 pub fn HCLValue::to_json_string(Self) -> String
+pub fn HCLValue::unknown() -> Self
 
 pub(all) struct Heredoc {
   delimiter : String
