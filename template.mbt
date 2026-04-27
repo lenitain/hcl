@@ -11,6 +11,8 @@ pub(all) enum TemplatePart {
   Interpolation(Expression)
   /// Conditional directive %{if cond}
   ConditionalStart(Expression)
+  /// Else-if directive %{else if cond}
+  ConditionalElseIf(Expression)
   /// Else directive %{else}
   ConditionalElse
   /// End of conditional %{endif}
@@ -210,6 +212,13 @@ fn parse_directive_content(content : String) -> HCLResult[TemplatePart] {
       Ok(cond) => Ok(ConditionalStart(cond))
       Err(e) => Err(e)
     }
+  } else if has_prefix(trimmed, "else if ") {
+    // %{else if cond}
+    let cond_str = substring(trimmed, 8, trimmed.length())
+    match parse_template_expression(cond_str) {
+      Ok(cond) => Ok(ConditionalElseIf(cond))
+      Err(e) => Err(e)
+    }
   } else if trimmed == "else" {
     // %{else}
     Ok(ConditionalElse)
@@ -401,11 +410,9 @@ pub fn Template::evaluate(
           Ok(cond_value) =>
             match cond_value {
               Bool(b, _) =>
-                // Find first boundary (ConditionalElse or ConditionalEnd at depth 0)
                 match find_conditional_boundary(parts, i + 1) {
-                  Ok((boundary, has_else)) =>
+                  Ok((boundary, has_more)) =>
                     if b {
-                      // Evaluate true body
                       match
                         evaluate_body_range(
                           parts,
@@ -416,9 +423,8 @@ pub fn Template::evaluate(
                         ) {
                         Ok(body_result) => {
                           result = result + body_result
-                          if has_else {
-                            // Skip else body
-                            match find_conditional_end(parts, boundary + 1) {
+                          if has_more {
+                            match skip_to_conditional_end(parts, boundary) {
                               Ok(end) => i = end + 1
                               Err(e) => return Err(e)
                             }
@@ -428,28 +434,18 @@ pub fn Template::evaluate(
                         }
                         Err(e) => return Err(e)
                       }
-                    } else if has_else {
-                      // Evaluate else body
-                      match find_conditional_end(parts, boundary + 1) {
-                        Ok(end) =>
-                          match
-                            evaluate_body_range(
-                              parts,
-                              boundary + 1,
-                              end,
-                              variables,
-                              functions,
-                            ) {
-                            Ok(body_result) => {
-                              result = result + body_result
-                              i = end + 1
-                            }
-                            Err(e) => return Err(e)
-                          }
+                    } else if has_more {
+                      match
+                        evaluate_else_chain(
+                          parts, boundary, variables, functions,
+                        ) {
+                        Ok((chain_result, end_pos)) => {
+                          result = result + chain_result
+                          i = end_pos + 1
+                        }
                         Err(e) => return Err(e)
                       }
                     } else {
-                      // No else clause, skip to endif
                       i = boundary + 1
                     }
                   Err(e) => return Err(e)
@@ -484,7 +480,7 @@ pub fn Template::evaluate(
             }
           Err(e) => return Err(e)
         }
-      ConditionalEnd | ForEnd | ConditionalElse =>
+      ConditionalEnd | ForEnd | ConditionalElse | ConditionalElseIf(_) =>
         // These should be handled by their respective start directives
         i += 1
     }
@@ -554,7 +550,7 @@ fn find_for_end(parts : Array[TemplatePart], start : Int) -> Int {
 }
 
 ///|
-/// Find first ConditionalElse or ConditionalEnd at depth 0
+/// Find first ConditionalElseIf, ConditionalElse, or ConditionalEnd at depth 0
 fn find_conditional_boundary(
   parts : Array[TemplatePart],
   start : Int,
@@ -565,6 +561,7 @@ fn find_conditional_boundary(
     let part = parts[i]
     match part {
       ConditionalStart(_) => depth += 1
+      ConditionalElseIf(_) => if depth == 0 { return Ok((i, true)) }
       ConditionalElse => if depth == 0 { return Ok((i, true)) }
       ConditionalEnd => {
         if depth == 0 {
@@ -609,6 +606,78 @@ fn find_conditional_end(
 }
 
 ///|
+/// Skip from a boundary (else-if/else) to the matching ConditionalEnd
+fn skip_to_conditional_end(
+  parts : Array[TemplatePart],
+  boundary : Int,
+) -> HCLResult[Int] {
+  find_conditional_end(parts, boundary + 1)
+}
+
+///|
+/// Evaluate an else-if/else chain starting at the given boundary position
+fn evaluate_else_chain(
+  parts : Array[TemplatePart],
+  pos : Int,
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[(String, Int)] {
+  let part = parts[pos]
+  match part {
+    ConditionalElseIf(cond_expr) =>
+      match eval_expr(cond_expr, variables, functions) {
+        Ok(cond_value) =>
+          match cond_value {
+            Bool(b, _) =>
+              match find_conditional_boundary(parts, pos + 1) {
+                Ok((next_boundary, has_more)) =>
+                  if b {
+                    match
+                      evaluate_body_range(
+                        parts,
+                        pos + 1,
+                        next_boundary,
+                        variables,
+                        functions,
+                      ) {
+                      Ok(body_result) =>
+                        if has_more {
+                          match skip_to_conditional_end(parts, next_boundary) {
+                            Ok(end) => Ok((body_result, end))
+                            Err(e) => Err(e)
+                          }
+                        } else {
+                          Ok((body_result, next_boundary))
+                        }
+                      Err(e) => Err(e)
+                    }
+                  } else if has_more {
+                    evaluate_else_chain(
+                      parts, next_boundary, variables, functions,
+                    )
+                  } else {
+                    Ok(("", next_boundary))
+                  }
+                Err(e) => Err(e)
+              }
+            _ => Err(HCLError::type_error("Condition must be boolean"))
+          }
+        Err(e) => Err(e)
+      }
+    ConditionalElse =>
+      match find_conditional_end(parts, pos + 1) {
+        Ok(end) =>
+          match evaluate_body_range(parts, pos + 1, end, variables, functions) {
+            Ok(body_result) => Ok((body_result, end))
+            Err(e) => Err(e)
+          }
+        Err(e) => Err(e)
+      }
+    _ => Ok(("", pos))
+  }
+}
+
+///|
 /// Evaluate a range of template parts, handling nested conditionals recursively
 fn evaluate_body_range(
   parts : Array[TemplatePart],
@@ -635,13 +704,12 @@ fn evaluate_body_range(
           Err(e) => return Err(e)
         }
       ConditionalStart(condition) =>
-        // Recursively evaluate nested conditional
         match eval_expr(condition, variables, functions) {
           Ok(cond_value) =>
             match cond_value {
               Bool(b, _) =>
                 match find_conditional_boundary(parts, i + 1) {
-                  Ok((boundary, has_else)) =>
+                  Ok((boundary, has_more)) =>
                     if b {
                       match
                         evaluate_body_range(
@@ -653,8 +721,8 @@ fn evaluate_body_range(
                         ) {
                         Ok(body_result) => {
                           result = result + body_result
-                          i = if has_else {
-                            match find_conditional_end(parts, boundary + 1) {
+                          i = if has_more {
+                            match skip_to_conditional_end(parts, boundary) {
                               Ok(e) => e + 1
                               Err(e) => return Err(e)
                             }
@@ -664,23 +732,15 @@ fn evaluate_body_range(
                         }
                         Err(e) => return Err(e)
                       }
-                    } else if has_else {
-                      match find_conditional_end(parts, boundary + 1) {
-                        Ok(e) =>
-                          match
-                            evaluate_body_range(
-                              parts,
-                              boundary + 1,
-                              e,
-                              variables,
-                              functions,
-                            ) {
-                            Ok(body_result) => {
-                              result = result + body_result
-                              i = e + 1
-                            }
-                            Err(e) => return Err(e)
-                          }
+                    } else if has_more {
+                      match
+                        evaluate_else_chain(
+                          parts, boundary, variables, functions,
+                        ) {
+                        Ok((chain_result, end_pos)) => {
+                          result = result + chain_result
+                          i = end_pos + 1
+                        }
                         Err(e) => return Err(e)
                       }
                     } else {

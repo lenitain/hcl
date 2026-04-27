@@ -444,3 +444,119 @@ test "parse heredoc with strip" {
     Err(_) => panic()
   }
 }
+
+///|
+test "template else-if first true" {
+  let input = "%{if a}A%{else if b}B%{else}C%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(true, Decor::empty()),
+        "b": HCLValue::Bool(false, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "A")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else-if second true" {
+  let input = "%{if a}A%{else if b}B%{else}C%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(false, Decor::empty()),
+        "b": HCLValue::Bool(true, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "B")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else-if all false" {
+  let input = "%{if a}A%{else if b}B%{else}C%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(false, Decor::empty()),
+        "b": HCLValue::Bool(false, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "C")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else-if chain no else" {
+  let input = "%{if a}A%{else if b}B%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(false, Decor::empty()),
+        "b": HCLValue::Bool(false, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else-if chain with interpolation" {
+  let input = "%{if admin}Admin ${name}%{else if user}User ${name}%{else}Guest%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "admin": HCLValue::Bool(false, Decor::empty()),
+        "user": HCLValue::Bool(true, Decor::empty()),
+        "name": HCLValue::String("Bob", Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "User Bob")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "template else-if three-way chain" {
+  let input = "%{if a}A%{else if b}B%{else if c}C%{else}D%{endif}"
+  match Template::from_string(input) {
+    Ok(template) => {
+      let vars = {
+        "a": HCLValue::Bool(false, Decor::empty()),
+        "b": HCLValue::Bool(false, Decor::empty()),
+        "c": HCLValue::Bool(true, Decor::empty()),
+      }
+      let funcs = {}
+      match template.evaluate(vars, funcs) {
+        Ok(result) => assert_eq(result, "C")
+        Err(_) => panic()
+      }
+    }
+    Err(_) => panic()
+  }
+}

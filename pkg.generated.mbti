@@ -629,6 +629,7 @@ pub(all) enum TemplatePart {
   Text(String)
   Interpolation(Expression)
   ConditionalStart(Expression)
+  ConditionalElseIf(Expression)
   ConditionalElse
   ConditionalEnd
   ForStart(String, Expression)
