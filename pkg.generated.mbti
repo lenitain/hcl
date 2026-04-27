@@ -116,6 +116,10 @@ pub fn is_ident(String) -> Bool
 
 pub fn is_valid(HCLValue, TypeSchema) -> Bool
 
+pub fn json_to_body(String) -> Result[Body, HCLError]
+
+pub fn json_to_hcl_string(String) -> Result[String, HCLError]
+
 pub fn new_hcl_object() -> Map[String, HCLValue]
 
 pub fn parse(String) -> Result[Body, HCLError]
@@ -547,6 +551,15 @@ pub fn Ident::new_unchecked(String) -> Self
 pub fn Ident::output(Self) -> String
 pub fn Ident::to_string(Self) -> String
 pub fn Ident::try_new(String) -> Result[Self, HCLError]
+
+pub(all) enum JsonValue {
+  JsonNull
+  JsonBool(Bool)
+  JsonNumber(String)
+  JsonString(String)
+  JsonArray(Array[JsonValue])
+  JsonObject(Array[(String, JsonValue)])
+} derive(Eq, @debug.Debug)
 
 pub struct Lexer {
   input : String

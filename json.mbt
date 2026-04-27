@@ -20,48 +20,86 @@ pub fn hcl_to_json_pretty(input : String) -> HCLResult[String] {
 }
 
 ///|
-/// Convert Body to JSON string
+/// Convert Body to JSON string (HCL JSON spec-compliant)
 pub fn body_to_json(body : Body) -> String {
   let items = body.get_items()
   if items.is_empty() {
     return "{}"
   }
 
-  let mut result = "{"
-  let mut first = true
+  let attrs : Array[Attr] = []
+  let block_types : Array[(String, Array[Block])] = []
 
   for item in items {
     match item {
-      Attribute(attr) => {
-        if !first {
-          result = result + ","
-        }
-        first = false
-        result = result +
-          escape_json_string(attr.get_key()) +
-          ":" +
-          value_to_json(expr_to_hcl_value(attr.get_value()))
-      }
+      Attribute(attr) => attrs.push(attr)
       Block(block) => {
-        if !first {
-          result = result + ","
+        let type_name = block.get_type_name()
+        let mut found = false
+        for i in 0..<block_types.length() {
+          let pair = block_types[i]
+          if pair.0 == type_name {
+            pair.1.push(block)
+            found = true
+            break
+          }
         }
-        first = false
-        let labels = block.get_labels()
-        let block_key = if labels.is_empty() {
-          block.get_type_name()
-        } else {
-          block.get_type_name() + "_" + labels.join("_")
+        if !found {
+          block_types.push((type_name, [block]))
         }
-        result = result +
-          escape_json_string(block_key) +
-          ":" +
-          body_to_json(block.get_body())
       }
     }
   }
 
+  let mut result = "{"
+  let mut first = true
+
+  for attr in attrs {
+    if !first {
+      result = result + ","
+    }
+    first = false
+    result = result +
+      escape_json_string(attr.get_key()) +
+      ":" +
+      value_to_json(expr_to_hcl_value(attr.get_value()))
+  }
+
+  for pair in block_types {
+    let type_name = pair.0
+    let blocks = pair.1
+    if !first {
+      result = result + ","
+    }
+    first = false
+    result = result + escape_json_string(type_name) + ":"
+    if blocks.length() == 1 {
+      result = result + block_to_json_value(blocks[0])
+    } else {
+      let parts = blocks.map(fn(b) { block_to_json_value(b) })
+      result = result + "[" + parts.join(",") + "]"
+    }
+  }
+
   result + "}"
+}
+
+///|
+/// Convert a block with labels to nested JSON value
+fn block_to_json_value(block : Block) -> String {
+  let labels = block.get_labels()
+  if labels.is_empty() {
+    body_to_json(block.get_body())
+  } else {
+    let body_json = body_to_json(block.get_body())
+    let mut result = body_json
+    let mut i = labels.length() - 1
+    while i >= 0 {
+      result = "{" + escape_json_string(labels[i]) + ":" + result + "}"
+      i = i - 1
+    }
+    result
+  }
 }
 
 ///|
@@ -71,7 +109,7 @@ pub fn body_to_json_pretty(body : Body) -> String {
 }
 
 ///|
-/// Internal implementation of pretty JSON conversion
+/// Internal implementation of pretty JSON conversion (HCL JSON spec-compliant)
 fn body_to_json_pretty_impl(body : Body, indent : Int) -> String {
   let items = body.get_items()
   if items.is_empty() {
@@ -81,43 +119,102 @@ fn body_to_json_pretty_impl(body : Body, indent : Int) -> String {
   let prefix = repeat_string("  ", indent)
   let inner_prefix = repeat_string("  ", indent + 1)
 
-  let mut result = "{\n"
-  let mut first = true
+  let attrs : Array[Attr] = []
+  let block_types : Array[(String, Array[Block])] = []
 
   for item in items {
     match item {
-      Attribute(attr) => {
-        if !first {
-          result = result + ",\n"
-        }
-        first = false
-        result = result +
-          inner_prefix +
-          escape_json_string(attr.get_key()) +
-          ": " +
-          value_to_json_pretty(expr_to_hcl_value(attr.get_value()), indent + 1)
-      }
+      Attribute(attr) => attrs.push(attr)
       Block(block) => {
-        if !first {
-          result = result + ",\n"
+        let type_name = block.get_type_name()
+        let mut found = false
+        for i in 0..<block_types.length() {
+          let pair = block_types[i]
+          if pair.0 == type_name {
+            pair.1.push(block)
+            found = true
+            break
+          }
         }
-        first = false
-        let labels = block.get_labels()
-        let block_key = if labels.is_empty() {
-          block.get_type_name()
-        } else {
-          block.get_type_name() + "_" + labels.join("_")
+        if !found {
+          block_types.push((type_name, [block]))
         }
-        result = result +
-          inner_prefix +
-          escape_json_string(block_key) +
-          ": " +
-          body_to_json_pretty_impl(block.get_body(), indent + 1)
       }
     }
   }
 
+  let mut result = "{\n"
+  let mut first = true
+
+  for attr in attrs {
+    if !first {
+      result = result + ",\n"
+    }
+    first = false
+    result = result +
+      inner_prefix +
+      escape_json_string(attr.get_key()) +
+      ": " +
+      value_to_json_pretty(expr_to_hcl_value(attr.get_value()), indent + 1)
+  }
+
+  for pair in block_types {
+    let type_name = pair.0
+    let blocks = pair.1
+    if !first {
+      result = result + ",\n"
+    }
+    first = false
+    result = result + inner_prefix + escape_json_string(type_name) + ": "
+    if blocks.length() == 1 {
+      result = result + block_to_json_value_pretty(blocks[0], indent + 1)
+    } else {
+      let block_indent = repeat_string("  ", indent + 1)
+      let item_indent = repeat_string("  ", indent + 2)
+      result = result + "[\n"
+      for i in 0..<blocks.length() {
+        if i > 0 {
+          result = result + ",\n"
+        }
+        result = result +
+          item_indent +
+          block_to_json_value_pretty(blocks[i], indent + 2)
+      }
+      result = result + "\n" + block_indent + "]"
+    }
+  }
+
   result + "\n" + prefix + "}"
+}
+
+///|
+/// Convert a block with labels to nested JSON value (pretty)
+fn block_to_json_value_pretty(block : Block, indent : Int) -> String {
+  let labels = block.get_labels()
+  if labels.is_empty() {
+    body_to_json_pretty_impl(block.get_body(), indent)
+  } else {
+    let inner_prefix = repeat_string("  ", indent + 1)
+    let body_json = body_to_json_pretty_impl(
+      block.get_body(),
+      indent + labels.length(),
+    )
+    let mut result = body_json
+    let mut i = labels.length() - 1
+    while i >= 0 {
+      result = "{\n" +
+        inner_prefix +
+        repeat_string("  ", labels.length() - 1 - i) +
+        escape_json_string(labels[i]) +
+        ": " +
+        result +
+        "\n" +
+        repeat_string("  ", indent + labels.length() - 1 - i) +
+        "}"
+      i = i - 1
+    }
+    result
+  }
 }
 
 ///|

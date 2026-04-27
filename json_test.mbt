@@ -218,3 +218,98 @@ test "hcl_to_json only whitespace" {
     Err(_) => panic()
   }
 }
+
+///|
+test "hcl_to_json block with single label nests" {
+  let input = "resource \"aws_instance\" {\n  ami = \"abc\"\n}"
+  let result = hcl_to_json(input)
+  match result {
+    Ok(json) =>
+      assert_eq(json, "{\"resource\":{\"aws_instance\":{\"ami\":\"abc\"}}}")
+    Err(_) => panic()
+  }
+}
+
+///|
+test "hcl_to_json block with multiple labels nests deeply" {
+  let input = "resource \"aws_instance\" \"web\" {\n  ami = \"abc\"\n}"
+  let result = hcl_to_json(input)
+  match result {
+    Ok(json) =>
+      assert_eq(
+        json, "{\"resource\":{\"aws_instance\":{\"web\":{\"ami\":\"abc\"}}}}",
+      )
+    Err(_) => panic()
+  }
+}
+
+///|
+test "hcl_to_json repeated blocks become array" {
+  let input = "resource \"aws_instance\" \"a\" {\n  ami = \"1\"\n}\nresource \"aws_instance\" \"b\" {\n  ami = \"2\"\n}"
+  let result = hcl_to_json(input)
+  match result {
+    Ok(json) => {
+      assert_true(json.contains("\"resource\""))
+      assert_true(json.contains("[{"))
+      assert_true(json.contains("}]"))
+      assert_true(json.contains("\"a\""))
+      assert_true(json.contains("\"b\""))
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "hcl_to_json mixed attrs and blocks" {
+  let input = "name = \"test\"\nserver {\n  port = 80\n}"
+  let result = hcl_to_json(input)
+  match result {
+    Ok(json) => {
+      assert_true(json.contains("\"name\""))
+      assert_true(json.contains("\"test\""))
+      assert_true(json.contains("\"server\""))
+      assert_true(json.contains("\"port\""))
+      assert_true(json.contains("80"))
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "hcl_to_json block without labels" {
+  let input = "server {\n  port = 80\n}"
+  let result = hcl_to_json(input)
+  match result {
+    Ok(json) => assert_eq(json, "{\"server\":{\"port\":80}}")
+    Err(_) => panic()
+  }
+}
+
+///|
+test "hcl_to_json_pretty block with labels" {
+  let input = "resource \"aws_instance\" \"web\" {\n  ami = \"abc\"\n}"
+  let result = hcl_to_json_pretty(input)
+  match result {
+    Ok(json) => {
+      assert_true(json.contains("\"resource\""))
+      assert_true(json.contains("\"aws_instance\""))
+      assert_true(json.contains("\"web\""))
+      assert_true(json.contains("\"ami\""))
+    }
+    Err(_) => panic()
+  }
+}
+
+///|
+test "hcl_to_json_pretty repeated blocks" {
+  let input = "resource \"aws_instance\" \"a\" {\n  ami = \"1\"\n}\nresource \"aws_instance\" \"b\" {\n  ami = \"2\"\n}"
+  let result = hcl_to_json_pretty(input)
+  match result {
+    Ok(json) => {
+      assert_true(json.contains("\"resource\""))
+      assert_true(json.contains("["))
+      assert_true(json.contains("]"))
+    }
+    Err(_) => panic()
+  }
+}
