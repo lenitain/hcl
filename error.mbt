@@ -11,6 +11,7 @@ pub(all) enum HCLError {
   UndefinedFunction(String)
   UndefinedProperty(String)
   ValidationError(String, String)
+  EncodingError(String)
 } derive(Debug, Eq)
 
 ///|
@@ -85,6 +86,11 @@ pub fn HCLError::validation_error(path : String, msg : String) -> HCLError {
 }
 
 ///|
+pub fn HCLError::encoding_error(msg : String) -> HCLError {
+  EncodingError(msg)
+}
+
+///|
 pub fn HCLError::message(self : HCLError) -> String {
   match self {
     ParseError(msg, line, column, _, context) => {
@@ -119,6 +125,7 @@ pub fn HCLError::message(self : HCLError) -> String {
     UndefinedFunction(name) => "Undefined function: " + name
     UndefinedProperty(name) => "Undefined property: " + name
     ValidationError(path, msg) => "Validation error at " + path + ": " + msg
+    EncodingError(msg) => "Encoding error: " + msg
   }
 }
 

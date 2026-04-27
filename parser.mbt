@@ -1331,8 +1331,12 @@ fn Parser::parse_not(self : Parser) -> HCLResult[(Expression, Parser)] {
 ///|
 /// Parse HCL string into Body
 pub fn parse(input : String) -> HCLResult[Body] {
-  match Parser::new(input) {
-    Ok(parser) => parser.parse_body()
+  match Lexer::validate_input(input) {
+    Ok(_) =>
+      match Parser::new(input) {
+        Ok(parser) => parser.parse_body()
+        Err(e) => Err(e)
+      }
     Err(e) => Err(e)
   }
 }

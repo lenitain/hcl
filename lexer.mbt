@@ -14,6 +14,20 @@ pub fn Lexer::new(input : String) -> Lexer {
 }
 
 ///|
+/// Validate input encoding (no BOM allowed)
+pub fn Lexer::validate_input(input : String) -> HCLResult[Unit] {
+  if input.length() >= 1 && input[0] == '\u{FEFF}'.to_int().to_uint16() {
+    Err(
+      HCLError::encoding_error(
+        "HCL input must not contain a UTF-8 byte order mark (BOM)",
+      ),
+    )
+  } else {
+    Ok(())
+  }
+}
+
+///|
 /// Get current position info
 pub fn Lexer::location(self : Lexer) -> (Int, Int, Int) {
   (self.line, self.col, self.pos)

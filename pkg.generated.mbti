@@ -529,8 +529,10 @@ pub(all) enum HCLError {
   UndefinedFunction(String)
   UndefinedProperty(String)
   ValidationError(String, String)
+  EncodingError(String)
 } derive(Eq, @debug.Debug)
 pub fn HCLError::division_by_zero() -> Self
+pub fn HCLError::encoding_error(String) -> Self
 pub fn HCLError::invalid_value(String) -> Self
 pub fn HCLError::io_error(String) -> Self
 pub fn HCLError::message(Self) -> String
@@ -648,6 +650,7 @@ pub fn Lexer::new(String) -> Self
 pub fn Lexer::next_token(Self) -> Result[(Token, Self), HCLError]
 pub fn Lexer::next_token_with_trivia(Self) -> Result[(Token, Self, String?), HCLError]
 pub fn Lexer::tokenize(Self) -> Result[Array[Token], HCLError]
+pub fn Lexer::validate_input(String) -> Result[Unit, HCLError]
 
 pub(all) enum N {
   PosInt(UInt64)
