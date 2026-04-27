@@ -12,6 +12,18 @@ pub fn body_to_json_pretty(Body) -> String
 
 pub fn builtin_functions() -> Map[String, FuncDef]
 
+pub fn collect_functions(Body) -> Array[String]
+
+pub fn collect_functions_from_expr(Expression) -> Array[String]
+
+pub fn collect_traversals(Body) -> Array[String]
+
+pub fn collect_traversals_from_expr(Expression) -> Array[String]
+
+pub fn collect_variables(Body) -> Array[String]
+
+pub fn collect_variables_from_expr(Expression) -> Array[String]
+
 pub fn decorated_expr_to_string(Decorated[Expression]) -> String
 
 pub fn escape_hcl_string(String) -> String
@@ -518,6 +530,8 @@ pub fn FuncDefBuilder::new() -> Self
 pub fn FuncDefBuilder::param(Self, ParamType) -> Self
 pub fn FuncDefBuilder::variadic(Self, ParamType) -> Self
 
+type FunctionCollector
+
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int, String)
   TypeError(String, String)
@@ -806,6 +820,8 @@ pub fn TraversalBuilder::index(Self, Expression) -> Self
 pub fn TraversalBuilder::new(Expression) -> Self
 pub fn TraversalBuilder::splat(Self) -> Self
 
+type TraversalCollector
+
 pub(all) enum TraversalOperator {
   Attr(String)
   Index(Expression)
@@ -848,6 +864,8 @@ pub(all) enum UnaryOperator {
 pub(all) struct Variable {
   name : String
 } derive(Eq, @debug.Debug)
+
+type VariableCollector
 
 // Type aliases
 pub type ExprObject = Array[(ObjectKey, Expression)]
