@@ -109,6 +109,20 @@ pub fn HCLValue::is_unknown(self : HCLValue) -> Bool {
 }
 
 ///|
+/// Get type name as string
+pub fn HCLValue::type_name(self : HCLValue) -> String {
+  match self {
+    Null(_) => "null"
+    Bool(_, _) => "bool"
+    Number(_, _) => "number"
+    String(_, _) => "string"
+    Array(_, _) => "array"
+    Object(_, _) => "object"
+    Unknown(_) => "unknown"
+  }
+}
+
+///|
 /// Get the boolean value, or None if not a bool
 pub fn HCLValue::as_bool(self : HCLValue) -> Bool? {
   match self {

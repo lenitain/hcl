@@ -142,6 +142,8 @@ pub fn to_hcl_string(String) -> String
 
 pub fn to_hcl_value(HCLValue) -> String
 
+pub fn try_convert(HCLValue, String) -> Result[HCLValue, HCLError]
+
 pub fn validate(HCLValue, TypeSchema) -> Array[HCLError]
 
 pub fn validate_ex(HCLValue, Map[String, FieldSchemaEx]) -> Array[HCLError]
@@ -519,6 +521,7 @@ pub fn HCLValue::object(Map[String, Self]) -> Self
 pub fn HCLValue::set_decor(Self, Decor) -> Self
 pub fn HCLValue::string(String) -> Self
 pub fn HCLValue::to_json_string(Self) -> String
+pub fn HCLValue::type_name(Self) -> String
 pub fn HCLValue::unknown() -> Self
 
 pub(all) struct Heredoc {

@@ -12,6 +12,117 @@ fn is_unknown_value(v : HCLValue) -> Bool {
 }
 
 ///|
+/// Convert string to bool value
+fn string_to_bool(s : String) -> HCLResult[HCLValue] {
+  match s {
+    "true" | "1" => Ok(Bool(true, Decor::empty()))
+    "false" | "0" => Ok(Bool(false, Decor::empty()))
+    _ =>
+      Err(HCLError::type_error("Cannot convert string \"" + s + "\" to bool"))
+  }
+}
+
+///|
+/// Convert string to number value
+fn string_to_number(s : String) -> HCLResult[HCLValue] {
+  let trimmed = s.trim()
+  if trimmed.length() == 0 {
+    return Err(HCLError::type_error("Cannot convert empty string to number"))
+  }
+
+  let mut has_digit = false
+  let mut has_dot = false
+  let mut negative = false
+  let mut result_int = 0
+  let mut result_float = 0.0
+  let mut decimal_place = 1.0
+  let mut in_decimal = false
+  let mut started = false
+
+  for c in trimmed {
+    if !started && c == '-' {
+      negative = true
+      started = true
+    } else if !started && c == '+' {
+      started = true
+    } else if c == '.' {
+      if has_dot {
+        return Err(HCLError::type_error("Invalid number format: " + s))
+      }
+      has_dot = true
+      has_digit = true
+      in_decimal = true
+      started = true
+    } else if c >= '0' && c <= '9' {
+      has_digit = true
+      started = true
+      let digit = (c.to_int() - '0'.to_int()).to_double()
+      if in_decimal {
+        decimal_place = decimal_place * 10.0
+        result_float = result_float + digit / decimal_place
+      } else {
+        result_int = result_int * 10 + (c.to_int() - '0'.to_int())
+        result_float = result_float * 10.0 + digit
+      }
+    } else {
+      return Err(HCLError::type_error("Invalid number format: " + s))
+    }
+  }
+
+  if !has_digit {
+    return Err(HCLError::type_error("Invalid number format: " + s))
+  }
+
+  if has_dot {
+    let f = if negative { -result_float } else { result_float }
+    Ok(Number(Number::from_finite_f64(f), Decor::empty()))
+  } else {
+    let n = if negative { -result_int } else { result_int }
+    Ok(Number(Number::from_int(n), Decor::empty()))
+  }
+}
+
+///|
+/// Convert number to string value
+fn number_to_string(n : Number) -> String {
+  n.to_string()
+}
+
+///|
+/// Convert bool to string value
+fn bool_to_string(b : Bool) -> String {
+  if b {
+    "true"
+  } else {
+    "false"
+  }
+}
+
+///|
+/// Try to convert value to target type for implicit conversion
+pub fn try_convert(
+  value : HCLValue,
+  target_type : String,
+) -> HCLResult[HCLValue] {
+  match (value, target_type) {
+    (String(_, _), "string") => Ok(value)
+    (Number(_, _), "number") => Ok(value)
+    (Bool(_, _), "bool") => Ok(value)
+    (Null(_), _) => Ok(value)
+    (String(s, _), "number") => string_to_number(s)
+    (String(s, _), "bool") => string_to_bool(s)
+    (Number(n, _), "string") => Ok(String(number_to_string(n), Decor::empty()))
+    (Bool(b, _), "string") => Ok(String(bool_to_string(b), Decor::empty()))
+    _ =>
+      Err(
+        HCLError::type_error(
+          "Cannot convert " + value.type_name() + " to " + target_type,
+        ),
+      )
+  }
+}
+
+///|
 /// Evaluate binary operation on two HCLValues
 pub fn eval_binary(
   left : HCLValue,
