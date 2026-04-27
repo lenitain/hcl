@@ -1,13 +1,32 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：字符串函数补齐 — 迭代 2 完成 ✅
+## 当前状态：集合函数补齐 Task 3 — transpose/matchkeys 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/string-funcs-complete`
-- 状态：开发完成
-- 目标：补齐常见 Terraform 字符串函数
+- 分支：`lenitain/feat/collection-funcs`
+- 状态：开发中（Task 2 完成）
+- 目标：补齐集合操作和条件函数（迭代 3）
 
 ## 本次开发完成的任务
+
+### chunklist/lookup/zipmap 集合函数 ✅
+- ✅ `chunklist(array, size)` — 将数组按指定大小分块，使用 `as_int()` 安全转换
+- ✅ `lookup(object, key, default?)` — 安全访问 map 键，支持可选默认值
+- ✅ `zipmap(keys, values)` — 将两个数组合并为 object，手动 min 逻辑
+- ✅ 16 个新测试（chunklist 3 + lookup 3 + zipmap 2 + Task 1 concat/coalesce/range 8）
+- ✅ 817 个测试全部通过
+
+### transpose/matchkeys 集合函数 ✅
+- ✅ `transpose(map)` — 转置 map 键值，使用 `result.get(s)` 安全检查键存在
+- ✅ `matchkeys(search, keys, values)` — 按 search 顺序匹配 keys 返回对应 values
+- ✅ 5 个新测试（transpose 3 + matchkeys 3，含边界和类型错误）
+- ✅ 823 个测试全部通过
+
+### 验证结果
+- ✅ moon check: 0 errors (38 warnings, all pre-existing)
+- ✅ moon test: 823 passed, 0 failed
+- ✅ moon info: 通过
+- ✅ moon fmt: 通过
 
 ### 字符串函数补齐 StringFuncsComplete ✅
 - ✅ `startswith(str, prefix)` — 字符串前缀检查，使用 `s.has_prefix()`
@@ -116,7 +135,7 @@
 
 ### 验证结果
 - ✅ moon check: 0 errors
-- ✅ moon test: 801 passed, 0 failed
+- ✅ moon test: 823 passed, 0 failed
 - ✅ moon fmt: 通过
 - ✅ moon info: 通过
 
@@ -240,7 +259,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 801 个测试全部通过
+- ✅ 823 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -250,7 +269,7 @@
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：JSON 语法解析（JSON→Body、标签嵌套、数组块、round-trip、terraform.tfvars.json）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
-- 覆盖：内置函数（数字、集合、字符串、类型转换，共48个函数）
+- 覆盖：内置函数（数字、集合、字符串、类型转换，共50个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
@@ -293,10 +312,10 @@
 
 ### 内置函数 (funcs.mbt) - 新增
 - ✅ 数字函数 (abs, ceil, floor, log, max, min, parseint, pow, signum)
-- ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element)
+- ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element, concat, coalesce, range, chunklist, lookup, zipmap, transpose, matchkeys)
 - ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist, startswith, endswith, title)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
-- ✅ 通过 builtin_functions() 获取所有内置函数（48 个）
+- ✅ 通过 builtin_functions() 获取所有内置函数（50 个）
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
 - ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
 - ✅ `FuncDefBuilder` — 链式 API 构建函数定义
@@ -398,7 +417,7 @@
 | 序列化 | `to_hcl_body`, `to_hcl_value`, `Formatter` | ✅ |
 | 反序列化 | `from_hcl_body`, `from_hcl_with_schema` | ✅ |
 | Trait 系统 | `ToHCL`, `FromHCL` | ✅ |
-| 表达式求值 | `eval_binary/unary`, 48 个内置函数 | ✅ |
+| 表达式求值 | `eval_binary/unary`, 50 个内置函数 | ✅ |
 | Schema 验证 | `TypeSchema`, `FieldSchema`, `validate` | ✅ |
 | JSON 转换 | `hcl_to_json`, `body_to_json_pretty` | ✅ |
 | Decor 系统 | `Decor`, `Decorated[T]` | ✅ |
@@ -972,7 +991,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 ```
 迭代 1:  ParseErrorRecovery  — ✅ 已完成 (788 测试通过)
 迭代 2:  StringFuncsComplete  — ✅ 已完成 (801 测试通过)
-迭代 3:  CollectionFuncs     — 高优先级 (常用函数)
+迭代 3:  CollectionFuncs     — 进行中 (823 测试通过, chunklist/lookup/zipmap/transpose/matchkeys ✅)
 迭代 4:  SetFuncs            — 中优先级
 迭代 5:  EncodingFuncs       — 中优先级 (依赖 MoonBit 生态)
 迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
