@@ -395,7 +395,52 @@ test "extract_body nested block error path" {
 }
 
 ///|
-test "from_hcl_with_schema_full - multiple errors" {
+test "from_hcl_with_body_schema" {
+  let input = "name = \"test\"\nserver {\n  port = 8080\n}"
+  let schema = BodySchema::new()
+    .with_attrs({ "name": AttrSchema::required(TypeSchema::string()) })
+    .with_blocks({
+      "server": BlockSchema::new(
+        BodySchema::new().with_attrs({
+          "port": AttrSchema::required(TypeSchema::int()),
+        }),
+      ),
+    })
+  let result = from_hcl_with_body_schema(input, schema)
+  match result {
+    Ok(extracted) => {
+      match extracted.get_attr("name") {
+        Some(HCLValue::String(s, _)) => assert_eq(s, "test")
+        _ => assert_true(false)
+      }
+      let server = extracted.get_block("server")
+      assert_true(server is Some(_))
+      match server {
+        Some(s) => {
+          assert_true(s.body.get_attr("port") is Some(_))
+        }
+        None => assert_true(false)
+      }
+    }
+    Err(e) => {
+      for err in e {
+        println(err.message())
+      }
+      assert_true(false)
+    }
+  }
+}
+
+///|
+test "from_hcl_with_body_schema - parse error" {
+  let input = "name = "
+  let schema = BodySchema::new()
+  let result = from_hcl_with_body_schema(input, schema)
+  assert_true(result is Err(_))
+}
+
+///|
+test "from_hcl_with_body_schema_full - multiple errors" {
   let hcl = "config {\n}"
   let schema = TypeSchema::object({
     "config": FieldSchema::required(

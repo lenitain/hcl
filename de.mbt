@@ -124,6 +124,18 @@ pub fn from_hcl_with_schema_full(
 }
 
 ///|
+/// Deserialize from HCL string using a BodySchema, returning ExtractedBody
+pub fn from_hcl_with_body_schema(
+  input : String,
+  schema : BodySchema,
+) -> Result[ExtractedBody, Array[HCLError]] {
+  match parse(input) {
+    Ok(body) => extract_body(body, schema)
+    Err(e) => Err([e])
+  }
+}
+
+///|
 /// Get type name for error messages
 fn value_to_type_name(value : HCLValue) -> String {
   match value {
