@@ -48,8 +48,6 @@ pub fn expr_unknown() -> Expression
 
 pub fn extract_body(Body, BodySchema) -> Result[ExtractedBody, Array[HCLError]]
 
-pub fn extract_body_with_prefix(Body, BodySchema, String) -> Result[ExtractedBody, Array[HCLError]]
-
 pub fn format_attr_with_decor(Attr) -> String
 
 pub fn format_body(Body) -> String
@@ -418,10 +416,12 @@ pub fn ExtractedBlock::get_label(Self, Int) -> String?
 pub struct ExtractedBody {
   attrs : Map[String, HCLValue]
   blocks : Map[String, Array[ExtractedBlock]]
+  extra_blocks : Array[ExtractedBlock]
 } derive(Eq, @debug.Debug)
 pub fn ExtractedBody::get_attr(Self, String) -> HCLValue?
 pub fn ExtractedBody::get_block(Self, String) -> ExtractedBlock?
 pub fn ExtractedBody::get_blocks(Self, String) -> Array[ExtractedBlock]
+pub fn ExtractedBody::get_extra_blocks(Self) -> Array[ExtractedBlock]
 pub fn ExtractedBody::new() -> Self
 
 pub struct FieldSchema {

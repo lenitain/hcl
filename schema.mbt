@@ -521,6 +521,7 @@ pub fn string_starts_with(prefix : String) -> Validator {
 pub struct ExtractedBody {
   attrs : Map[String, HCLValue]
   blocks : Map[String, Array[ExtractedBlock]]
+  extra_blocks : Array[ExtractedBlock]
 } derive(Debug, Eq)
 
 ///|
@@ -533,7 +534,15 @@ pub struct ExtractedBlock {
 ///|
 /// Create an empty ExtractedBody
 pub fn ExtractedBody::new() -> ExtractedBody {
-  { attrs: {}, blocks: {} }
+  { attrs: {}, blocks: {}, extra_blocks: [] }
+}
+
+///|
+/// Get all extra blocks (unknown blocks when extra_blocks=true)
+pub fn ExtractedBody::get_extra_blocks(
+  self : ExtractedBody,
+) -> Array[ExtractedBlock] {
+  self.extra_blocks
 }
 
 ///|
@@ -621,7 +630,7 @@ pub fn extract_body(
 
 ///|
 /// Extract structured data with a custom path prefix for error reporting
-pub fn extract_body_with_prefix(
+fn extract_body_with_prefix(
   body : Body,
   schema : BodySchema,
   path_prefix : String,
@@ -629,6 +638,7 @@ pub fn extract_body_with_prefix(
   let errors = []
   let attrs : Map[String, HCLValue] = {}
   let blocks : Map[String, Array[ExtractedBlock]] = {}
+  let extra_blocks : Array[ExtractedBlock] = []
 
   for item in body.get_items() {
     match item {
@@ -705,6 +715,24 @@ pub fn extract_body_with_prefix(
                   "unexpected block",
                 ),
               )
+            } else {
+              let block_path = path_prefix + "." + type_name
+              match
+                extract_body_with_prefix(
+                  block.get_body(),
+                  BodySchema::new(),
+                  block_path,
+                ) {
+                Ok(nested_body) =>
+                  extra_blocks.push({
+                    labels: block.get_labels(),
+                    body: nested_body,
+                  })
+                Err(nested_errors) =>
+                  for e in nested_errors {
+                    errors.push(e)
+                  }
+              }
             }
         }
       }
@@ -727,6 +755,18 @@ pub fn extract_body_with_prefix(
   }
 
   for type_name, block_schema in schema.blocks {
+    if block_schema.required {
+      match blocks.get(type_name) {
+        None =>
+          errors.push(
+            HCLError::validation_error(
+              path_prefix + "." + type_name,
+              "required block missing",
+            ),
+          )
+        Some(_) => ()
+      }
+    }
     match block_schema.max_items {
       Some(max) =>
         match blocks.get(type_name) {
@@ -749,7 +789,7 @@ pub fn extract_body_with_prefix(
   }
 
   if errors.is_empty() {
-    Ok({ attrs, blocks })
+    Ok({ attrs, blocks, extra_blocks })
   } else {
     Err(errors)
   }
