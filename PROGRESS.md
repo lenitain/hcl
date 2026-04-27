@@ -3,9 +3,9 @@
 ## 当前状态：Schema Body Extraction 全部完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/schema-body-extraction`
+- 分支：`lenitain/feat/func-def-param-system`
 - 状态：开发完成
-- 目标：Schema 驱动的 body 提取 (#9)
+- 目标：函数参数定义系统 (#13)
 
 ## 本次开发完成的任务
 
@@ -20,6 +20,20 @@
 - ✅ Visit/VisitMut 支持 Splat
 - ✅ 7 个新测试（解析 + 序列化 + round-trip）
 - ✅ 所有 682 个测试通过（相比之前增加 10 个）
+
+### 函数参数定义系统 (#13) ✅
+- ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
+- ✅ `ParamType::is_satisfied_by()` — 值类型验证
+- ✅ `ParamType::display_name()` — 错误消息用类型名
+- ✅ `FuncDef` 结构体 — name, params, variadic, func 字段
+- ✅ `FuncDef::call()` — 自动参数数量/类型验证
+- ✅ `FuncDefBuilder` — param(), variadic(), build() 链式 API
+- ✅ `builtin_functions()` 返回 `Map[String, FuncDef]`
+- ✅ 45 个内置函数全部注册到 FuncDefBuilder
+- ✅ 移除所有手动 `guard check_args` / `guard check_min_args`
+- ✅ eval_expr 和 template 函数签名更新
+- ✅ 所有测试更新为 `FuncDef.call()` 接口
+- ✅ 所有 682 个测试通过
 
 ### Strip Markers (#7) ✅
 - ✅ `InterpolationStrip(Expression, Bool, Bool)` — 带 strip 标记的插值
@@ -260,7 +274,7 @@
 | 10 | **源位置保留在 AST 中** | Body/Attr/Block/HCLValue 只有 Decor（注释/空白），没有 source span。错误定位有但不够精确。 |
 | 11 | **UTF-8 BOM 拒绝 + UTF-8 验证** | Lexer 不做 BOM 检查和 UTF-8 合法性验证。 |
 | 12 | **类型统一 (Type unification)** | 条件表达式、函数返回值等需要 unification lattice 找到共同类型。 |
-| 13 | **函数参数定义系统** | `funcs.mbt` 用裸 closure `(Array[HCLValue]) -> Result`，缺少 formal param spec（位置/variadic、类型约束、null 接受标志）。 |
+| 13 | **函数参数定义系统** | ✅ 已完成。`ParamType` 枚举 + `FuncDef` 结构体 + `FuncDefBuilder`。自动参数数量/类型验证，无需手动 `check_args`。 |
 | 14 | **静态分析 API** | 没有 `visit.mbt` 之外的静态分析工具（list/map/call/traversal 分析）。 |
 
 ### 优先级排序（建议下次迭代顺序）
