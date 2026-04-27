@@ -334,15 +334,18 @@ test "extract_body with simple attrs" {
 
 ///|
 test "extract_body with blocks" {
-  let body = parse("server \"web\" {\n  port = 8080\n}\nserver \"api\" {\n  port = 3000\n}").unwrap()
-  let schema = BodySchema::new()
-    .with_blocks({
-      "server": BlockSchema::new(
-        BodySchema::new().with_attrs({
-          "port": AttrSchema::required(TypeSchema::int()),
-        })
-      ).with_labels([LabelSchema::required()]).with_max_items(2)
-    })
+  let body = parse(
+    "server \"web\" {\n  port = 8080\n}\nserver \"api\" {\n  port = 3000\n}",
+  ).unwrap()
+  let schema = BodySchema::new().with_blocks({
+    "server": BlockSchema::new(
+      BodySchema::new().with_attrs({
+        "port": AttrSchema::required(TypeSchema::int()),
+      }),
+    )
+    .with_labels([LabelSchema::required()])
+    .with_max_items(2),
+  })
   let result = extract_body(body, schema)
   match result {
     Ok(extracted) => {
@@ -361,6 +364,33 @@ test "extract_body with blocks" {
       }
       assert_true(false)
     }
+  }
+}
+
+///|
+test "extract_body nested block error path" {
+  let body = parse("server {\n  host = \"localhost\"\n}").unwrap()
+  let schema = BodySchema::new().with_blocks({
+    "server": BlockSchema::new(
+      BodySchema::new().with_attrs({
+        "host": AttrSchema::required(TypeSchema::string()),
+        "port": AttrSchema::required(TypeSchema::int()),
+      }),
+    ),
+  })
+  let result = extract_body(body, schema)
+  match result {
+    Err(errors) => {
+      assert_true(errors.length() > 0)
+      let found = errors.any(fn(e) {
+        match e {
+          ValidationError(path, _) => path == "$.server.port"
+          _ => false
+        }
+      })
+      assert_true(found)
+    }
+    Ok(_) => assert_true(false)
   }
 }
 

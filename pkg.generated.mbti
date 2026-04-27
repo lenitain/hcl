@@ -48,6 +48,8 @@ pub fn expr_unknown() -> Expression
 
 pub fn extract_body(Body, BodySchema) -> Result[ExtractedBody, Array[HCLError]]
 
+pub fn extract_body_with_prefix(Body, BodySchema, String) -> Result[ExtractedBody, Array[HCLError]]
+
 pub fn format_attr_with_decor(Attr) -> String
 
 pub fn format_body(Body) -> String

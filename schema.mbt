@@ -366,7 +366,7 @@ pub fn BlockSchema::with_labels(
   self : BlockSchema,
   labels : Array[LabelSchema],
 ) -> BlockSchema {
-  { ..self, labels }
+  { ..self, labels, }
 }
 
 ///|
@@ -616,6 +616,16 @@ pub fn extract_body(
   body : Body,
   schema : BodySchema,
 ) -> Result[ExtractedBody, Array[HCLError]] {
+  extract_body_with_prefix(body, schema, "$")
+}
+
+///|
+/// Extract structured data with a custom path prefix for error reporting
+pub fn extract_body_with_prefix(
+  body : Body,
+  schema : BodySchema,
+  path_prefix : String,
+) -> Result[ExtractedBody, Array[HCLError]] {
   let errors = []
   let attrs : Map[String, HCLValue] = {}
   let blocks : Map[String, Array[ExtractedBlock]] = {}
@@ -627,7 +637,11 @@ pub fn extract_body(
         match schema.attrs.get(key) {
           Some(attr_schema) => {
             let value = expr_to_hcl_value(attr.get_value())
-            let validation_errors = validate(value, attr_schema.type_schema)
+            let validation_errors = validate_at(
+              value,
+              attr_schema.type_schema,
+              path_prefix + "." + key,
+            )
             for e in validation_errors {
               errors.push(e)
             }
@@ -636,7 +650,10 @@ pub fn extract_body(
           None => {
             if !schema.extra_attrs {
               errors.push(
-                HCLError::validation_error("$." + key, "unexpected attribute"),
+                HCLError::validation_error(
+                  path_prefix + "." + key,
+                  "unexpected attribute",
+                ),
               )
             }
             attrs[key] = expr_to_hcl_value(attr.get_value())
@@ -647,16 +664,22 @@ pub fn extract_body(
         let type_name = block.get_type_name()
         match schema.blocks.get(type_name) {
           Some(block_schema) => {
+            let block_path = path_prefix + "." + type_name
             let labels = block.get_labels()
             let label_errors = validate_labels(
               labels,
               block_schema.labels,
-              "$." + type_name,
+              block_path,
             )
             for e in label_errors {
               errors.push(e)
             }
-            match extract_body(block.get_body(), block_schema.body) {
+            match
+              extract_body_with_prefix(
+                block.get_body(),
+                block_schema.body,
+                block_path,
+              ) {
               Ok(nested_body) => {
                 let extracted = { labels, body: nested_body }
                 match blocks.get(type_name) {
@@ -668,17 +691,19 @@ pub fn extract_body(
                   None => blocks[type_name] = [extracted]
                 }
               }
-              Err(nested_errors) => {
+              Err(nested_errors) =>
                 for e in nested_errors {
                   errors.push(e)
                 }
-              }
             }
           }
           None =>
             if !schema.extra_blocks {
               errors.push(
-                HCLError::validation_error("$." + type_name, "unexpected block"),
+                HCLError::validation_error(
+                  path_prefix + "." + type_name,
+                  "unexpected block",
+                ),
               )
             }
         }
@@ -691,7 +716,10 @@ pub fn extract_body(
       match attrs.get(key) {
         None =>
           errors.push(
-            HCLError::validation_error("$." + key, "required attribute missing"),
+            HCLError::validation_error(
+              path_prefix + "." + key,
+              "required attribute missing",
+            ),
           )
         Some(_) => ()
       }
@@ -706,7 +734,7 @@ pub fn extract_body(
             if arr.length() > max {
               errors.push(
                 HCLError::validation_error(
-                  "$." + type_name,
+                  path_prefix + "." + type_name,
                   "expected at most " +
                   max.to_string() +
                   " blocks, got " +
