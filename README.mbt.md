@@ -60,7 +60,18 @@ HCL (HashiCorp Configuration Language) parser, formatter, and serialization libr
 - **Decor system** - `Decor`, `Decorated[T]` for comment/whitespace preservation
 
 ### CLI
-- **hcl2json** - `moon run cmd/main --file config.hcl [--pretty] [--simplify] [--validate] [--format]`
+- **hcl2json** - `moon run cmd/main [OPTIONS] [FILES...]`
+  - `--pretty` / `-p` — pretty-print JSON
+  - `--simplify` / `-s` — constant folding
+  - `--format` / `-F` — output formatted HCL
+  - `--validate` / `-v` — validate HCL (exit 0/1)
+  - `--json-input` / `-j` — input is JSON, output HCL
+  - `--output FILE` / `-o` — write to file
+  - `--indent N` — set indent width (default 2)
+  - `--version` — print version
+  - `--color` / `--no-color` — force color on/off
+  - Multi-file: pass multiple paths, combined JSON/format/validate output
+  - Colored error output with source context (`line:col`, `^^^^` pointer)
 
 ## Official HCL Spec Tests
 

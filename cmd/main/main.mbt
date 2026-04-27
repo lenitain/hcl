@@ -1,7 +1,22 @@
 ///|
 /// HCL CLI Tool - converts HCL to JSON, formats HCL, validates HCL
 /// Run with `moon run cmd/main` from the project root.
-const VERSION = "0.3.0"
+
+///|
+/// Read version from moon.mod.json with fallback
+fn get_version() -> String {
+  let fallback = "0.1.2"
+  let content = @fs.read_file_to_string("moon.mod.json") catch { _ => return fallback }
+  match content.split_once("\"version\": \"") {
+    Some((_, after)) => {
+      match after.split_once("\"") {
+        Some((ver, _)) => ver.to_string()
+        None => fallback
+      }
+    }
+    None => fallback
+  }
+}
 
 ///|
 struct CliConfig {
@@ -41,7 +56,7 @@ fn should_use_color(no_color : Bool, force_color : Bool) -> Bool {
 
 ///|
 fn show_help(program_name : String) -> Unit {
-  println("HCL CLI v" + VERSION + " - Convert, format, and validate HCL")
+  println("HCL CLI v" + get_version() + " - Convert, format, and validate HCL")
   println("")
   println("Usage: " + program_name + " [OPTIONS] [FILES...]")
   println("")
@@ -271,7 +286,7 @@ fn main {
   }
 
   if config.version {
-    println("hcl-moonbit v" + VERSION)
+    println("hcl-moonbit v" + get_version())
     @sys.exit(0)
   }
 

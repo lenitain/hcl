@@ -12,9 +12,12 @@ pub fn hcl_to_json(input : String) -> HCLResult[String] {
 
 ///|
 /// Convert HCL string to JSON string with pretty printing
-pub fn hcl_to_json_pretty(input : String, indent? : Int = 2) -> HCLResult[String] {
+pub fn hcl_to_json_pretty(
+  input : String,
+  indent? : Int = 2,
+) -> HCLResult[String] {
   match parse(input) {
-    Ok(body) => Ok(body_to_json_pretty(body, indent=indent))
+    Ok(body) => Ok(body_to_json_pretty(body, indent~))
     Err(e) => Err(e)
   }
 }
@@ -110,7 +113,11 @@ pub fn body_to_json_pretty(body : Body, indent? : Int = 2) -> String {
 
 ///|
 /// Internal implementation of pretty JSON conversion (HCL JSON spec-compliant)
-fn body_to_json_pretty_impl(body : Body, depth : Int, unit_width : Int) -> String {
+fn body_to_json_pretty_impl(
+  body : Body,
+  depth : Int,
+  unit_width : Int,
+) -> String {
   let items = body.get_items()
   if items.is_empty() {
     return "{}"
@@ -155,7 +162,11 @@ fn body_to_json_pretty_impl(body : Body, depth : Int, unit_width : Int) -> Strin
       inner_prefix +
       escape_json_string(attr.get_key()) +
       ": " +
-      value_to_json_pretty(expr_to_hcl_value(attr.get_value()), depth + 1, unit_width)
+      value_to_json_pretty(
+        expr_to_hcl_value(attr.get_value()),
+        depth + 1,
+        unit_width,
+      )
   }
 
   for pair in block_types {
@@ -167,7 +178,8 @@ fn body_to_json_pretty_impl(body : Body, depth : Int, unit_width : Int) -> Strin
     first = false
     result = result + inner_prefix + escape_json_string(type_name) + ": "
     if blocks.length() == 1 {
-      result = result + block_to_json_value_pretty(blocks[0], depth + 1, unit_width)
+      result = result +
+        block_to_json_value_pretty(blocks[0], depth + 1, unit_width)
     } else {
       let block_indent = repeat_string(" ", unit_width * (depth + 1))
       let item_indent = repeat_string(" ", unit_width * (depth + 2))
@@ -189,7 +201,11 @@ fn body_to_json_pretty_impl(body : Body, depth : Int, unit_width : Int) -> Strin
 
 ///|
 /// Convert a block with labels to nested JSON value (pretty)
-fn block_to_json_value_pretty(block : Block, depth : Int, unit_width : Int) -> String {
+fn block_to_json_value_pretty(
+  block : Block,
+  depth : Int,
+  unit_width : Int,
+) -> String {
   let labels = block.get_labels()
   if labels.is_empty() {
     body_to_json_pretty_impl(block.get_body(), depth, unit_width)
@@ -254,7 +270,11 @@ fn value_to_json(value : HCLValue) -> String {
 
 ///|
 /// Convert HCLValue to JSON string with pretty printing
-fn value_to_json_pretty(value : HCLValue, depth : Int, unit_width : Int) -> String {
+fn value_to_json_pretty(
+  value : HCLValue,
+  depth : Int,
+  unit_width : Int,
+) -> String {
   match value {
     Null(_) => "null"
     Unknown(_) => "null"
@@ -266,7 +286,9 @@ fn value_to_json_pretty(value : HCLValue, depth : Int, unit_width : Int) -> Stri
         "[]"
       } else {
         let inner_prefix = repeat_string(" ", unit_width * (depth + 1))
-        let items = arr.map(fn(v) { value_to_json_pretty(v, depth + 1, unit_width) })
+        let items = arr.map(fn(v) {
+          value_to_json_pretty(v, depth + 1, unit_width)
+        })
         "[\n" +
         inner_prefix +
         items.join(",\n" + inner_prefix) +
