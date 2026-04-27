@@ -506,3 +506,66 @@ pub fn string_starts_with(prefix : String) -> Validator {
     }
   }
 }
+
+///|
+/// Result of extracting structured data from an HCL Body using a BodySchema
+pub struct ExtractedBody {
+  attrs : Map[String, HCLValue]
+  blocks : Map[String, Array[ExtractedBlock]]
+} derive(Debug, Eq)
+
+///|
+/// A single extracted block with its labels and nested body
+pub struct ExtractedBlock {
+  labels : Array[String]
+  body : ExtractedBody
+} derive(Debug, Eq)
+
+///|
+/// Create an empty ExtractedBody
+pub fn ExtractedBody::new() -> ExtractedBody {
+  { attrs: {}, blocks: {} }
+}
+
+///|
+/// Get an attribute value by key
+pub fn ExtractedBody::get_attr(self : ExtractedBody, key : String) -> HCLValue? {
+  self.attrs.get(key)
+}
+
+///|
+/// Get all blocks of a given type name
+pub fn ExtractedBody::get_blocks(
+  self : ExtractedBody,
+  type_name : String,
+) -> Array[ExtractedBlock] {
+  match self.blocks.get(type_name) {
+    Some(blocks) => blocks
+    None => []
+  }
+}
+
+///|
+/// Get the first block of a given type name
+pub fn ExtractedBody::get_block(
+  self : ExtractedBody,
+  type_name : String,
+) -> ExtractedBlock? {
+  match self.blocks.get(type_name) {
+    Some(blocks) if blocks.length() > 0 => Some(blocks[0])
+    _ => None
+  }
+}
+
+///|
+/// Get a label by index from a block
+pub fn ExtractedBlock::get_label(
+  self : ExtractedBlock,
+  index : Int,
+) -> String? {
+  if index >= 0 && index < self.labels.length() {
+    Some(self.labels[index])
+  } else {
+    None
+  }
+}
