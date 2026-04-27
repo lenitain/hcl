@@ -308,6 +308,16 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamArray(Any))
     .param(ParamArray(Any))
     .build("matchkeys", fn_matchkeys)
+  funcs["sum"] = FuncDef::builder()
+    .param(ParamArray(ParamNumber))
+    .build("sum", fn_sum)
+  funcs["alltrue"] = FuncDef::builder()
+    .param(ParamArray(ParamBool))
+    .build("alltrue", fn_alltrue)
+  funcs["anytrue"] = FuncDef::builder()
+    .param(ParamArray(ParamBool))
+    .build("anytrue", fn_anytrue)
+  funcs["one"] = FuncDef::builder().param(ParamArray(Any)).build("one", fn_one)
 
   // String functions
   funcs["chomp"] = FuncDef::builder()
@@ -993,27 +1003,25 @@ fn fn_transpose(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       let result : Map[String, HCLValue] = {}
       for k, v in o {
         match v {
-          Array(arr, _) => {
+          Array(arr, _) =>
             for item in arr {
               match item {
-                String(s, _) => {
+                String(s, _) =>
                   match result.get(s) {
                     Some(Array(existing, _)) => {
                       existing.push(String(k, Decor::empty()))
                       result[s] = Array(existing, Decor::empty())
                     }
-                    None => {
+                    None =>
                       result[s] = Array(
                         [String(k, Decor::empty())],
                         Decor::empty(),
                       )
-                    }
                     _ =>
                       return Err(
                         HCLError::invalid_value("transpose() internal error"),
                       )
                   }
-                }
                 _ =>
                   return Err(
                     HCLError::type_error(
@@ -1022,7 +1030,6 @@ fn fn_transpose(args : Array[HCLValue]) -> HCLResult[HCLValue] {
                   )
               }
             }
-          }
           _ =>
             return Err(
               HCLError::type_error("transpose() values must be arrays"),
@@ -1053,8 +1060,84 @@ fn fn_matchkeys(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Array(result, Decor::empty()))
     }
-    _ =>
-      Err(HCLError::type_error("matchkeys() requires (array, array, array)"))
+    _ => Err(HCLError::type_error("matchkeys() requires (array, array, array)"))
+  }
+}
+
+///|
+/// sum(list) - Sum numeric array
+fn fn_sum(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(arr, _) => {
+      let mut total = 0.0
+      for item in arr {
+        match item {
+          Number(n, _) => total = total + n.as_float()
+          _ => return Err(HCLError::type_error("sum() requires numeric array"))
+        }
+      }
+      Ok(Number(Number::from_finite_f64(total), Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("sum() requires an array"))
+  }
+}
+
+///|
+/// alltrue(list) - All values true
+fn fn_alltrue(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(arr, _) => {
+      for item in arr {
+        match item {
+          Bool(false, _) => return Ok(Bool(false, Decor::empty()))
+          Bool(true, _) => continue
+          _ => return Err(HCLError::type_error("alltrue() requires bool array"))
+        }
+      }
+      Ok(Bool(true, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("alltrue() requires an array"))
+  }
+}
+
+///|
+/// anytrue(list) - Any value true
+fn fn_anytrue(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(arr, _) => {
+      for item in arr {
+        match item {
+          Bool(true, _) => return Ok(Bool(true, Decor::empty()))
+          Bool(false, _) => continue
+          _ => return Err(HCLError::type_error("anytrue() requires bool array"))
+        }
+      }
+      Ok(Bool(false, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("anytrue() requires an array"))
+  }
+}
+
+///|
+/// one(list) - Ensure single element and return it
+fn fn_one(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    Array(arr, _) =>
+      if arr.length() == 1 {
+        Ok(arr[0])
+      } else if arr.length() == 0 {
+        Err(
+          HCLError::invalid_value("one() requires exactly one element, got 0"),
+        )
+      } else {
+        Err(
+          HCLError::invalid_value(
+            "one() requires exactly one element, got " +
+            arr.length().to_string(),
+          ),
+        )
+      }
+    _ => Err(HCLError::type_error("one() requires an array"))
   }
 }
 

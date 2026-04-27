@@ -2,6 +2,31 @@
 /// Built-in Functions Tests
 
 ///| =========================================================================
+/// Test Helpers
+
+///| =========================================================================
+
+///|
+fn num(n : Int) -> HCLValue {
+  HCLValue::Number(Number::from_int(n), Decor::empty())
+}
+
+///|
+fn str(s : String) -> HCLValue {
+  HCLValue::String(s, Decor::empty())
+}
+
+///|
+fn bool_true() -> HCLValue {
+  HCLValue::Bool(true, Decor::empty())
+}
+
+///|
+fn bool_false() -> HCLValue {
+  HCLValue::Bool(false, Decor::empty())
+}
+
+///| =========================================================================
 /// Numeric Functions Tests
 
 ///| =========================================================================
@@ -1849,9 +1874,7 @@ test "transpose basic" {
         _ => panic()
       }
       match m["y"] {
-        HCLValue::Array(arr, _) => {
-          assert_eq(arr.length(), 2)
-        }
+        HCLValue::Array(arr, _) => assert_eq(arr.length(), 2)
         _ => panic()
       }
     }
@@ -1865,9 +1888,7 @@ test "transpose empty" {
   let f = funcs["transpose"]
   let obj = HCLValue::Object({}, Decor::empty())
   match f.call([obj]) {
-    Ok(HCLValue::Object(m, _)) => {
-      assert_eq(m.length(), 0)
-    }
+    Ok(HCLValue::Object(m, _)) => assert_eq(m.length(), 0)
     _ => panic()
   }
 }
@@ -1946,30 +1967,144 @@ test "matchkeys no match" {
     Decor::empty(),
   )
   match f.call([search, keys, values]) {
-    Ok(HCLValue::Array(arr, _)) => {
-      assert_eq(arr.length(), 0)
-    }
+    Ok(HCLValue::Array(arr, _)) => assert_eq(arr.length(), 0)
+    _ => panic()
+  }
+}
+
+///| =========================================================================
+/// Collection Functions - sum, alltrue, anytrue, one
+
+///| =========================================================================
+
+///|
+test "sum basic" {
+  let funcs = builtin_functions()
+  let f = funcs["sum"]
+  let arr = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == num(6))
     _ => panic()
   }
 }
 
 ///|
-test "matchkeys empty search" {
+test "sum empty" {
   let funcs = builtin_functions()
-  let f = funcs["matchkeys"]
-  let search = HCLValue::Array([], Decor::empty())
-  let keys = HCLValue::Array(
-    [HCLValue::String("a", Decor::empty())],
-    Decor::empty(),
-  )
-  let values = HCLValue::Array(
-    [HCLValue::Number(Number::from_int(1), Decor::empty())],
-    Decor::empty(),
-  )
-  match f.call([search, keys, values]) {
-    Ok(HCLValue::Array(arr, _)) => {
-      assert_eq(arr.length(), 0)
-    }
+  let f = funcs["sum"]
+  let arr = HCLValue::Array([], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == num(0))
+    _ => panic()
+  }
+}
+
+///|
+test "sum type error" {
+  let funcs = builtin_functions()
+  let f = funcs["sum"]
+  let arr = HCLValue::Array([str("a")], Decor::empty())
+  match f.call([arr]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "alltrue all true" {
+  let funcs = builtin_functions()
+  let f = funcs["alltrue"]
+  let arr = HCLValue::Array([bool_true(), bool_true()], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == bool_true())
+    _ => panic()
+  }
+}
+
+///|
+test "alltrue has false" {
+  let funcs = builtin_functions()
+  let f = funcs["alltrue"]
+  let arr = HCLValue::Array([bool_true(), bool_false()], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == bool_false())
+    _ => panic()
+  }
+}
+
+///|
+test "alltrue empty" {
+  let funcs = builtin_functions()
+  let f = funcs["alltrue"]
+  let arr = HCLValue::Array([], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == bool_true())
+    _ => panic()
+  }
+}
+
+///|
+test "anytrue mixed" {
+  let funcs = builtin_functions()
+  let f = funcs["anytrue"]
+  let arr = HCLValue::Array([bool_false(), bool_true()], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == bool_true())
+    _ => panic()
+  }
+}
+
+///|
+test "anytrue all false" {
+  let funcs = builtin_functions()
+  let f = funcs["anytrue"]
+  let arr = HCLValue::Array([bool_false(), bool_false()], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == bool_false())
+    _ => panic()
+  }
+}
+
+///|
+test "anytrue empty" {
+  let funcs = builtin_functions()
+  let f = funcs["anytrue"]
+  let arr = HCLValue::Array([], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == bool_false())
+    _ => panic()
+  }
+}
+
+///|
+test "one single element" {
+  let funcs = builtin_functions()
+  let f = funcs["one"]
+  let arr = HCLValue::Array([num(42)], Decor::empty())
+  match f.call([arr]) {
+    Ok(v) => assert_true(v == num(42))
+    _ => panic()
+  }
+}
+
+///|
+test "one empty" {
+  let funcs = builtin_functions()
+  let f = funcs["one"]
+  let arr = HCLValue::Array([], Decor::empty())
+  match f.call([arr]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "one multiple elements" {
+  let funcs = builtin_functions()
+  let f = funcs["one"]
+  let arr = HCLValue::Array([num(1), num(2)], Decor::empty())
+  match f.call([arr]) {
+    Err(_) => assert_true(true)
     _ => panic()
   }
 }
