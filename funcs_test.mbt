@@ -796,6 +796,172 @@ test "range empty" {
   }
 }
 
+///|
+test "chunklist basic" {
+  let funcs = builtin_functions()
+  let f = funcs["chunklist"]
+  let arr = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+      HCLValue::Number(Number::from_int(3), Decor::empty()),
+      HCLValue::Number(Number::from_int(4), Decor::empty()),
+      HCLValue::Number(Number::from_int(5), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  match f.call([arr, HCLValue::Number(Number::from_int(2), Decor::empty())]) {
+    Ok(HCLValue::Array(chunks, _)) => {
+      assert_eq(chunks.length(), 3)
+      match chunks[0] {
+        HCLValue::Array(c, _) => assert_eq(c.length(), 2)
+        _ => panic()
+      }
+      match chunks[2] {
+        HCLValue::Array(c, _) => assert_eq(c.length(), 1)
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "chunklist size larger than array" {
+  let funcs = builtin_functions()
+  let f = funcs["chunklist"]
+  let arr = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  match f.call([arr, HCLValue::Number(Number::from_int(10), Decor::empty())]) {
+    Ok(HCLValue::Array(chunks, _)) => assert_eq(chunks.length(), 1)
+    _ => panic()
+  }
+}
+
+///|
+test "chunklist invalid size" {
+  let funcs = builtin_functions()
+  let f = funcs["chunklist"]
+  let arr = HCLValue::Array(
+    [HCLValue::Number(Number::from_int(1), Decor::empty())],
+    Decor::empty(),
+  )
+  match f.call([arr, HCLValue::Number(Number::from_int(0), Decor::empty())]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "lookup found" {
+  let funcs = builtin_functions()
+  let f = funcs["lookup"]
+  let obj : Map[String, HCLValue] = Map::new()
+  obj["a"] = HCLValue::Number(Number::from_int(1), Decor::empty())
+  obj["b"] = HCLValue::Number(Number::from_int(2), Decor::empty())
+  match
+    f.call([
+      HCLValue::Object(obj, Decor::empty()),
+      HCLValue::String("b", Decor::empty()),
+    ]) {
+    Ok(v) =>
+      assert_true(v == HCLValue::Number(Number::from_int(2), Decor::empty()))
+    _ => panic()
+  }
+}
+
+///|
+test "lookup with default" {
+  let funcs = builtin_functions()
+  let f = funcs["lookup"]
+  let obj : Map[String, HCLValue] = Map::new()
+  obj["a"] = HCLValue::Number(Number::from_int(1), Decor::empty())
+  match
+    f.call([
+      HCLValue::Object(obj, Decor::empty()),
+      HCLValue::String("missing", Decor::empty()),
+      HCLValue::Number(Number::from_int(99), Decor::empty()),
+    ]) {
+    Ok(v) =>
+      assert_true(v == HCLValue::Number(Number::from_int(99), Decor::empty()))
+    _ => panic()
+  }
+}
+
+///|
+test "lookup not found no default" {
+  let funcs = builtin_functions()
+  let f = funcs["lookup"]
+  let obj : Map[String, HCLValue] = Map::new()
+  obj["a"] = HCLValue::Number(Number::from_int(1), Decor::empty())
+  match
+    f.call([
+      HCLValue::Object(obj, Decor::empty()),
+      HCLValue::String("missing", Decor::empty()),
+    ]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "zipmap basic" {
+  let funcs = builtin_functions()
+  let f = funcs["zipmap"]
+  let keys = HCLValue::Array(
+    [
+      HCLValue::String("a", Decor::empty()),
+      HCLValue::String("b", Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  let values = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  match f.call([keys, values]) {
+    Ok(HCLValue::Object(m, _)) => {
+      assert_true(
+        m["a"] == HCLValue::Number(Number::from_int(1), Decor::empty()),
+      )
+      assert_true(
+        m["b"] == HCLValue::Number(Number::from_int(2), Decor::empty()),
+      )
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "zipmap different lengths" {
+  let funcs = builtin_functions()
+  let f = funcs["zipmap"]
+  let keys = HCLValue::Array(
+    [
+      HCLValue::String("a", Decor::empty()),
+      HCLValue::String("b", Decor::empty()),
+      HCLValue::String("c", Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  let values = HCLValue::Array(
+    [HCLValue::Number(Number::from_int(1), Decor::empty())],
+    Decor::empty(),
+  )
+  match f.call([keys, values]) {
+    Ok(HCLValue::Object(m, _)) => assert_eq(m.length(), 1)
+    _ => panic()
+  }
+}
+
 ///| =========================================================================
 /// String Functions Tests
 

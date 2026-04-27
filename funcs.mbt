@@ -287,6 +287,19 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
   funcs["range"] = FuncDef::builder()
     .variadic(ParamNumber)
     .build("range", fn_range)
+  funcs["chunklist"] = FuncDef::builder()
+    .param(ParamArray(Any))
+    .param(ParamNumber)
+    .build("chunklist", fn_chunklist)
+  funcs["lookup"] = FuncDef::builder()
+    .param(ParamObject(Any))
+    .param(ParamString)
+    .variadic(Any)
+    .build("lookup", fn_lookup)
+  funcs["zipmap"] = FuncDef::builder()
+    .param(ParamArray(Any))
+    .param(ParamArray(Any))
+    .build("zipmap", fn_zipmap)
 
   // String functions
   funcs["chomp"] = FuncDef::builder()
@@ -888,6 +901,80 @@ fn fn_range(args : Array[HCLValue]) -> HCLResult[HCLValue] {
     i = i + 1
   }
   Ok(Array(result, Decor::empty()))
+}
+
+///|
+/// chunklist(list, size) - Split array into chunks
+fn fn_chunklist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (Array(arr, _), Number(n, _)) =>
+      match n.as_int() {
+        Some(size) => {
+          if size <= 0 {
+            return Err(
+              HCLError::invalid_value("chunklist() size must be positive"),
+            )
+          }
+          let result = []
+          let mut chunk = []
+          for item in arr {
+            chunk.push(item)
+            if chunk.length() == size {
+              result.push(Array(chunk, Decor::empty()))
+              chunk = []
+            }
+          }
+          if chunk.length() > 0 {
+            result.push(Array(chunk, Decor::empty()))
+          }
+          Ok(Array(result, Decor::empty()))
+        }
+        None => Err(HCLError::type_error("chunklist() size must be integer"))
+      }
+    _ => Err(HCLError::type_error("chunklist() requires (array, number)"))
+  }
+}
+
+///|
+/// lookup(map, key, default?) - Safe map key access
+fn fn_lookup(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (Object(o, _), String(key, _)) => {
+      for k, v in o {
+        if k == key {
+          return Ok(v)
+        }
+      }
+      if args.length() == 3 {
+        return Ok(args[2])
+      }
+      Err(HCLError::invalid_value("lookup() key not found: " + key))
+    }
+    _ => Err(HCLError::type_error("lookup() requires (object, string)"))
+  }
+}
+
+///|
+/// zipmap(keys, values) - Merge two arrays into map
+fn fn_zipmap(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (Array(keys_arr, _), Array(values_arr, _)) => {
+      let map : Map[String, HCLValue] = {}
+      let keys_len = keys_arr.length()
+      let values_len = values_arr.length()
+      let len = if keys_len < values_len { keys_len } else { values_len }
+      let mut i = 0
+      while i < len {
+        match keys_arr[i] {
+          String(key, _) => map[key] = values_arr[i]
+          _ => return Err(HCLError::type_error("zipmap() keys must be strings"))
+        }
+        i = i + 1
+      }
+      Ok(Object(map, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("zipmap() requires (array, array)"))
+  }
 }
 
 ///| =========================================================================
