@@ -142,8 +142,6 @@ pub fn to_hcl_string(String) -> String
 
 pub fn to_hcl_value(HCLValue) -> String
 
-pub fn try_convert(HCLValue, String) -> Result[HCLValue, HCLError]
-
 pub fn validate(HCLValue, TypeSchema) -> Array[HCLError]
 
 pub fn validate_ex(HCLValue, Map[String, FieldSchemaEx]) -> Array[HCLError]

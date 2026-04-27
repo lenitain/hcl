@@ -99,30 +99,6 @@ fn bool_to_string(b : Bool) -> String {
 }
 
 ///|
-/// Try to convert value to target type for implicit conversion
-fn try_convert(
-  value : HCLValue,
-  target_type : String,
-) -> HCLResult[HCLValue] {
-  match (value, target_type) {
-    (String(_, _), "string") => Ok(value)
-    (Number(_, _), "number") => Ok(value)
-    (Bool(_, _), "bool") => Ok(value)
-    (Null(_), _) => Ok(value)
-    (String(s, _), "number") => string_to_number(s)
-    (String(s, _), "bool") => string_to_bool(s)
-    (Number(n, _), "string") => Ok(String(number_to_string(n), Decor::empty()))
-    (Bool(b, _), "string") => Ok(String(bool_to_string(b), Decor::empty()))
-    _ =>
-      Err(
-        HCLError::type_error(
-          "Cannot convert " + value.type_name() + " to " + target_type,
-        ),
-      )
-  }
-}
-
-///|
 /// Evaluate binary operation on two HCLValues
 pub fn eval_binary(
   left : HCLValue,
@@ -169,10 +145,14 @@ fn eval_add(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Number(a + b, Decor::empty()))
     (String(a, _), String(b, _)) => Ok(String(a + b, Decor::empty()))
-    (String(a, _), Number(b, _)) => Ok(String(a + number_to_string(b), Decor::empty()))
-    (Number(a, _), String(b, _)) => Ok(String(number_to_string(a) + b, Decor::empty()))
-    (String(a, _), Bool(b, _)) => Ok(String(a + bool_to_string(b), Decor::empty()))
-    (Bool(a, _), String(b, _)) => Ok(String(bool_to_string(a) + b, Decor::empty()))
+    (String(a, _), Number(b, _)) =>
+      Ok(String(a + number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) =>
+      Ok(String(number_to_string(a) + b, Decor::empty()))
+    (String(a, _), Bool(b, _)) =>
+      Ok(String(a + bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) =>
+      Ok(String(bool_to_string(a) + b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for addition"))
   }
 }
@@ -234,10 +214,14 @@ fn eval_eq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
     return Ok(Bool(true, Decor::empty()))
   }
   match (left, right) {
-    (String(s, _), Number(n, _)) => Ok(Bool(s == number_to_string(n), Decor::empty()))
-    (Number(n, _), String(s, _)) => Ok(Bool(number_to_string(n) == s, Decor::empty()))
-    (String(s, _), Bool(b, _)) => Ok(Bool(s == bool_to_string(b), Decor::empty()))
-    (Bool(b, _), String(s, _)) => Ok(Bool(bool_to_string(b) == s, Decor::empty()))
+    (String(s, _), Number(n, _)) =>
+      Ok(Bool(s == number_to_string(n), Decor::empty()))
+    (Number(n, _), String(s, _)) =>
+      Ok(Bool(number_to_string(n) == s, Decor::empty()))
+    (String(s, _), Bool(b, _)) =>
+      Ok(Bool(s == bool_to_string(b), Decor::empty()))
+    (Bool(b, _), String(s, _)) =>
+      Ok(Bool(bool_to_string(b) == s, Decor::empty()))
     _ => Ok(Bool(false, Decor::empty()))
   }
 }
@@ -256,10 +240,14 @@ fn eval_neq(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a < b, Decor::empty()))
-    (String(a, _), Number(b, _)) => Ok(Bool(a < number_to_string(b), Decor::empty()))
-    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) < b, Decor::empty()))
-    (String(a, _), Bool(b, _)) => Ok(Bool(a < bool_to_string(b), Decor::empty()))
-    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) < b, Decor::empty()))
+    (String(a, _), Number(b, _)) =>
+      Ok(Bool(a < number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) =>
+      Ok(Bool(number_to_string(a) < b, Decor::empty()))
+    (String(a, _), Bool(b, _)) =>
+      Ok(Bool(a < bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) =>
+      Ok(Bool(bool_to_string(a) < b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than"))
   }
 }
@@ -269,10 +257,14 @@ fn eval_lt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a > b, Decor::empty()))
-    (String(a, _), Number(b, _)) => Ok(Bool(a > number_to_string(b), Decor::empty()))
-    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) > b, Decor::empty()))
-    (String(a, _), Bool(b, _)) => Ok(Bool(a > bool_to_string(b), Decor::empty()))
-    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) > b, Decor::empty()))
+    (String(a, _), Number(b, _)) =>
+      Ok(Bool(a > number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) =>
+      Ok(Bool(number_to_string(a) > b, Decor::empty()))
+    (String(a, _), Bool(b, _)) =>
+      Ok(Bool(a > bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) =>
+      Ok(Bool(bool_to_string(a) > b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than"))
   }
 }
@@ -282,10 +274,14 @@ fn eval_gt(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a <= b, Decor::empty()))
-    (String(a, _), Number(b, _)) => Ok(Bool(a <= number_to_string(b), Decor::empty()))
-    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) <= b, Decor::empty()))
-    (String(a, _), Bool(b, _)) => Ok(Bool(a <= bool_to_string(b), Decor::empty()))
-    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) <= b, Decor::empty()))
+    (String(a, _), Number(b, _)) =>
+      Ok(Bool(a <= number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) =>
+      Ok(Bool(number_to_string(a) <= b, Decor::empty()))
+    (String(a, _), Bool(b, _)) =>
+      Ok(Bool(a <= bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) =>
+      Ok(Bool(bool_to_string(a) <= b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for less than or equal"))
   }
 }
@@ -295,10 +291,14 @@ fn eval_lte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
 fn eval_gte(left : HCLValue, right : HCLValue) -> HCLResult[HCLValue] {
   match (left, right) {
     (Number(a, _), Number(b, _)) => Ok(Bool(a >= b, Decor::empty()))
-    (String(a, _), Number(b, _)) => Ok(Bool(a >= number_to_string(b), Decor::empty()))
-    (Number(a, _), String(b, _)) => Ok(Bool(number_to_string(a) >= b, Decor::empty()))
-    (String(a, _), Bool(b, _)) => Ok(Bool(a >= bool_to_string(b), Decor::empty()))
-    (Bool(a, _), String(b, _)) => Ok(Bool(bool_to_string(a) >= b, Decor::empty()))
+    (String(a, _), Number(b, _)) =>
+      Ok(Bool(a >= number_to_string(b), Decor::empty()))
+    (Number(a, _), String(b, _)) =>
+      Ok(Bool(number_to_string(a) >= b, Decor::empty()))
+    (String(a, _), Bool(b, _)) =>
+      Ok(Bool(a >= bool_to_string(b), Decor::empty()))
+    (Bool(a, _), String(b, _)) =>
+      Ok(Bool(bool_to_string(a) >= b, Decor::empty()))
     _ => Err(HCLError::type_error("Invalid types for greater than or equal"))
   }
 }
