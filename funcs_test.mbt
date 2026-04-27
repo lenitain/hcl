@@ -942,6 +942,172 @@ test "formatlist" {
   }
 }
 
+///|
+test "startswith match" {
+  let funcs = builtin_functions()
+  let f = funcs["startswith"]
+  match
+    f.call([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("hello", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "startswith no match" {
+  let funcs = builtin_functions()
+  let f = funcs["startswith"]
+  match
+    f.call([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("world", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(false, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "startswith empty prefix" {
+  let funcs = builtin_functions()
+  let f = funcs["startswith"]
+  match
+    f.call([
+      HCLValue::String("hello", Decor::empty()),
+      HCLValue::String("", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "endswith match" {
+  let funcs = builtin_functions()
+  let f = funcs["endswith"]
+  match
+    f.call([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("world", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "endswith no match" {
+  let funcs = builtin_functions()
+  let f = funcs["endswith"]
+  match
+    f.call([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("hello", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(false, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "endswith empty suffix" {
+  let funcs = builtin_functions()
+  let f = funcs["endswith"]
+  match
+    f.call([
+      HCLValue::String("hello", Decor::empty()),
+      HCLValue::String("", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "title basic" {
+  let funcs = builtin_functions()
+  let f = funcs["title"]
+  match f.call([HCLValue::String("hello world", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("Hello World", Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "title already titled" {
+  let funcs = builtin_functions()
+  let f = funcs["title"]
+  match f.call([HCLValue::String("Hello World", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("Hello World", Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "title all caps" {
+  let funcs = builtin_functions()
+  let f = funcs["title"]
+  match f.call([HCLValue::String("HELLO WORLD", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("Hello World", Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "title single word" {
+  let funcs = builtin_functions()
+  let f = funcs["title"]
+  match f.call([HCLValue::String("hello", Decor::empty())]) {
+    Ok(v) => assert_true(v == HCLValue::String("Hello", Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "contains string match" {
+  let funcs = builtin_functions()
+  let f = funcs["contains"]
+  match
+    f.call([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("world", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(true, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "contains string no match" {
+  let funcs = builtin_functions()
+  let f = funcs["contains"]
+  match
+    f.call([
+      HCLValue::String("hello world", Decor::empty()),
+      HCLValue::String("moon", Decor::empty()),
+    ]) {
+    Ok(v) => assert_true(v == HCLValue::Bool(false, Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "contains string error" {
+  let funcs = builtin_functions()
+  let f = funcs["contains"]
+  match
+    f.call([
+      HCLValue::String("hello", Decor::empty()),
+      HCLValue::Number(Number::from_int(42), Decor::empty()),
+    ]) {
+    Ok(_) => panic()
+    Err(e) => assert_true(e.message().contains("string substring"))
+  }
+}
+
 ///| =========================================================================
 /// Type Conversion Functions Tests
 

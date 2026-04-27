@@ -251,7 +251,7 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamObject(Any))
     .build("values", fn_values)
   funcs["contains"] = FuncDef::builder()
-    .param(ParamArray(Any))
+    .param(OneOf([ParamArray(Any), ParamString]))
     .param(Any)
     .build("contains", fn_contains)
   funcs["flatten"] = FuncDef::builder()
@@ -337,6 +337,17 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamString)
     .param(ParamArray(Any))
     .build("formatlist", fn_formatlist)
+  funcs["startswith"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("startswith", fn_startswith)
+  funcs["endswith"] = FuncDef::builder()
+    .param(ParamString)
+    .param(ParamString)
+    .build("endswith", fn_endswith)
+  funcs["title"] = FuncDef::builder()
+    .param(ParamString)
+    .build("title", fn_title)
 
   // Type conversion functions
   funcs["tobool"] = FuncDef::builder()
@@ -635,6 +646,7 @@ fn fn_values(args : Array[HCLValue]) -> HCLResult[HCLValue] {
 
 ///|
 /// contains(list, element) - Returns true if list contains element
+/// contains(str, substr) - Returns true if string contains substring
 fn fn_contains(args : Array[HCLValue]) -> HCLResult[HCLValue] {
   match args[0] {
     Array(arr, _) => {
@@ -645,7 +657,17 @@ fn fn_contains(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
       Ok(Bool(false, Decor::empty()))
     }
-    _ => Err(HCLError::type_error("contains() requires an array"))
+    String(s, _) =>
+      match args[1] {
+        String(sub, _) => Ok(Bool(s.contains(sub), Decor::empty()))
+        _ =>
+          Err(
+            HCLError::type_error(
+              "contains() string search requires a string substring",
+            ),
+          )
+      }
+    _ => Err(HCLError::type_error("contains() requires an array or string"))
   }
 }
 
@@ -1069,6 +1091,54 @@ fn fn_formatlist(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       Ok(Array(result, Decor::empty()))
     }
     _ => Err(HCLError::type_error("formatlist() requires (string, array)"))
+  }
+}
+
+///|
+/// startswith(str, prefix) - Returns true if str starts with prefix
+fn fn_startswith(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(s, _), String(prefix, _)) =>
+      Ok(Bool(s.has_prefix(prefix), Decor::empty()))
+    _ => Err(HCLError::type_error("startswith() requires (string, string)"))
+  }
+}
+
+///|
+/// endswith(str, suffix) - Returns true if str ends with suffix
+fn fn_endswith(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match (args[0], args[1]) {
+    (String(s, _), String(suffix, _)) =>
+      Ok(Bool(s.has_suffix(suffix), Decor::empty()))
+    _ => Err(HCLError::type_error("endswith() requires (string, string)"))
+  }
+}
+
+///|
+/// title(str) - Capitalizes first letter of each word
+fn fn_title(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) => {
+      let chars = s.to_array()
+      let result = []
+      let mut prev_was_space = true
+      for c in chars {
+        if c == ' ' {
+          result.push(c)
+          prev_was_space = true
+        } else if prev_was_space {
+          let upper = c.to_string().to_upper()
+          result.push(upper.to_array()[0])
+          prev_was_space = false
+        } else {
+          let lower = c.to_string().to_lower()
+          result.push(lower.to_array()[0])
+          prev_was_space = false
+        }
+      }
+      Ok(String(String::from_array(result), Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("title() requires a string"))
   }
 }
 
