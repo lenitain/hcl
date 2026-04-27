@@ -1,13 +1,25 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：编码函数补齐 — 迭代 5 完成 ✅
+## 当前状态：函数注册 API — 迭代 10 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/encoding-funcs`
+- 分支：`lenitain/feat/user-func-registry`
 - 状态：开发完成
-- 目标：补齐编码/解码函数
+- 目标：用户自定义函数注册 API
 
 ## 本次开发完成的任务
+
+### 函数注册 API UserFuncRegistry ✅
+- ✅ `FuncRegistry` 结构体 — 封装 `Map[String, FuncDef]`
+- ✅ `FuncRegistry::new()` — 创建空注册表
+- ✅ `FuncRegistry::with_builtins()` — 预加载所有内置函数
+- ✅ `FuncRegistry::register(name, def)` — 注册单个函数（fluent API）
+- ✅ `FuncRegistry::merge(other)` — 合并另一个函数映射
+- ✅ `FuncRegistry::build()` — 返回最终 `Map[String, FuncDef]`
+- ✅ `merge_funcs(base, extra)` — 独立辅助函数合并两个映射
+- ✅ `eval_expr_with_funcs(expr, vars, extra)` — 内置+自定义函数求值
+- ✅ 7 个新测试（空注册表、内置加载、注册、构建、合并、求值、覆盖）
+- ✅ 所有 878 个测试通过
 
 ### 编码函数补齐 EncodingFuncs ✅
 - ✅ `jsondecode(str)` — JSON 字符串 → HCLValue，使用 `@json.parse()` + 递归转换
@@ -301,7 +313,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 871 个测试全部通过
+- ✅ 878 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -985,7 +997,7 @@ hcl/
 
 ---
 
-### 迭代 10：函数注册 API — UserFuncRegistry
+### 迭代 10：函数注册 API — UserFuncRegistry ✅
 
 **目标**：允许用户注册自定义函数到求值环境
 
@@ -1012,7 +1024,11 @@ pub fn FuncRegistry::build(self) -> Map[String, FuncDef] { ... }
 pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> Map[String, FuncDef]
 ```
 
-**测试计数**：新增至少 5 个测试
+**实现结果**：
+- ✅ `FuncRegistry` 结构体 + `new()` / `with_builtins()` / `register()` / `merge()` / `build()`
+- ✅ `merge_funcs(base, extra)` 独立辅助函数
+- ✅ `eval_expr_with_funcs(expr, vars, extra)` 便捷求值函数
+- ✅ 7 个新测试，878 个测试全部通过
 
 ---
 
@@ -1045,11 +1061,11 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 7:  DateTimeFuncs       — 中优先级
 迭代 8:  NetworkFuncs        — 低优先级
 迭代 9:  RegexFuncs          — 低优先级 (依赖 MoonBit 生态)
-迭代 10: UserFuncRegistry    — 低优先级 (增强 API)
+迭代 10: UserFuncRegistry    — ✅ 已完成 (878 测试通过)
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 → 7 → 8 → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 ✅ → 7 → 8 → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 

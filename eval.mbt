@@ -841,6 +841,17 @@ pub fn eval_expr_simple(expr : Expression) -> HCLResult[HCLValue] {
 }
 
 ///|
+/// Evaluate expression with builtin functions merged with extra custom functions
+pub fn eval_expr_with_funcs(
+  expr : Expression,
+  variables : Map[String, HCLValue],
+  extra_funcs : Map[String, FuncDef],
+) -> HCLResult[HCLValue] {
+  let all_funcs = merge_funcs(builtin_functions(), extra_funcs)
+  eval_expr(expr, variables, all_funcs)
+}
+
+///|
 /// Simplify a value by evaluating constant expressions
 fn simplify_value(expr : Expression) -> Expression {
   match expr {

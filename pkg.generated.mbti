@@ -38,6 +38,8 @@ pub fn eval_expr(Expression, Map[String, HCLValue], Map[String, FuncDef]) -> Res
 
 pub fn eval_expr_simple(Expression) -> Result[HCLValue, HCLError]
 
+pub fn eval_expr_with_funcs(Expression, Map[String, HCLValue], Map[String, FuncDef]) -> Result[HCLValue, HCLError]
+
 pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn evaluate_template(String, Map[String, HCLValue], Map[String, FuncDef]) -> Result[String, HCLError]
@@ -137,6 +139,8 @@ pub fn is_valid(HCLValue, TypeSchema) -> Bool
 pub fn json_to_body(String) -> Result[Body, HCLError]
 
 pub fn json_to_hcl_string(String) -> Result[String, HCLError]
+
+pub fn merge_funcs(Map[String, FuncDef], Map[String, FuncDef]) -> Map[String, FuncDef]
 
 pub fn new_hcl_object() -> Map[String, HCLValue]
 
@@ -549,6 +553,15 @@ pub fn FuncDefBuilder::build(Self, String, (Array[HCLValue]) -> Result[HCLValue,
 pub fn FuncDefBuilder::new() -> Self
 pub fn FuncDefBuilder::param(Self, ParamType) -> Self
 pub fn FuncDefBuilder::variadic(Self, ParamType) -> Self
+
+pub struct FuncRegistry {
+  funcs : Map[String, FuncDef]
+}
+pub fn FuncRegistry::build(Self) -> Map[String, FuncDef]
+pub fn FuncRegistry::merge(Self, Map[String, FuncDef]) -> Self
+pub fn FuncRegistry::new() -> Self
+pub fn FuncRegistry::register(Self, String, FuncDef) -> Self
+pub fn FuncRegistry::with_builtins() -> Self
 
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int, String)

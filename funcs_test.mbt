@@ -2608,3 +2608,92 @@ test "urlencode type error" {
     _ => panic()
   }
 }
+
+///| =========================================================================
+/// FuncRegistry Tests
+
+///| =========================================================================
+
+///|
+test "FuncRegistry::new creates empty registry" {
+  let reg = FuncRegistry::new()
+  let built = reg.build()
+  assert_eq(built.length(), 0)
+}
+
+///|
+test "FuncRegistry::with_builtins has all builtins" {
+  let reg = FuncRegistry::with_builtins()
+  let built = reg.build()
+  assert_true(built.length() > 0)
+  assert_true(built.contains("abs"))
+  assert_true(built.contains("upper"))
+  assert_true(built.contains("lower"))
+  assert_true(built.contains("length"))
+}
+
+///|
+test "FuncRegistry::register adds custom function" {
+  let reg = FuncRegistry::new()
+  let custom_fn = FuncDef::builder()
+    .param(Any)
+    .build("greet", fn(args) { Ok(HCLValue::String("hello", Decor::empty())) })
+  let built = reg.register("greet", custom_fn).build()
+  assert_true(built.contains("greet"))
+  match built["greet"].call([str("world")]) {
+    Ok(HCLValue::String(s, _)) => assert_eq(s, "hello")
+    _ => panic()
+  }
+}
+
+///|
+test "FuncRegistry::build returns correct map" {
+  let reg = FuncRegistry::new()
+  let custom_fn = FuncDef::builder().build("noop", fn(_args) {
+    Ok(HCLValue::Null(Decor::empty()))
+  })
+  let built = reg.register("noop", custom_fn).build()
+  assert_eq(built.length(), 1)
+  assert_true(built.contains("noop"))
+}
+
+///|
+test "merge_funcs merges two maps" {
+  let base = builtin_functions()
+  let extra = Map::new()
+  let custom_fn = FuncDef::builder().build("custom_add", fn(args) {
+    Ok(HCLValue::Number(Number::from_int(99), Decor::empty()))
+  })
+  extra["custom_add"] = custom_fn
+  let merged = merge_funcs(base, extra)
+  assert_true(merged.contains("abs"))
+  assert_true(merged.contains("custom_add"))
+}
+
+///|
+test "eval_expr_with_funcs evaluates with custom + builtin functions" {
+  let fc = FuncCall::builder("abs").arg(expr_int(-7)).build()
+  let expr = expr_func_call(fc)
+  let result = eval_expr_with_funcs(expr, Map::new(), Map::new())
+  match result {
+    Ok(v) =>
+      assert_true(v == HCLValue::Number(Number::from_int(7), Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "custom function overrides builtin" {
+  let reg = FuncRegistry::with_builtins()
+  let custom_abs = FuncDef::builder()
+    .param(ParamNumber)
+    .build("abs", fn(_args) {
+      Ok(HCLValue::Number(Number::from_int(999), Decor::empty()))
+    })
+  let built = reg.register("abs", custom_abs).build()
+  match built["abs"].call([num(5)]) {
+    Ok(v) =>
+      assert_true(v == HCLValue::Number(Number::from_int(999), Decor::empty()))
+    _ => panic()
+  }
+}

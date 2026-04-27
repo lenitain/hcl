@@ -450,6 +450,72 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
 }
 
 ///|
+/// Registry for managing custom and builtin functions
+pub struct FuncRegistry {
+  funcs : Map[String, FuncDef]
+}
+
+///|
+/// Create an empty FuncRegistry
+pub fn FuncRegistry::new() -> FuncRegistry {
+  { funcs: Map::new() }
+}
+
+///|
+/// Create a FuncRegistry pre-loaded with all builtin functions
+pub fn FuncRegistry::with_builtins() -> FuncRegistry {
+  { funcs: builtin_functions() }
+}
+
+///|
+/// Register a single function definition (fluent API, returns self)
+pub fn FuncRegistry::register(
+  self : FuncRegistry,
+  name : String,
+  def : FuncDef,
+) -> FuncRegistry {
+  self.funcs[name] = def
+  self
+}
+
+///|
+/// Merge another Map[String, FuncDef] into this registry
+pub fn FuncRegistry::merge(
+  self : FuncRegistry,
+  other : Map[String, FuncDef],
+) -> FuncRegistry {
+  for entry in other {
+    let (k, v) = entry
+    self.funcs[k] = v
+  }
+  self
+}
+
+///|
+/// Build and return the final Map[String, FuncDef]
+pub fn FuncRegistry::build(self : FuncRegistry) -> Map[String, FuncDef] {
+  self.funcs
+}
+
+///|
+/// Merge two function maps, extra overrides base on conflict
+pub fn merge_funcs(
+  base : Map[String, FuncDef],
+  extra : Map[String, FuncDef],
+) -> Map[String, FuncDef] {
+  let result = Map::new()
+  for entry in base {
+    let (k, v) = entry
+    result[k] = v
+  }
+  for entry in extra {
+    let (k, v) = entry
+    result[k] = v
+  }
+  result
+}
+
+///|
 /// Convert HCLValue to Double for numeric operations
 fn to_double(val : HCLValue) -> HCLResult[Double] {
   match val {
