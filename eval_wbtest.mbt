@@ -3,7 +3,7 @@
 test "string to number conversion" {
   // Valid integer
   let result = string_to_number("123")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_int(123))
     _ => panic()
@@ -11,7 +11,7 @@ test "string to number conversion" {
 
   // Valid float
   let result = string_to_number("123.45")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_finite_f64(123.45))
     _ => panic()
@@ -19,15 +19,15 @@ test "string to number conversion" {
 
   // Invalid string
   let result = string_to_number("abc")
-  assert_true(result.is_err())
+  assert_true(result is Err(_))
 
   // Empty string
   let result = string_to_number("")
-  assert_true(result.is_err())
+  assert_true(result is Err(_))
 
   // Negative number
   let result = string_to_number("-42")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_int(-42))
     _ => panic()
@@ -38,14 +38,14 @@ test "string to number conversion" {
 test "string to bool conversion" {
   // Valid true values
   let result = string_to_bool("true")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
   }
 
   let result = string_to_bool("1")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -53,14 +53,14 @@ test "string to bool conversion" {
 
   // Valid false values
   let result = string_to_bool("false")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
     _ => panic()
   }
 
   let result = string_to_bool("0")
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
     _ => panic()
@@ -68,11 +68,11 @@ test "string to bool conversion" {
 
   // Invalid string
   let result = string_to_bool("yes")
-  assert_true(result.is_err())
+  assert_true(result is Err(_))
 
   // Invalid string
   let result = string_to_bool("TRUE")
-  assert_true(result.is_err())
+  assert_true(result is Err(_))
 }
 
 ///|
@@ -83,7 +83,7 @@ test "implicit conversion in addition" {
     "+",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(String(s, _)) => assert_eq(s, "value: 42")
     _ => panic()
@@ -95,7 +95,7 @@ test "implicit conversion in addition" {
     "+",
     String(" is the answer", Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(String(s, _)) => assert_eq(s, "42 is the answer")
     _ => panic()
@@ -107,7 +107,7 @@ test "implicit conversion in addition" {
     "+",
     Bool(true, Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(String(s, _)) => assert_eq(s, "enabled: true")
     _ => panic()
@@ -119,7 +119,7 @@ test "implicit conversion in addition" {
     "+",
     String(" is the value", Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(String(s, _)) => assert_eq(s, "false is the value")
     _ => panic()
@@ -134,7 +134,7 @@ test "implicit conversion in equality" {
     "==",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -146,7 +146,7 @@ test "implicit conversion in equality" {
     "==",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
     _ => panic()
@@ -158,7 +158,7 @@ test "implicit conversion in equality" {
     "==",
     String("42", Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -170,7 +170,7 @@ test "implicit conversion in equality" {
     "==",
     Bool(true, Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -182,7 +182,7 @@ test "implicit conversion in equality" {
     "==",
     Bool(true, Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
     _ => panic()
@@ -197,7 +197,7 @@ test "implicit conversion in inequality" {
     "!=",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_false(b)
     _ => panic()
@@ -209,7 +209,7 @@ test "implicit conversion in inequality" {
     "!=",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -224,7 +224,7 @@ test "implicit conversion in comparison" {
     "<",
     Number(Number::from_int(20), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -236,7 +236,7 @@ test "implicit conversion in comparison" {
     ">",
     Number(Number::from_int(10), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -248,7 +248,7 @@ test "implicit conversion in comparison" {
     "<=",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -260,7 +260,7 @@ test "implicit conversion in comparison" {
     ">=",
     Number(Number::from_int(42), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -272,7 +272,7 @@ test "implicit conversion in comparison" {
     "<",
     String("20", Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Bool(b, _)) => assert_true(b)
     _ => panic()
@@ -287,7 +287,7 @@ test "implicit conversion preserves types" {
     "+",
     Number(Number::from_int(3), Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(Number(n, _)) => assert_true(n == Number::from_int(8))
     _ => panic()
@@ -299,7 +299,7 @@ test "implicit conversion preserves types" {
     "+",
     String("world", Decor::empty()),
   )
-  assert_true(result.is_ok())
+  assert_true(result is Ok(_))
   match result {
     Ok(String(s, _)) => assert_eq(s, "hello world")
     _ => panic()
@@ -311,5 +311,5 @@ test "implicit conversion preserves types" {
     "+",
     Bool(false, Decor::empty()),
   )
-  assert_true(result.is_err())
+  assert_true(result is Err(_))
 }
