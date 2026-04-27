@@ -1,11 +1,11 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：静态分析 API (#14) 全部完成 ✅
+## 当前状态：UTF-8 BOM (#11) + 静态分析 API (#14) 全部完成 ✅
 
 ## 当前分支
 - 分支：`lenitain/feat/static-analysis-api`
 - 状态：开发完成
-- 目标：静态分析 API (#14)
+- 目标：UTF-8 BOM 拒绝 (#11) + 静态分析 API (#14)
 
 ## 本次开发完成的任务
 
@@ -30,8 +30,15 @@
 - ✅ `collect_traversals_from_expr(expr)` — 单表达式版本
 - ✅ 使用 Visit trait 实现递归 AST 遍历
 - ✅ 结果去重 + 排序（确定性输出）
-- ✅ 15 个新测试（黑盒 + 白盒）
-- ✅ 所有 718 个测试通过
+- ✅ 17 个新测试（黑盒 + 白盒）
+- ✅ 所有 720 个测试通过
+
+### UTF-8 BOM 拒绝 (#11) ✅
+- ✅ `EncodingError(String)` 变体 — 新错误类型
+- ✅ `Lexer::validate_input()` — 检测输入开头的 U+FEFF BOM
+- ✅ `parse()` 入口自动调用验证
+- ✅ 6 个新测试（BOM 开头→错误、无 BOM→正常、BOM 中间→正常、空输入→正常）
+- ✅ 所有 720 个测试通过
 
 ### 函数参数定义系统 (#13) ✅
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
@@ -67,7 +74,7 @@
 
 ### 验证结果
 - ✅ moon check: 0 errors
-- ✅ moon test: 697 passed, 0 failed
+- ✅ moon test: 720 passed, 0 failed
 - ✅ moon fmt: 通过
 - ✅ moon info: 通过
 
@@ -190,7 +197,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 697 个测试全部通过
+- ✅ 720 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -210,6 +217,8 @@
 - 覆盖：Template strip markers（`${~ expr ~}`、`%{~ directive ~}`、前后空白去除）
 - 覆盖：Unicode 标识符（XID_Start/XID_Continue、CJK、Latin Extended、Cyrillic 等）
 - 覆盖：FuncDef 参数定义系统（ParamType 类型检查、FuncDef 验证、variadic、builder）
+- 覆盖：UTF-8 BOM 拒绝（BOM 检测、错误报告、边界情况）
+- 覆盖：静态分析 API（collect_variables/functions/traversals、表达式级、去重、排序）
 
 ### 表达式求值 (eval.mbt)
 - ✅ 二元运算符 (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
@@ -288,7 +297,7 @@
 | # | 功能 | 说明 |
 |---|------|------|
 | 10 | **源位置保留在 AST 中** | Body/Attr/Block/HCLValue 只有 Decor（注释/空白），没有 source span。错误定位有但不够精确。 |
-| 11 | **UTF-8 BOM 拒绝 + UTF-8 验证** | Lexer 不做 BOM 检查和 UTF-8 合法性验证。 |
+| 11 | **UTF-8 BOM 拒绝 + UTF-8 验证** | ✅ 已完成。`EncodingError` 变体 + `Lexer::validate_input()` 检测 U+FEFF。6 个新测试。 |
 | 12 | **类型统一 (Type unification)** | 条件表达式、函数返回值等需要 unification lattice 找到共同类型。 |
 | 13 | **函数参数定义系统** | ✅ 已完成。`ParamType` 枚举 + `FuncDef` 结构体 + `FuncDefBuilder`。自动参数数量/类型验证，无需手动 `check_args`。 |
 | 14 | **静态分析 API** | ✅ 已完成。`collect_variables`/`collect_functions`/`collect_traversals` + 表达式级变体。 |
@@ -304,8 +313,8 @@
 迭代 6 (P1):  Splat (#6) + Strip markers (#7) + Unicode ident (#8) → ✅ 已完成
 迭代 7 (P1):  Schema body 提取 (#9) → ✅ 已完成（全量测试验证通过）
 迭代 8 (P2):  函数参数定义系统 (#13) → ✅ 已完成（697 测试通过）
-迭代 9 (P2):  剩余功能 (#10, #11, #12)
-迭代 10 (P2):  静态分析 API (#14) → ✅ 已完成（718 测试通过）
+迭代 9 (P2):  UTF-8 BOM (#11) + 静态分析 API (#14) → ✅ 已完成（720 测试通过）
+剩余:  #10 源位置 Span, #12 类型统一
 ```
 
 ### 实现建议
@@ -600,6 +609,10 @@ hcl/
 ├── visit_test.mbt      # 遍历测试（新增）
 ├── decorated_expr.mbt  # Decorated[Expression] 辅助函数（新增）
 ├── decorated_expr_test.mbt # Decorated[Expression] 测试（新增）
+├── analysis.mbt        # 静态分析 API（新增）
+├── analysis_test.mbt   # 静态分析黑盒测试（新增）
+├── analysis_wbtest.mbt # 静态分析白盒测试（新增）
+├── encoding_test.mbt   # UTF-8 BOM 测试（新增）
 └── cmd/
     └── main/
         ├── main.mbt   # CLI 入口
