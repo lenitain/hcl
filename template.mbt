@@ -515,7 +515,7 @@ fn trim_leading_whitespace(s : String) -> String {
 pub fn Template::evaluate(
   self : Template,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[String] {
   let mut result = ""
   let mut i = 0
@@ -736,7 +736,7 @@ fn evaluate_for_body(
   var_name : String,
   arr : Array[HCLValue],
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[(String, Int)] {
   let mut result = ""
 
@@ -865,7 +865,7 @@ fn evaluate_else_chain(
   parts : Array[TemplatePart],
   pos : Int,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[(String, Int)] {
   let part = parts[pos]
   match part {
@@ -929,7 +929,7 @@ fn evaluate_body_range(
   start : Int,
   end : Int,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[String] {
   let mut result = ""
   let mut i = start
@@ -1166,7 +1166,7 @@ pub fn parse_template(input : String) -> HCLResult[Template] {
 pub fn evaluate_template(
   input : String,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[String] {
   match parse_template(input) {
     Ok(template) => template.evaluate(variables, functions)

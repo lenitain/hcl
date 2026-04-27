@@ -360,7 +360,7 @@ pub fn eval_conditional(
 pub fn eval_expr(
   expr : Expression,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[HCLValue] {
   match expr {
     ExprNull => Ok(Null(Decor::empty()))
@@ -482,7 +482,7 @@ pub fn eval_expr(
         }
       }
       match functions.get(fc.name) {
-        Some(func) => func(evaluated_args)
+        Some(func_def) => func_def.call(evaluated_args)
         None => Err(HCLError::undefined_function(fc.name))
       }
     }
@@ -511,7 +511,7 @@ fn eval_splat(
   value : HCLValue,
   remaining_ops : Array[TraversalOperator],
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[HCLValue] {
   match value {
     Array(arr, _) => {
@@ -544,7 +544,7 @@ fn apply_traversal_ops(
   value : HCLValue,
   ops : Array[TraversalOperator],
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[HCLValue] {
   let mut current = value
   let mut i = 0
@@ -620,7 +620,7 @@ fn[T] drop_first(arr : Array[T], n : Int) -> Array[T] {
 fn eval_operation(
   op : Operation,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[HCLValue] {
   match op {
     Binary(binop) =>
@@ -686,7 +686,7 @@ fn eval_unary_op(op : UnaryOperator, operand : HCLValue) -> HCLResult[HCLValue] 
 fn eval_template(
   tmpl : TemplateExpr,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[HCLValue] {
   match tmpl {
     Heredoc(h) => {
@@ -723,7 +723,7 @@ fn eval_template(
 fn eval_for_expr(
   for_expr : ForExpr,
   variables : Map[String, HCLValue],
-  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+  functions : Map[String, FuncDef],
 ) -> HCLResult[HCLValue] {
   match for_expr {
     List(list) =>

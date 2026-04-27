@@ -144,7 +144,7 @@ test "tostring unknown returns \"unknown\"" {
   let fns = builtin_functions()
   let tostring = fns.get("tostring")
   assert_true(tostring.is_some())
-  let result = tostring.unwrap()([HCLValue::unknown()])
+  let result = tostring.unwrap().call([HCLValue::unknown()])
   match result {
     Ok(String(s, _)) => assert_eq(s, "unknown")
     _ => panic()

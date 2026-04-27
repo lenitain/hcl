@@ -10,7 +10,7 @@ pub fn body_to_json(Body) -> String
 
 pub fn body_to_json_pretty(Body) -> String
 
-pub fn builtin_functions() -> Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]
+pub fn builtin_functions() -> Map[String, FuncDef]
 
 pub fn decorated_expr_to_string(Decorated[Expression]) -> String
 
@@ -20,13 +20,13 @@ pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]
 
-pub fn eval_expr(Expression, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[HCLValue, HCLError]
+pub fn eval_expr(Expression, Map[String, HCLValue], Map[String, FuncDef]) -> Result[HCLValue, HCLError]
 
 pub fn eval_expr_simple(Expression) -> Result[HCLValue, HCLError]
 
 pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
-pub fn evaluate_template(String, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
+pub fn evaluate_template(String, Map[String, HCLValue], Map[String, FuncDef]) -> Result[String, HCLError]
 
 pub fn expr_array(Array[Expression]) -> Expression
 
@@ -500,6 +500,24 @@ pub fn FuncCallBuilder::arg(Self, Expression) -> Self
 pub fn FuncCallBuilder::build(Self) -> FuncCall
 pub fn FuncCallBuilder::new(String) -> Self
 
+pub struct FuncDef {
+  name : String
+  params : Array[ParamType]
+  variadic : ParamType?
+  func : (Array[HCLValue]) -> Result[HCLValue, HCLError]
+}
+pub fn FuncDef::builder() -> FuncDefBuilder
+pub fn FuncDef::call(Self, Array[HCLValue]) -> Result[HCLValue, HCLError]
+
+pub struct FuncDefBuilder {
+  params : Array[ParamType]
+  variadic : ParamType?
+} derive(Eq, @debug.Debug)
+pub fn FuncDefBuilder::build(Self, String, (Array[HCLValue]) -> Result[HCLValue, HCLError]) -> FuncDef
+pub fn FuncDefBuilder::new() -> Self
+pub fn FuncDefBuilder::param(Self, ParamType) -> Self
+pub fn FuncDefBuilder::variadic(Self, ParamType) -> Self
+
 pub(all) enum HCLError {
   ParseError(String, Int, Int, Int, String)
   TypeError(String, String)
@@ -670,6 +688,19 @@ pub(all) enum Operation {
   Unary(UnaryOp)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ParamType {
+  Any
+  ParamBool
+  ParamNumber
+  ParamString
+  ParamArray(ParamType)
+  ParamObject(ParamType)
+  Nullable(ParamType)
+  OneOf(Array[ParamType])
+} derive(Eq, @debug.Debug)
+pub fn ParamType::display_name(Self) -> String
+pub fn ParamType::is_satisfied_by(Self, HCLValue) -> Bool
+
 pub struct Parser {
   lexer : Lexer
   current : Token
@@ -683,7 +714,7 @@ pub fn Parser::parse_body(Self) -> Result[Body, HCLError]
 pub struct Template {
   parts : Array[TemplatePart]
 }
-pub fn Template::evaluate(Self, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
+pub fn Template::evaluate(Self, Map[String, HCLValue], Map[String, FuncDef]) -> Result[String, HCLError]
 pub fn Template::from_heredoc(String, String, Bool) -> Result[Self, HCLError]
 pub fn Template::from_string(String) -> Result[Self, HCLError]
 pub fn Template::new() -> Self
