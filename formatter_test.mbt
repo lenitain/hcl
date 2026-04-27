@@ -113,8 +113,8 @@ test "formatter prefer_ident_keys quotes invalid identifiers" {
 ///|
 test "formatter dense body - no empty lines between items" {
   let items = [
-    BodyItem::Attribute(Attr::new("a", hcl_int(1))),
-    BodyItem::Attribute(Attr::new("b", hcl_int(2))),
+    BodyItem::Attribute(Attr::new("a", expr_int(1))),
+    BodyItem::Attribute(Attr::new("b", expr_int(2))),
   ]
   let body = Body::from_items(items)
   let fmt = Formatter::new().set_dense(true).set_prefer_ident_keys(true)
@@ -126,8 +126,8 @@ test "formatter dense body - no empty lines between items" {
 ///|
 test "formatter non-dense body - empty lines between items" {
   let items = [
-    BodyItem::Attribute(Attr::new("a", hcl_int(1))),
-    BodyItem::Attribute(Attr::new("b", hcl_int(2))),
+    BodyItem::Attribute(Attr::new("a", expr_int(1))),
+    BodyItem::Attribute(Attr::new("b", expr_int(2))),
   ]
   let body = Body::from_items(items)
   let fmt = Formatter::new().set_dense(false).set_prefer_ident_keys(true)
@@ -140,7 +140,7 @@ test "formatter non-dense body - empty lines between items" {
 test "formatter body with block" {
   let block = Block::simple(
     "resource",
-    Body::from_items([BodyItem::Attribute(Attr::new("name", hcl_str("test")))]),
+    Body::from_items([BodyItem::Attribute(Attr::new("name", expr_str("test")))]),
   )
   let body = Body::from_items([BodyItem::Block(block)])
   let fmt = Formatter::new()
@@ -153,9 +153,7 @@ test "formatter body with block" {
 ///|
 test "formatter compact preset formats body" {
   let items = [
-    BodyItem::Attribute(
-      Attr::new("x", HCLValue::array([hcl_int(1), hcl_int(2)])),
-    ),
+    BodyItem::Attribute(Attr::new("x", expr_array([expr_int(1), expr_int(2)]))),
   ]
   let body = Body::from_items(items)
   let fmt = Formatter::with_config(FormatConfig::compact())
@@ -166,9 +164,7 @@ test "formatter compact preset formats body" {
 
 ///|
 test "formatter custom indent" {
-  let items = [
-    BodyItem::Attribute(Attr::new("x", HCLValue::array([hcl_int(1)]))),
-  ]
+  let items = [BodyItem::Attribute(Attr::new("x", expr_array([expr_int(1)])))]
   let body = Body::from_items(items)
   let fmt = Formatter::new().set_indent("    ")
   let result = fmt.format_body(body)

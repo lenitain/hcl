@@ -25,7 +25,7 @@ test "modify and preserve decor" {
   let body = parse(input).unwrap()
   let attr = body.find_attr("name").unwrap()
 
-  let new_value = HCLValue::string("new")
+  let new_value = expr_str("new")
   let new_key = Decorated::bare(attr.get_key())
   let new_attr = Attr::with_decor(new_key, new_value, attr.get_decor())
 
@@ -57,10 +57,11 @@ test "preserve trailing comment on value" {
   let body = parse(input).unwrap()
   let attr = body.find_attr("name").unwrap()
   let value = attr.get_value()
-  let _decor = value.get_decor()
 
-  // Just check that parsing works - trailing comments might not be preserved on values
-  assert_true(value.is_string())
+  match value {
+    ExprString(_) => ()
+    _ => panic()
+  }
 }
 
 ///|

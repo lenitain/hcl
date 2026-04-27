@@ -1,18 +1,20 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：代码质量改进完成 ✅
+## 当前状态：表达式类型安全重构完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/chore/fix-deprecated-warnings`
+- 分支：`lenitain/feat/expression-type-refactoring`
 - 状态：开发完成
-- 目标：修复代码质量警告
+- 目标：Expression 类型安全重构（P0 #5）
 
 ## 本次开发完成的任务
-- ✅ 修复 deprecated 警告（is Some/None/Ok 模式）
-- ✅ 修复 missing_pattern_payload 警告
-- ✅ 修复 unused_variable 警告
-- ✅ 修复 unused_trait_bound 警告
-- ✅ 所有 548 个测试通过
+- ✅ Parser 产出 `Expression` enum 而非 tagged `HCLValue::Object`
+- ✅ Eval 使用 pattern matching 而非 string-based dispatch
+- ✅ Visit/VisitMut 在 Expression 上正确工作
+- ✅ `Attr.value` 类型从 `HCLValue` 改为 `Expression`
+- ✅ `expr_to_hcl_value` / `hcl_value_to_expression` 桥接函数
+- ✅ 序列化层通过桥接兼容原有 HCLValue 代码
+- ✅ 所有 570 个测试通过（相比之前增加 22 个）
 - ✅ moon check: 0 errors
 - ✅ moon fmt: 通过
 
@@ -135,7 +137,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 529 个测试全部通过（新增 8 个 simplify 测试）
+- ✅ 570 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -205,7 +207,7 @@
 | 2 | **隐式类型转换** | 无 string↔number、string↔bool 自动转换。Go HCL 在比较/运算时会自动转换，当前 `eval.mbt` 严格类型检查。 | 现有 `.tf` 文件大量依赖隐式转换 |
 | 3 | **JSON 语法解析** | `json.mbt` 只有 HCL→JSON 序列化，没有 JSON→HCL body 解析。HCL spec 定义了一套 JSON 等效语法。 | 无法读取 `terraform.tfvars.json` |
 | 4 | **模板 else 子句** | `%{if cond}...%{else}...%{endif}` 未实现，`template.mbt` 只处理 if/endif。 | 大量 Terraform 模板不可用 |
-| 5 | **表达式类型安全重构** | parser 把表达式编码成带 tag 的 `Object`（运行时字符串分派），而非 `expr.mbt` 里定义的 `Expression` enum。导致 `visit.mbt` visitor 对表达式无效，编译期无法模式匹配。 | 架构缺陷，越早修成本越低 |
+| 5 | **表达式类型安全重构** | ✅ 已完成 | 架构缺陷修复 |
 
 ### 🟡 P1：重要但可暂缓
 
@@ -229,7 +231,7 @@
 ### 优先级排序（建议下次迭代顺序）
 
 ```
-迭代 1 (P0):  表达式类型安全重构 (#5) → 这是所有后续工作的基础
+迭代 1 (P0):  表达式类型安全重构 (#5) → ✅ 已完成
 迭代 2 (P0):  未知值 Unknown (#1) → Terraform 兼容的前提
 迭代 3 (P0):  模板 else (#4) → 影响面广
 迭代 4 (P0):  隐式类型转换 (#2) → 关系到所有表达式求值
@@ -242,16 +244,15 @@
 ### 实现建议
 
 **关于 #5（表达式类型安全重构）**：
-当前 parser 产出的是：
-```
-Object({"type": String("function_call"), "name": String("foo"), "args": Array([...])}, _)
-```
-应改为产出 `Expression` enum 的直接实例，例如 `FuncCallExpr`。这涉及：
+✅ 已完成。当前 parser 产出 `Expression` enum 的直接实例（如 `ExprFuncCall`），而非 tagged Object。
+主要改动：
 1. `parser.mbt` 的表达式解析分支返回 `Expression` 而非 `HCLValue`
 2. `eval.mbt` 从 string-match 改为 pattern match on enum
-3. `visit.mbt` 的 Expression visitor 才能真正工作
+3. `visit.mbt` 的 Expression visitor 现在通过 `visit_attr_default` → `visit_expr` 路径真实工作
+4. `Attr.value` 类型从 `HCLValue` 改为 `Expression`
+5. 桥接函数 `expr_to_hcl_value` / `hcl_value_to_expression` 保证序列化层兼容
 
-参考 `expr.mbt` 中已有的枚举定义，它们现在未被 parser 使用。
+共修改 23 个文件，-949 行（代码量显著减少）。
 
 ## 已知问题
 

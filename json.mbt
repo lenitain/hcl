@@ -40,7 +40,7 @@ pub fn body_to_json(body : Body) -> String {
         result = result +
           escape_json_string(attr.get_key()) +
           ":" +
-          value_to_json(attr.get_value())
+          value_to_json(expr_to_hcl_value(attr.get_value()))
       }
       Block(block) => {
         if !first {
@@ -95,7 +95,7 @@ fn body_to_json_pretty_impl(body : Body, indent : Int) -> String {
           inner_prefix +
           escape_json_string(attr.get_key()) +
           ": " +
-          value_to_json_pretty(attr.get_value(), indent + 1)
+          value_to_json_pretty(expr_to_hcl_value(attr.get_value()), indent + 1)
       }
       Block(block) => {
         if !first {

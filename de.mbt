@@ -72,7 +72,8 @@ fn body_to_value(body : Body) -> HCLValue {
   let obj = {}
   for item in body.get_items() {
     match item {
-      Attribute(attr) => obj[attr.get_key()] = attr.get_value()
+      Attribute(attr) =>
+        obj[attr.get_key()] = expr_to_hcl_value(attr.get_value())
       Block(block) => {
         let block_obj = body_to_value(block.get_body())
         obj[block.get_type_name()] = block_obj

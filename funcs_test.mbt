@@ -1129,14 +1129,8 @@ test "tostring from null" {
 
 ///|
 test "builtin functions integrated in eval" {
-  let obj : Map[String, HCLValue] = Map::new()
-  obj["type"] = HCLValue::String("function_call", Decor::empty())
-  obj["name"] = HCLValue::String("abs", Decor::empty())
-  obj["args"] = HCLValue::Array(
-    [HCLValue::Number(Number::from_int(-5), Decor::empty())],
-    Decor::empty(),
-  )
-  let expr = HCLValue::Object(obj, Decor::empty())
+  let fc = FuncCall::builder("abs").arg(expr_int(-5)).build()
+  let expr = expr_func_call(fc)
   let result = eval_expr(expr, Map::new(), builtin_functions())
   match result {
     Ok(v) =>
@@ -1147,23 +1141,9 @@ test "builtin functions integrated in eval" {
 
 ///|
 test "nested function calls" {
-  let inner_obj : Map[String, HCLValue] = Map::new()
-  inner_obj["type"] = HCLValue::String("function_call", Decor::empty())
-  inner_obj["name"] = HCLValue::String("tostring", Decor::empty())
-  inner_obj["args"] = HCLValue::Array(
-    [HCLValue::Number(Number::from_int(42), Decor::empty())],
-    Decor::empty(),
-  )
-
-  let outer_obj : Map[String, HCLValue] = Map::new()
-  outer_obj["type"] = HCLValue::String("function_call", Decor::empty())
-  outer_obj["name"] = HCLValue::String("upper", Decor::empty())
-  outer_obj["args"] = HCLValue::Array(
-    [HCLValue::Object(inner_obj, Decor::empty())],
-    Decor::empty(),
-  )
-
-  let expr = HCLValue::Object(outer_obj, Decor::empty())
+  let inner = FuncCall::builder("tostring").arg(expr_int(42)).build()
+  let outer = FuncCall::builder("upper").arg(expr_func_call(inner)).build()
+  let expr = expr_func_call(outer)
   let result = eval_expr(expr, Map::new(), builtin_functions())
   match result {
     Ok(v) => assert_true(v == HCLValue::String("42", Decor::empty()))

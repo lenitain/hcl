@@ -9,7 +9,7 @@ test "multiline conditional in array true" {
         Attribute(attr) => {
           let value = attr.get_value()
           match value {
-            Array(items, _) => {
+            ExprArray(items) => {
               let eval_result = eval_expr_simple(items[0])
               match eval_result {
                 Ok(v) => assert_true(v == String("a", Decor::empty()))
@@ -35,7 +35,7 @@ test "multiline conditional in array false" {
         Attribute(attr) => {
           let value = attr.get_value()
           match value {
-            Array(items, _) => {
+            ExprArray(items) => {
               let eval_result = eval_expr_simple(items[0])
               match eval_result {
                 Ok(v) => assert_true(v == String("b", Decor::empty()))

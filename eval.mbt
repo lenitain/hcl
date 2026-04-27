@@ -197,16 +197,18 @@ pub fn eval_conditional(
 ///|
 /// Evaluate expression (handles all expression types)
 pub fn eval_expr(
-  expr : HCLValue,
+  expr : Expression,
   variables : Map[String, HCLValue],
   functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
 ) -> HCLResult[HCLValue] {
   match expr {
-    // Basic values - return as-is
-    Null(_) | Bool(_, _) | Number(_, _) | String(_, _) => Ok(expr)
-
-    // Array - evaluate each element
-    Array(arr, _) => {
+    ExprNull => Ok(Null(Decor::empty()))
+    ExprBool(b) => Ok(Bool(b, Decor::empty()))
+    ExprInt(i) => Ok(Number(Number::from_int(i), Decor::empty()))
+    ExprInt64(i) => Ok(Number(Number::from_int64(i), Decor::empty()))
+    ExprFloat(f) => Ok(Number(Number::from_finite_f64(f), Decor::empty()))
+    ExprString(s) => Ok(String(s, Decor::empty()))
+    ExprArray(arr) => {
       let result = []
       for item in arr {
         match eval_expr(item, variables, functions) {
@@ -216,291 +218,299 @@ pub fn eval_expr(
       }
       Ok(Array(result, Decor::empty()))
     }
+    ExprObject(obj) => {
+      let result = {}
+      for pair in obj {
+        let (k, v) = pair
+        let key = ObjectKey::to_string(k)
+        match eval_expr(v, variables, functions) {
+          Ok(value) => result[key] = value
+          Err(e) => return Err(e)
+        }
+      }
+      Ok(Object(result, Decor::empty()))
+    }
+    ExprVariable(v) =>
+      match variables.get(v.name) {
+        Some(value) => Ok(value)
+        None => Err(HCLError::undefined_variable(v.name))
+      }
+    ExprTraversal(trav) =>
+      // Evaluate base expression
+      match eval_expr(trav.base, variables, functions) {
+        Ok(base_value) => {
+          let mut current = base_value
+          for op in trav.operators {
+            match op {
+              Attr(name) =>
+                match current {
+                  Object(target_obj, _) =>
+                    match target_obj.get(name) {
+                      Some(value) => current = value
+                      None => return Err(HCLError::undefined_property(name))
+                    }
+                  _ =>
+                    return Err(
+                      HCLError::type_error("Property access on non-object"),
+                    )
+                }
+              Index(idx_expr) =>
+                match eval_expr(idx_expr, variables, functions) {
+                  Ok(index_value) =>
+                    match (current, index_value) {
+                      (Array(arr, _), Number(n, _)) =>
+                        match n.as_int() {
+                          Some(i) =>
+                            if i >= 0 && i < arr.length() {
+                              current = arr[i]
+                            } else {
+                              return Err(
+                                HCLError::invalid_value(
+                                  "Array index out of bounds",
+                                ),
+                              )
+                            }
+                          None =>
+                            return Err(
+                              HCLError::type_error(
+                                "Array index must be integer",
+                              ),
+                            )
+                        }
+                      (Object(target_obj, _), String(key, _)) =>
+                        match target_obj.get(key) {
+                          Some(value) => current = value
+                          None => return Err(HCLError::undefined_property(key))
+                        }
+                      (_, _) =>
+                        return Err(HCLError::type_error("Invalid index access"))
+                    }
+                  Err(e) => return Err(e)
+                }
+            }
+          }
+          Ok(current)
+        }
+        Err(e) => Err(e)
+      }
+    ExprFuncCall(fc) => {
+      let evaluated_args = []
+      for arg in fc.args {
+        match eval_expr(arg, variables, functions) {
+          Ok(value) => evaluated_args.push(value)
+          Err(e) => return Err(e)
+        }
+      }
+      match functions.get(fc.name) {
+        Some(func) => func(evaluated_args)
+        None => Err(HCLError::undefined_function(fc.name))
+      }
+    }
+    ExprParenthesis(inner) => eval_expr(inner, variables, functions)
+    ExprConditional(cond) =>
+      match eval_expr(cond.condition, variables, functions) {
+        Ok(Bool(b, _)) =>
+          if b {
+            eval_expr(cond.true_expr, variables, functions)
+          } else {
+            eval_expr(cond.false_expr, variables, functions)
+          }
+        Ok(_) => Err(HCLError::type_error("Condition must be boolean"))
+        Err(e) => Err(e)
+      }
+    ExprOperation(op) => eval_operation(op, variables, functions)
+    ExprTemplate(tmpl) => eval_template(tmpl, variables, functions)
+    ExprFor(for_expr) => eval_for_expr(for_expr, variables, functions)
+  }
+}
 
-    // Object - check if it's a special expression type
-    Object(obj, _) =>
-      match obj.get("type") {
-        Some(String("conditional", _)) => {
-          let condition = obj.get("condition").unwrap()
-          let true_expr = obj.get("true_expr").unwrap()
-          let false_expr = obj.get("false_expr").unwrap()
+///|
+/// Evaluate operation expression
+fn eval_operation(
+  op : Operation,
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[HCLValue] {
+  match op {
+    Binary(binop) =>
+      match
+        (
+          eval_expr(binop.left, variables, functions),
+          eval_expr(binop.right, variables, functions),
+        ) {
+        (Ok(left_val), Ok(right_val)) =>
+          eval_binary_op(binop.op, left_val, right_val)
+        (Err(e), _) => Err(e)
+        (_, Err(e)) => Err(e)
+      }
+    Unary(unop) =>
+      match eval_expr(unop.operand, variables, functions) {
+        Ok(operand_val) => eval_unary_op(unop.op, operand_val)
+        Err(e) => Err(e)
+      }
+  }
+}
 
-          match eval_expr(condition, variables, functions) {
-            Ok(cond_value) =>
-              eval_conditional(cond_value, true_expr, false_expr)
+///|
+/// Evaluate binary operation with typed operator
+fn eval_binary_op(
+  op : BinaryOperator,
+  left : HCLValue,
+  right : HCLValue,
+) -> HCLResult[HCLValue] {
+  match op {
+    Plus => eval_add(left, right)
+    Minus => eval_sub(left, right)
+    Mul => eval_mul(left, right)
+    Div => eval_div(left, right)
+    Mod => eval_mod(left, right)
+    Eq => Ok(Bool(left == right, Decor::empty()))
+    Neq => Ok(Bool(left != right, Decor::empty()))
+    Lt => eval_lt(left, right)
+    Gt => eval_gt(left, right)
+    Lte => eval_lte(left, right)
+    Gte => eval_gte(left, right)
+    And => eval_and(left, right)
+    Or => eval_or(left, right)
+  }
+}
+
+///|
+/// Evaluate unary operation with typed operator
+fn eval_unary_op(op : UnaryOperator, operand : HCLValue) -> HCLResult[HCLValue] {
+  match op {
+    Negate => eval_negate(operand)
+    Not => eval_not(operand)
+  }
+}
+
+///|
+/// Evaluate template expression
+fn eval_template(
+  tmpl : TemplateExpr,
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[HCLValue] {
+  match tmpl {
+    Heredoc(h) => {
+      let template = Template::from_heredoc(
+        h.content,
+        h.delimiter,
+        h.strip_mode == StripMode,
+      )
+      match template {
+        Ok(t) =>
+          match t.evaluate(variables, functions) {
+            Ok(s) => Ok(String(s, Decor::empty()))
             Err(e) => Err(e)
           }
-        }
-        Some(String("variable", _)) => {
-          let name = obj.get("name").unwrap()
-          match name {
-            String(var_name, _) =>
-              match variables.get(var_name) {
-                Some(value) => Ok(value)
-                None => Err(HCLError::undefined_variable(var_name))
-              }
-            _ => Err(HCLError::type_error("Variable name must be string"))
+        Err(e) => Err(e)
+      }
+    }
+    InterpolatedString(s) => {
+      let template = Template::from_string(s)
+      match template {
+        Ok(t) =>
+          match t.evaluate(variables, functions) {
+            Ok(result) => Ok(String(result, Decor::empty()))
+            Err(e) => Err(e)
           }
-        }
-        Some(String("function_call", _)) => {
-          let name = obj.get("name").unwrap()
-          let args = obj.get("args").unwrap()
+        Err(e) => Err(e)
+      }
+    }
+  }
+}
 
-          match (name, args) {
-            (String(func_name, _), Array(func_args, _)) => {
-              // Evaluate arguments
-              let evaluated_args = []
-              for arg in func_args {
-                match eval_expr(arg, variables, functions) {
-                  Ok(value) => evaluated_args.push(value)
+///|
+/// Evaluate for expression (list/object comprehension)
+fn eval_for_expr(
+  for_expr : ForExpr,
+  variables : Map[String, HCLValue],
+  functions : Map[String, (Array[HCLValue]) -> HCLResult[HCLValue]],
+) -> HCLResult[HCLValue] {
+  match for_expr {
+    List(list) =>
+      match eval_expr(list.collection, variables, functions) {
+        Ok(Array(arr, _)) => {
+          let result = []
+          for item in arr {
+            let should_include = match list.filter {
+              Some(filter_expr) => {
+                let loop_vars = variables.copy()
+                loop_vars[list.var_name] = item
+                match eval_expr(filter_expr, loop_vars, functions) {
+                  Ok(Bool(b, _)) => b
+                  Ok(_) =>
+                    return Err(
+                      HCLError::type_error("Filter must return boolean"),
+                    )
                   Err(e) => return Err(e)
                 }
               }
-
-              // Look up function
-              match functions.get(func_name) {
-                Some(func) => func(evaluated_args)
-                None => Err(HCLError::undefined_function(func_name))
+              None => true
+            }
+            if should_include {
+              let loop_vars = variables.copy()
+              loop_vars[list.var_name] = item
+              match eval_expr(list.value_expr, loop_vars, functions) {
+                Ok(value) => result.push(value)
+                Err(e) => return Err(e)
               }
             }
-            _ => Err(HCLError::type_error("Invalid function call structure"))
           }
+          Ok(Array(result, Decor::empty()))
         }
-        Some(String("property_access", _)) => {
-          let obj_value = obj.get("object").unwrap()
-          let property = obj.get("property").unwrap()
-
-          match (eval_expr(obj_value, variables, functions), property) {
-            (Ok(Object(target_obj, _)), String(prop_name, _)) =>
-              match target_obj.get(prop_name) {
-                Some(value) => Ok(value)
-                None => Err(HCLError::undefined_property(prop_name))
-              }
-            (Ok(_), _) =>
-              Err(HCLError::type_error("Property access on non-object"))
-            (Err(e), _) => Err(e)
-          }
-        }
-        Some(String("index_access", _)) => {
-          let obj_value = obj.get("object").unwrap()
-          let index = obj.get("index").unwrap()
-
-          match
-            (
-              eval_expr(obj_value, variables, functions),
-              eval_expr(index, variables, functions),
-            ) {
-            (Ok(Array(arr, _)), Ok(Number(n, _))) =>
-              match n.as_int() {
-                Some(i) =>
-                  if i >= 0 && i < arr.length() {
-                    Ok(arr[i])
-                  } else {
-                    Err(HCLError::invalid_value("Array index out of bounds"))
-                  }
-                None => Err(HCLError::type_error("Array index must be integer"))
-              }
-            (Ok(Object(target_obj, _)), Ok(String(key, _))) =>
-              match target_obj.get(key) {
-                Some(value) => Ok(value)
-                None => Err(HCLError::undefined_property(key))
-              }
-            (Ok(_), _) => Err(HCLError::type_error("Invalid index access"))
-            (Err(e), _) => Err(e)
-          }
-        }
-        Some(String("binary_expr", _)) => {
-          // Binary expression: left op right
-          let op = obj.get("op").unwrap()
-          let left = obj.get("left").unwrap()
-          let right = obj.get("right").unwrap()
-
-          match
-            (
-              eval_expr(left, variables, functions),
-              eval_expr(right, variables, functions),
-            ) {
-            (Ok(left_val), Ok(right_val)) =>
-              match op {
-                String(op_str, _) => eval_binary(left_val, op_str, right_val)
-                _ => Err(HCLError::type_error("Operator must be string"))
-              }
-            (Err(e), _) => Err(e)
-            (_, Err(e)) => Err(e)
-          }
-        }
-        Some(String("unary_expr", _)) => {
-          let op = obj.get("op").unwrap()
-          let operand = obj.get("operand").unwrap()
-
-          match eval_expr(operand, variables, functions) {
-            Ok(operand_val) =>
-              match op {
-                String(op_str, _) => eval_unary(op_str, operand_val)
-                _ => Err(HCLError::type_error("Operator must be string"))
-              }
-            Err(e) => Err(e)
-          }
-        }
-        Some(String("for_expr", _)) => {
-          // List comprehension: [for x in list: expr]
-          let loop_var_name = obj.get("var").unwrap()
-          let collection = obj.get("collection").unwrap()
-          let value_expr = obj.get("value_expr").unwrap()
-          let filter = obj.get("filter").unwrap()
-
-          match eval_expr(collection, variables, functions) {
-            Ok(Array(arr, _)) => {
-              let result = []
-              for item in arr {
-                // Check filter if present
-                let should_include = match filter {
-                  Null(_) => true
-                  filter_expr => {
-                    // Create new context with loop variable
-                    let loop_vars = variables.copy()
-                    match loop_var_name {
-                      String(var_name, _) => loop_vars[var_name] = item
-                      _ =>
-                        return Err(
-                          HCLError::type_error("Loop variable must be string"),
-                        )
-                    }
-                    match eval_expr(filter_expr, loop_vars, functions) {
-                      Ok(Bool(b, _)) => b
-                      Ok(_) =>
-                        return Err(
-                          HCLError::type_error("Filter must return boolean"),
-                        )
-                      Err(e) => return Err(e)
-                    }
-                  }
-                }
-
-                if should_include {
-                  // Create new context with loop variable
-                  let loop_vars = variables.copy()
-                  match loop_var_name {
-                    String(var_name, _) => loop_vars[var_name] = item
-                    _ =>
-                      return Err(
-                        HCLError::type_error("Loop variable must be string"),
-                      )
-                  }
-                  match eval_expr(value_expr, loop_vars, functions) {
-                    Ok(value) => result.push(value)
-                    Err(e) => return Err(e)
-                  }
-                }
-              }
-              Ok(Array(result, Decor::empty()))
-            }
-            Ok(_) => Err(HCLError::type_error("For collection must be array"))
-            Err(e) => Err(e)
-          }
-        }
-        Some(String("for_object_expr", _)) => {
-          // Object comprehension: {for k, v in obj: k => v}
-          let loop_key_var = obj.get("key_var").unwrap()
-          let loop_value_var = obj.get("value_var").unwrap()
-          let collection = obj.get("collection").unwrap()
-          let key_expr = obj.get("key_expr").unwrap()
-          let value_expr = obj.get("value_expr").unwrap()
-          let filter = obj.get("filter").unwrap()
-
-          match eval_expr(collection, variables, functions) {
-            Ok(Object(source_obj, _)) => {
-              let result = {}
-              for k, v in source_obj {
-                // Check filter if present
-                let should_include = match filter {
-                  Null(_) => true
-                  filter_expr => {
-                    // Create new context with loop variables
-                    let loop_vars = variables.copy()
-                    match loop_key_var {
-                      String(key_var_name, _) =>
-                        loop_vars[key_var_name] = String(k, Decor::empty())
-                      _ =>
-                        return Err(
-                          HCLError::type_error("Key variable must be string"),
-                        )
-                    }
-                    match loop_value_var {
-                      String(value_var_name, _) => loop_vars[value_var_name] = v
-                      _ =>
-                        return Err(
-                          HCLError::type_error("Value variable must be string"),
-                        )
-                    }
-                    match eval_expr(filter_expr, loop_vars, functions) {
-                      Ok(Bool(b, _)) => b
-                      Ok(_) =>
-                        return Err(
-                          HCLError::type_error("Filter must return boolean"),
-                        )
-                      Err(e) => return Err(e)
-                    }
-                  }
-                }
-
-                if should_include {
-                  // Create new context with loop variables
-                  let loop_vars = variables.copy()
-                  match loop_key_var {
-                    String(key_var_name, _) =>
-                      loop_vars[key_var_name] = String(k, Decor::empty())
-                    _ =>
-                      return Err(
-                        HCLError::type_error("Key variable must be string"),
-                      )
-                  }
-                  match loop_value_var {
-                    String(value_var_name, _) => loop_vars[value_var_name] = v
-                    _ =>
-                      return Err(
-                        HCLError::type_error("Value variable must be string"),
-                      )
-                  }
-
-                  match eval_expr(key_expr, loop_vars, functions) {
-                    Ok(String(new_key, _)) =>
-                      match eval_expr(value_expr, loop_vars, functions) {
-                        Ok(new_value) => result[new_key] = new_value
-                        Err(e) => return Err(e)
-                      }
-                    Ok(_) =>
-                      return Err(
-                        HCLError::type_error("Object key must be string"),
-                      )
-                    Err(e) => return Err(e)
-                  }
-                }
-              }
-              Ok(Object(result, Decor::empty()))
-            }
-            Ok(_) => Err(HCLError::type_error("For collection must be object"))
-            Err(e) => Err(e)
-          }
-        }
-        // Regular object - evaluate each value
-        _ => {
+        Ok(_) => Err(HCLError::type_error("For collection must be array"))
+        Err(e) => Err(e)
+      }
+    Object(obj) =>
+      match eval_expr(obj.collection, variables, functions) {
+        Ok(Object(source_obj, _)) => {
           let result = {}
-          for k, v in obj {
-            match eval_expr(v, variables, functions) {
-              Ok(value) => result[k] = value
-              Err(e) => return Err(e)
+          for k, v in source_obj {
+            let should_include = match obj.filter {
+              Some(filter_expr) => {
+                let loop_vars = variables.copy()
+                loop_vars[obj.key_var] = String(k, Decor::empty())
+                loop_vars[obj.value_var] = v
+                match eval_expr(filter_expr, loop_vars, functions) {
+                  Ok(Bool(b, _)) => b
+                  Ok(_) =>
+                    return Err(
+                      HCLError::type_error("Filter must return boolean"),
+                    )
+                  Err(e) => return Err(e)
+                }
+              }
+              None => true
+            }
+            if should_include {
+              let loop_vars = variables.copy()
+              loop_vars[obj.key_var] = String(k, Decor::empty())
+              loop_vars[obj.value_var] = v
+              match eval_expr(obj.key_expr, loop_vars, functions) {
+                Ok(String(new_key, _)) =>
+                  match eval_expr(obj.value_expr, loop_vars, functions) {
+                    Ok(new_value) => result[new_key] = new_value
+                    Err(e) => return Err(e)
+                  }
+                Ok(_) =>
+                  return Err(HCLError::type_error("Object key must be string"))
+                Err(e) => return Err(e)
+              }
             }
           }
           Ok(Object(result, Decor::empty()))
         }
+        Ok(_) => Err(HCLError::type_error("For collection must be object"))
+        Err(e) => Err(e)
       }
   }
 }
 
 ///|
 /// Evaluate expression with default empty context
-pub fn eval_expr_simple(expr : HCLValue) -> HCLResult[HCLValue] {
+pub fn eval_expr_simple(expr : Expression) -> HCLResult[HCLValue] {
   let empty_vars = {}
   let empty_funcs = {}
   eval_expr(expr, empty_vars, empty_funcs)
@@ -508,38 +518,27 @@ pub fn eval_expr_simple(expr : HCLValue) -> HCLResult[HCLValue] {
 
 ///|
 /// Simplify a value by evaluating constant expressions
-fn simplify_value(value : HCLValue) -> HCLValue {
-  match value {
-    // Try to evaluate expressions
-    Object(obj, _) =>
-      match obj.get("type") {
-        Some(String("binary_expr", _))
-        | Some(String("unary_expr", _))
-        | Some(String("conditional", _)) =>
-          // Try to evaluate the expression
-          match eval_expr_simple(value) {
-            Ok(simplified) => simplified
-            Err(_) => value // Keep original if evaluation fails
-          }
-        _ => {
-          // Regular object - simplify each value
-          let result = {}
-          for k, v in obj {
-            result[k] = simplify_value(v)
-          }
-          Object(result, Decor::empty())
-        }
+fn simplify_value(expr : Expression) -> Expression {
+  match expr {
+    ExprOperation(_) =>
+      match eval_expr_simple(expr) {
+        Ok(value) => hcl_value_to_expression(value)
+        Err(_) => expr
       }
-    // Array - simplify each element
-    Array(arr, _) => {
-      let result = []
-      for item in arr {
-        result.push(simplify_value(item))
+    ExprConditional(_) =>
+      match eval_expr_simple(expr) {
+        Ok(value) => hcl_value_to_expression(value)
+        Err(_) => expr
       }
-      Array(result, Decor::empty())
+    ExprArray(arr) => ExprArray(arr.map(simplify_value))
+    ExprObject(obj) => {
+      let simplified = obj.map(fn(pair) {
+        let (k, v) = pair
+        (k, simplify_value(v))
+      })
+      ExprObject(simplified)
     }
-    // Basic values - return as-is
-    _ => value
+    _ => expr
   }
 }
 

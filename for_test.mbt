@@ -45,13 +45,13 @@ test "parse for expr simple" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "result")
           match attr.get_value() {
-            Object(obj, _) =>
+            ExprFor(List(for_list)) => {
+              assert_eq(for_list.var_name, "x")
               assert_true(
-                obj.get("type") == Some(String("for_expr", Decor::empty())),
+                for_list.collection == ExprVariable({ name: "items" }),
               )
-            Array(_) =>
-              // If it parsed as array, the for expression parsing failed
-              panic()
+              assert_true(for_list.value_expr == ExprVariable({ name: "x" }))
+            }
             _ => panic()
           }
         }
@@ -109,16 +109,11 @@ test "parse object comprehension" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "upper_keys")
           match attr.get_value() {
-            Object(obj, _) => {
+            ExprFor(Object(for_obj)) => {
+              assert_eq(for_obj.key_var, "k")
+              assert_eq(for_obj.value_var, "v")
               assert_true(
-                obj.get("type") ==
-                Some(String("for_object_expr", Decor::empty())),
-              )
-              assert_true(
-                obj.get("key_var") == Some(String("k", Decor::empty())),
-              )
-              assert_true(
-                obj.get("value_var") == Some(String("v", Decor::empty())),
+                for_obj.collection == ExprVariable({ name: "config" }),
               )
             }
             _ => panic()
@@ -143,12 +138,9 @@ test "parse list comprehension with filter" {
         Attribute(attr) => {
           assert_eq(attr.get_key(), "evens")
           match attr.get_value() {
-            Object(obj, _) => {
-              assert_true(
-                obj.get("type") == Some(String("for_expr", Decor::empty())),
-              )
-              assert_true(obj.get("var") == Some(String("x", Decor::empty())))
-              assert_true(obj.get("filter") != Some(Null(Decor::empty())))
+            ExprFor(List(for_list)) => {
+              assert_eq(for_list.var_name, "x")
+              assert_true(for_list.filter is Some(_))
             }
             _ => panic()
           }

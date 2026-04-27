@@ -14,11 +14,11 @@ test "config serialization via builder" {
 ///|
 test "nested block serialization" {
   let server_block = Block::builder("server")
-    .attr("host", String("localhost", Decor::empty()))
-    .attr("port", Number(Number::from_int(8080), Decor::empty()))
+    .attr("host", ExprString("localhost"))
+    .attr("port", ExprInt(8080))
     .build()
   let body = Body::builder()
-    .attr("app_name", String("myapp", Decor::empty()))
+    .attr("app_name", ExprString("myapp"))
     .block(server_block)
     .build()
   let hcl = to_hcl_body(body)
@@ -54,7 +54,7 @@ test "optional fields in builder" {
   let debug : Bool? = None
   let timeout : Int? = Some(30)
   let body = Body::builder()
-    .attr("host", String("localhost", Decor::empty()))
+    .attr("host", ExprString("localhost"))
     .attr_option("debug", debug)
     .attr_option("timeout", timeout)
     .build()
@@ -67,16 +67,16 @@ test "optional fields in builder" {
 test "complex nested structure" {
   let db_block = Block::builder("database")
     .label("primary")
-    .attr("host", String("db.example.com", Decor::empty()))
-    .attr("port", Number(Number::from_int(5432), Decor::empty()))
+    .attr("host", ExprString("db.example.com"))
+    .attr("port", ExprInt(5432))
     .build()
   let cache_block = Block::builder("cache")
-    .attr("driver", String("redis", Decor::empty()))
-    .attr("ttl", Number(Number::from_int(3600), Decor::empty()))
+    .attr("driver", ExprString("redis"))
+    .attr("ttl", ExprInt(3600))
     .build()
   let body = Body::builder()
-    .attr("app_name", String("myapp", Decor::empty()))
-    .attr("version", String("1.0.0", Decor::empty()))
+    .attr("app_name", ExprString("myapp"))
+    .attr("version", ExprString("1.0.0"))
     .block(db_block)
     .block(cache_block)
     .build()
@@ -90,52 +90,38 @@ test "complex nested structure" {
 ///|
 test "roundtrip Body serialization" {
   let original = Body::builder()
-    .attr("name", String("test", Decor::empty()))
-    .attr("count", Number(Number::from_int(42), Decor::empty()))
+    .attr("name", ExprString("test"))
+    .attr("count", ExprInt(42))
     .build()
   let hcl = to_hcl_body(original)
   let parsed = from_hcl_body(hcl)
   assert_true(parsed is Ok(_))
   let body = parsed.unwrap()
   assert_eq(body.len(), 2)
-  assert_true(
-    body.find_attr("name").unwrap().get_value() ==
-    String("test", Decor::empty()),
-  )
-  assert_true(
-    body.find_attr("count").unwrap().get_value() ==
-    Number(Number::from_int(42), Decor::empty()),
-  )
+  assert_true(body.find_attr("name").unwrap().get_value() == ExprString("test"))
+  assert_true(body.find_attr("count").unwrap().get_value() == ExprInt(42))
 }
 
 ///|
 test "Array of objects serialization" {
-  let items : Array[HCLValue] = [
-    Object(
-      {
-        "name": String("a", Decor::empty()),
-        "value": Number(Number::from_int(1), Decor::empty()),
-      },
-      Decor::empty(),
-    ),
-    Object(
-      {
-        "name": String("b", Decor::empty()),
-        "value": Number(Number::from_int(2), Decor::empty()),
-      },
-      Decor::empty(),
-    ),
+  let items : Array[Expression] = [
+    ExprObject([
+      (ObjectKey::Identifier("name"), ExprString("a")),
+      (ObjectKey::Identifier("value"), ExprInt(1)),
+    ]),
+    ExprObject([
+      (ObjectKey::Identifier("name"), ExprString("b")),
+      (ObjectKey::Identifier("value"), ExprInt(2)),
+    ]),
   ]
-  let body = Body::builder().attr("items", Array(items, Decor::empty())).build()
+  let body = Body::builder().attr("items", ExprArray(items)).build()
   let hcl = to_hcl_body(body)
   assert_true(hcl.contains("items"))
 }
 
 ///|
 test "nested blocks via block body" {
-  let inner = Block::builder("inner")
-    .attr("key", String("value", Decor::empty()))
-    .build()
+  let inner = Block::builder("inner").attr("key", ExprString("value")).build()
   let inner_body = inner.get_body()
   let middle = Block::builder("middle").body(inner_body).build()
   let body = Body::builder().block(middle).build()
@@ -154,9 +140,9 @@ test "empty builder" {
 ///|
 test "Block::builder attr_if conditional" {
   let blk = Block::builder("config")
-    .attr("required", String("yes", Decor::empty()))
-    .attr_if("optional", String("maybe", Decor::empty()), true)
-    .attr_if("skipped", String("no", Decor::empty()), false)
+    .attr("required", ExprString("yes"))
+    .attr_if("optional", ExprString("maybe"), true)
+    .attr_if("skipped", ExprString("no"), false)
     .build()
   assert_true(blk.find_attr("required") is Some(_))
   assert_true(blk.find_attr("optional") is Some(_))
@@ -168,8 +154,8 @@ test "block with multiple labels" {
   let blk = Block::builder("resource")
     .label("aws_instance")
     .label("web")
-    .attr("ami", String("ami-12345", Decor::empty()))
-    .attr("type", String("t2.micro", Decor::empty()))
+    .attr("ami", ExprString("ami-12345"))
+    .attr("type", ExprString("t2.micro"))
     .build()
   assert_eq(blk.get_type_name(), "resource")
   assert_eq(blk.get_labels().length(), 2)
@@ -188,7 +174,7 @@ test "builder with mixed attr types" {
     .attr_hcl("count", 42)
     .attr_hcl("enabled", true)
     .attr_hcl("ratio", 3.14)
-    .attr("null_val", Null(Decor::empty()))
+    .attr("null_val", ExprNull)
     .build()
   assert_eq(body.len(), 5)
   let hcl = to_hcl_body(body)
@@ -201,8 +187,8 @@ test "builder with mixed attr types" {
 ///|
 test "roundtrip body serialization" {
   let original = Body::builder()
-    .attr("host", String("localhost", Decor::empty()))
-    .attr("port", Number(Number::from_int(8080), Decor::empty()))
+    .attr("host", ExprString("localhost"))
+    .attr("port", ExprInt(8080))
     .build()
   let hcl = to_hcl_body(original)
   let parsed = from_hcl_body(hcl)
@@ -211,21 +197,27 @@ test "roundtrip body serialization" {
   assert_eq(body.len(), 2)
   let host_attr = body.find_attr("host")
   assert_true(host_attr is Some(_))
-  assert_eq(host_attr.unwrap().get_value().as_string(), Some("localhost"))
+  match host_attr.unwrap().get_value() {
+    ExprString(s) => assert_eq(s, "localhost")
+    _ => panic()
+  }
   let port_attr = body.find_attr("port")
   assert_true(port_attr is Some(_))
-  assert_eq(port_attr.unwrap().get_value().as_int(), Some(8080))
+  match port_attr.unwrap().get_value() {
+    ExprInt(i) => assert_eq(i, 8080)
+    _ => panic()
+  }
 }
 
 ///|
 test "block with merged body" {
   let source_body = Body::builder()
-    .attr("key", String("value", Decor::empty()))
-    .attr("count", Number(Number::from_int(10), Decor::empty()))
+    .attr("key", ExprString("value"))
+    .attr("count", ExprInt(10))
     .build()
   let blk = Block::builder("config")
     .body(source_body)
-    .attr("extra", String("data", Decor::empty()))
+    .attr("extra", ExprString("data"))
     .build()
   assert_eq(blk.get_body().len(), 3)
   let hcl = to_hcl_body(Body::builder().block(blk).build())
@@ -236,12 +228,8 @@ test "block with merged body" {
 
 ///|
 test "Body::find_blocks multiple" {
-  let blk1 = Block::builder("server")
-    .attr("port", Number(Number::from_int(8080), Decor::empty()))
-    .build()
-  let blk2 = Block::builder("server")
-    .attr("port", Number(Number::from_int(8081), Decor::empty()))
-    .build()
+  let blk1 = Block::builder("server").attr("port", ExprInt(8080)).build()
+  let blk2 = Block::builder("server").attr("port", ExprInt(8081)).build()
   let body = Body::builder().block(blk1).block(blk2).build()
   let servers = body.find_blocks("server")
   assert_eq(servers.length(), 2)
@@ -250,9 +238,9 @@ test "Body::find_blocks multiple" {
 ///|
 test "attr_if on BodyBuilder" {
   let body = Body::builder()
-    .attr_if("a", Number(Number::from_int(1), Decor::empty()), true)
-    .attr_if("b", Number(Number::from_int(2), Decor::empty()), false)
-    .attr_if("c", Number(Number::from_int(3), Decor::empty()), true)
+    .attr_if("a", ExprInt(1), true)
+    .attr_if("b", ExprInt(2), false)
+    .attr_if("c", ExprInt(3), true)
     .build()
   assert_eq(body.len(), 2)
   assert_true(body.find_attr("a") is Some(_))
@@ -264,11 +252,11 @@ test "attr_if on BodyBuilder" {
 test "roundtrip with nested block" {
   let blk = Block::builder("database")
     .label("primary")
-    .attr("host", String("db.local", Decor::empty()))
-    .attr("port", Number(Number::from_int(5432), Decor::empty()))
+    .attr("host", ExprString("db.local"))
+    .attr("port", ExprInt(5432))
     .build()
   let original = Body::builder()
-    .attr("app", String("myapp", Decor::empty()))
+    .attr("app", ExprString("myapp"))
     .block(blk)
     .build()
   let hcl = to_hcl_body(original)

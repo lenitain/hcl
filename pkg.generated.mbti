@@ -20,13 +20,27 @@ pub fn eval_binary(HCLValue, String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn eval_conditional(HCLValue, HCLValue, HCLValue) -> Result[HCLValue, HCLError]
 
-pub fn eval_expr(HCLValue, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[HCLValue, HCLError]
+pub fn eval_expr(Expression, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[HCLValue, HCLError]
 
-pub fn eval_expr_simple(HCLValue) -> Result[HCLValue, HCLError]
+pub fn eval_expr_simple(Expression) -> Result[HCLValue, HCLError]
 
 pub fn eval_unary(String, HCLValue) -> Result[HCLValue, HCLError]
 
 pub fn evaluate_template(String, Map[String, HCLValue], Map[String, (Array[HCLValue]) -> Result[HCLValue, HCLError]]) -> Result[String, HCLError]
+
+pub fn expr_array(Array[Expression]) -> Expression
+
+pub fn expr_bool(Bool) -> Expression
+
+pub fn expr_func_call(FuncCall) -> Expression
+
+pub fn expr_int(Int) -> Expression
+
+pub fn expr_null() -> Expression
+
+pub fn expr_str(String) -> Expression
+
+pub fn expr_to_hcl_value(Expression) -> HCLValue
 
 pub fn expr_to_string(Expression) -> String
 
@@ -87,6 +101,8 @@ pub fn hcl_str(String) -> HCLValue
 pub fn hcl_to_json(String) -> Result[String, HCLError]
 
 pub fn hcl_to_json_pretty(String) -> Result[String, HCLError]
+
+pub fn hcl_value_to_expression(HCLValue) -> Expression
 
 pub fn int_in_range(Int, Int) -> (HCLValue, String) -> Array[HCLError]
 
@@ -207,21 +223,21 @@ pub fn[V : VisitMut] visit_value_mut_default(V, HCLValue) -> Unit
 // Types and methods
 pub struct Attr {
   key : Decorated[String]
-  value : HCLValue
+  value : Expression
   decor : Decor
 } derive(Eq, @debug.Debug)
 pub fn Attr::get_decor(Self) -> Decor
 pub fn Attr::get_decorated_key(Self) -> Decorated[String]
 pub fn Attr::get_key(Self) -> String
-pub fn Attr::get_value(Self) -> HCLValue
-pub fn Attr::new(String, HCLValue) -> Self
-pub fn Attr::with_decor(Decorated[String], HCLValue, Decor) -> Self
+pub fn Attr::get_value(Self) -> Expression
+pub fn Attr::new(String, Expression) -> Self
+pub fn Attr::with_decor(Decorated[String], Expression, Decor) -> Self
 
 pub(all) struct BinaryOp {
   left : Expression
   op : BinaryOperator
   right : Expression
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum BinaryOperator {
   Plus
@@ -237,7 +253,7 @@ pub(all) enum BinaryOperator {
   Gte
   And
   Or
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub struct Block {
   type_name : Decorated[String]
@@ -262,9 +278,9 @@ pub struct BlockBuilder {
   labels : Array[String]
   items : Array[BodyItem]
 }
-pub fn BlockBuilder::attr(Self, String, HCLValue) -> Self
+pub fn BlockBuilder::attr(Self, String, Expression) -> Self
 pub fn[T : ToHCL] BlockBuilder::attr_hcl(Self, String, T) -> Self
-pub fn BlockBuilder::attr_if(Self, String, HCLValue, Bool) -> Self
+pub fn BlockBuilder::attr_if(Self, String, Expression, Bool) -> Self
 pub fn BlockBuilder::body(Self, Body) -> Self
 pub fn BlockBuilder::build(Self) -> Block
 pub fn BlockBuilder::label(Self, String) -> Self
@@ -273,7 +289,7 @@ pub struct Body {
   items : Array[BodyItem]
   decor : Decor
 } derive(Eq, @debug.Debug)
-pub fn Body::add_attr(Self, String, HCLValue) -> Self
+pub fn Body::add_attr(Self, String, Expression) -> Self
 pub fn Body::add_block(Self, Block) -> Self
 pub fn Body::builder() -> BodyBuilder
 pub fn Body::find_attr(Self, String) -> Attr?
@@ -290,9 +306,9 @@ pub fn Body::with_decor(Array[BodyItem], Decor) -> Self
 pub struct BodyBuilder {
   items : Array[BodyItem]
 }
-pub fn BodyBuilder::attr(Self, String, HCLValue) -> Self
+pub fn BodyBuilder::attr(Self, String, Expression) -> Self
 pub fn[T : ToHCL] BodyBuilder::attr_hcl(Self, String, T) -> Self
-pub fn BodyBuilder::attr_if(Self, String, HCLValue, Bool) -> Self
+pub fn BodyBuilder::attr_if(Self, String, Expression, Bool) -> Self
 pub fn[T : ToHCL] BodyBuilder::attr_option(Self, String, T?) -> Self
 pub fn BodyBuilder::block(Self, Block) -> Self
 pub fn BodyBuilder::build(Self) -> Body
@@ -306,7 +322,7 @@ pub(all) struct Conditional {
   condition : Expression
   true_expr : Expression
   false_expr : Expression
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub struct Decor {
   prefix : String?
@@ -350,7 +366,7 @@ pub(all) enum Expression {
   ExprConditional(Conditional)
   ExprOperation(Operation)
   ExprFor(ForExpr)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub struct FieldSchema {
   schema : TypeSchema
@@ -371,14 +387,14 @@ pub fn FieldSchemaEx::new(FieldSchema) -> Self
 pub(all) enum ForExpr {
   List(ForListExpr)
   Object(ForObjectExpr)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ForListExpr {
   var_name : String
   collection : Expression
   value_expr : Expression
   filter : Expression?
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ForObjectExpr {
   key_var : String
@@ -387,7 +403,7 @@ pub(all) struct ForObjectExpr {
   key_expr : Expression
   value_expr : Expression
   filter : Expression?
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub struct FormatConfig {
   indent : String
@@ -417,7 +433,7 @@ pub fn Formatter::with_config(FormatConfig) -> Self
 pub(all) struct FuncCall {
   name : String
   args : Array[Expression]
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn FuncCall::builder(String) -> FuncCallBuilder
 
 pub struct FuncCallBuilder {
@@ -503,12 +519,12 @@ pub(all) struct Heredoc {
   delimiter : String
   content : String
   strip_mode : HeredocStripMode
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum HeredocStripMode {
   NoStrip
   StripMode
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub struct Ident {
   inner : String
@@ -571,13 +587,13 @@ pub fn Number::is_pos_int(Self) -> Bool
 pub(all) enum ObjectKey {
   Identifier(String)
   Expression(Expression)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn ObjectKey::to_string(Self) -> String
 
 pub(all) enum Operation {
   Binary(BinaryOp)
   Unary(UnaryOp)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub struct Parser {
   lexer : Lexer
@@ -600,15 +616,15 @@ pub fn Template::new() -> Self
 pub(all) enum TemplateExpr {
   Heredoc(Heredoc)
   InterpolatedString(String)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum TemplatePart {
   Text(String)
-  Interpolation(HCLValue)
-  ConditionalStart(HCLValue)
+  Interpolation(Expression)
+  ConditionalStart(Expression)
   ConditionalElse
   ConditionalEnd
-  ForStart(String, HCLValue)
+  ForStart(String, Expression)
   ForEnd
 } derive(Eq, @debug.Debug)
 
@@ -660,7 +676,7 @@ pub fn Token::precedence(Self) -> Int
 pub(all) struct Traversal {
   base : Expression
   operators : Array[TraversalOperator]
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn Traversal::builder(Expression) -> TraversalBuilder
 
 pub struct TraversalBuilder {
@@ -675,7 +691,7 @@ pub fn TraversalBuilder::new(Expression) -> Self
 pub(all) enum TraversalOperator {
   Attr(String)
   Index(Expression)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum TypeSchema {
   Any
@@ -703,16 +719,16 @@ pub fn TypeSchema::string() -> Self
 pub(all) struct UnaryOp {
   op : UnaryOperator
   operand : Expression
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum UnaryOperator {
   Negate
   Not
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Variable {
   name : String
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 pub type ExprObject = Array[(ObjectKey, Expression)]

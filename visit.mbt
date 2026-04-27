@@ -49,7 +49,7 @@ pub fn[V : Visit] visit_body_item_default(v : V, item : BodyItem) -> Unit {
 ///|
 /// Default attr visitor - visits value
 pub fn[V : Visit] visit_attr_default(v : V, attr : Attr) -> Unit {
-  v.visit_value(attr.get_value())
+  v.visit_expr(attr.get_value())
 }
 
 ///|

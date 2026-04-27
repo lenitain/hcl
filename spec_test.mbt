@@ -2,51 +2,58 @@
 /// Spec Tests - HCL compliance tests from hcl-rs specsuite
 
 ///|
-/// Convert Body to HCLValue for evaluation.
+/// Convert Body to Expression for evaluation.
 /// Blocks with labels are nested: multiple blocks of same type
 /// are grouped under type name with labels as keys.
-fn body_to_value(body : Body) -> HCLValue {
-  let result : Map[String, HCLValue] = {}
-  let block_groups : Map[String, Map[String, HCLValue]] = {}
+fn body_to_expression(body : Body) -> Expression {
+  let result : ExprObject = []
+  let block_groups : Map[String, Map[String, Expression]] = {}
 
   for item in body.get_items() {
     match item {
-      Attribute(attr) => result[attr.get_key()] = attr.get_value()
+      Attribute(attr) =>
+        result.push((ObjectKey::Identifier(attr.get_key()), attr.get_value()))
       Block(block) => {
         let labels = block.get_labels()
-        let block_value = body_to_value(block.get_body())
+        let block_value = body_to_expression(block.get_body())
         if labels.length() > 0 {
           let type_name = block.get_type_name()
           let label = labels[0]
           match block_groups.get(type_name) {
             Some(group) => group[label] = block_value
             None => {
-              let group : Map[String, HCLValue] = {}
+              let group : Map[String, Expression] = {}
               group[label] = block_value
               block_groups[type_name] = group
             }
           }
         } else {
-          result[block.get_type_name()] = block_value
+          result.push(
+            (ObjectKey::Identifier(block.get_type_name()), block_value),
+          )
         }
       }
     }
   }
 
   for type_name, group in block_groups {
-    result[type_name] = Object(group, Decor::empty())
+    let obj_pairs : ExprObject = []
+    for label, val in group {
+      obj_pairs.push((ObjectKey::Identifier(label), val))
+    }
+    result.push((ObjectKey::Identifier(type_name), ExprObject(obj_pairs)))
   }
 
-  Object(result, Decor::empty())
+  ExprObject(result)
 }
 
 ///|
-/// Parse HCL, convert body to value, and evaluate expressions
+/// Parse HCL, convert body to expression, and evaluate
 fn eval_body(input : String) -> HCLResult[HCLValue] {
   match parse(input) {
     Ok(body) => {
-      let value = body_to_value(body)
-      eval_expr(value, {}, builtin_functions())
+      let expr = body_to_expression(body)
+      eval_expr(expr, {}, builtin_functions())
     }
     Err(e) => Err(e)
   }

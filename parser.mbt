@@ -104,7 +104,6 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
         match parser.current {
           Ident(_) =>
             if parser.check(Equals) || parser.peek == Equals {
-              // Attribute
               match parser.parse_attr() {
                 Ok((attr, new_parser)) => {
                   items.push(Attribute(attr))
@@ -113,7 +112,6 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
                 Err(e) => return Err(e)
               }
             } else {
-              // Block
               match parser.parse_block() {
                 Ok((block, new_parser)) => {
                   items.push(Block(block))
@@ -154,7 +152,7 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
 }
 
 ///|
-/// Collect prefix decor (whitespace and comments) from pending trivia
+/// Collect prefix decor from pending trivia
 fn Parser::collect_prefix(self : Parser) -> (Parser, Decor) {
   match self.next_prefix {
     Some(prefix) => {
@@ -168,10 +166,8 @@ fn Parser::collect_prefix(self : Parser) -> (Parser, Decor) {
 ///|
 /// Parse an attribute with decor collection
 fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
-  // Collect prefix decor
   let (parser, prefix_decor) = self.collect_prefix()
 
-  // Get attribute name
   let name = match parser.current {
     Ident(n) => n
     _ => {
@@ -188,7 +184,6 @@ fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
     }
   }
 
-  // Advance past name and expect equals
   match parser.advance() {
     Ok(parser) =>
       match parser.expect(Equals) {
@@ -211,7 +206,6 @@ fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
 ///|
 /// Parse a block with decor collection
 fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
-  // Collect prefix decor
   let (parser, prefix_decor) = self.collect_prefix()
 
   let type_name = match parser.current {
@@ -236,7 +230,6 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
     Err(e) => return Err(e)
   }
 
-  // Parse labels (optional)
   while !result.check(LBrace) && !result.check(EOF) {
     match result.current {
       StringLit(s) => {
@@ -282,7 +275,6 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
         match parser.current {
           Ident(_) =>
             if parser.check(Equals) || parser.peek == Equals {
-              // Attribute
               match parser.parse_attr() {
                 Ok((attr, new_parser)) => {
                   items.push(Attribute(attr))
@@ -291,7 +283,6 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
                 Err(e) => return Err(e)
               }
             } else {
-              // Block
               match parser.parse_block() {
                 Ok((block, new_parser)) => {
                   items.push(Block(block))
@@ -345,8 +336,29 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
 }
 
 ///|
+/// Convert token to BinaryOperator
+fn token_to_binary_op(token : Token) -> BinaryOperator? {
+  match token {
+    Plus => Some(Plus)
+    Minus => Some(Minus)
+    Star => Some(Mul)
+    Slash => Some(Div)
+    Percent => Some(Mod)
+    EqEq => Some(Eq)
+    BangEq => Some(Neq)
+    Lt => Some(Lt)
+    Gt => Some(Gt)
+    LtEq => Some(Lte)
+    GtEq => Some(Gte)
+    AndAnd => Some(And)
+    OrOr => Some(Or)
+    _ => None
+  }
+}
+
+///|
 /// Parse a value (including expressions with binary operators)
-fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_value(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.parse_primary() {
     Ok((expr, parser)) => parser.parse_binary_expr(expr, 0)
     Err(e) => Err(e)
@@ -357,9 +369,9 @@ fn Parser::parse_value(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 /// Parse binary expression with operator precedence (Pratt parser)
 fn Parser::parse_binary_expr(
   self : Parser,
-  left : HCLValue,
+  left : Expression,
   min_prec : Int,
-) -> HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(Expression, Parser)] {
   let mut result = left
   let mut parser = match self.skip_newlines() {
     Ok(p) => p
@@ -380,21 +392,9 @@ fn Parser::parse_binary_expr(
     }
 
     let op_token = parser.current
-    let op_str = match op_token {
-      Plus => "+"
-      Minus => "-"
-      Star => "*"
-      Slash => "/"
-      Percent => "%"
-      EqEq => "=="
-      BangEq => "!="
-      Lt => "<"
-      Gt => ">"
-      LtEq => "<="
-      GtEq => ">="
-      AndAnd => "&&"
-      OrOr => "||"
-      _ => {
+    let bin_op = match token_to_binary_op(op_token) {
+      Some(op) => op
+      None => {
         continue_loop = false
         continue
       }
@@ -413,33 +413,20 @@ fn Parser::parse_binary_expr(
           match parser.parse_binary_expr(right, prec + 1) {
             Ok((new_right, p)) => {
               parser = p
-              // Create binary operation as object
-              let bin_obj = {
-                "type": String("binary_expr", Decor::empty()),
-                "op": String(op_str, Decor::empty()),
-                "left": result,
-                "right": new_right,
-              }
-              result = Object(bin_obj, Decor::empty())
+              result = ExprOperation(
+                Binary({ left: result, op: bin_op, right: new_right }),
+              )
             }
             Err(e) => return Err(e)
           }
         } else {
-          // Create binary operation as object
-          let bin_obj = {
-            "type": String("binary_expr", Decor::empty()),
-            "op": String(op_str, Decor::empty()),
-            "left": result,
-            "right": right,
-          }
-          result = Object(bin_obj, Decor::empty())
+          result = ExprOperation(Binary({ left: result, op: bin_op, right }))
         }
       }
       Err(e) => return Err(e)
     }
   }
 
-  // Check for conditional expression
   parser.parse_conditional_expr(result)
 }
 
@@ -447,8 +434,8 @@ fn Parser::parse_binary_expr(
 /// Parse conditional expression (cond ? true : false)
 fn Parser::parse_conditional_expr(
   self : Parser,
-  condition : HCLValue,
-) -> HCLResult[(HCLValue, Parser)] {
+  condition : Expression,
+) -> HCLResult[(Expression, Parser)] {
   let parser = match self.skip_newlines() {
     Ok(p) => p
     Err(e) => return Err(e)
@@ -463,15 +450,13 @@ fn Parser::parse_conditional_expr(
                 match parser.expect(Colon) {
                   Ok(parser) =>
                     match parser.parse_value() {
-                      Ok((false_expr, parser)) => {
-                        let cond_obj = {
-                          "type": String("conditional", Decor::empty()),
-                          "condition": condition,
-                          "true_expr": true_expr,
-                          "false_expr": false_expr,
-                        }
-                        Ok((Object(cond_obj, Decor::empty()), parser))
-                      }
+                      Ok((false_expr, parser)) =>
+                        Ok(
+                          (
+                            ExprConditional({ condition, true_expr, false_expr }),
+                            parser,
+                          ),
+                        )
                       Err(e) => Err(e)
                     }
                   Err(e) => Err(e)
@@ -489,21 +474,20 @@ fn Parser::parse_conditional_expr(
 
 ///|
 /// Parse primary value
-fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_primary(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.current {
     StringLit(s) =>
       match self.advance() {
-        Ok(p) => Ok((String(s, Decor::empty()), p))
+        Ok(p) => Ok((ExprString(s), p))
         Err(e) => Err(e)
       }
     HeredocLit(delimiter, content, strip) =>
-      // Parse heredoc as template and evaluate without variables
       match Template::from_heredoc(content, delimiter, strip) {
         Ok(template) =>
           match template.evaluate({}, {}) {
             Ok(result) =>
               match self.advance() {
-                Ok(p) => Ok((String(result, Decor::empty()), p))
+                Ok(p) => Ok((ExprString(result), p))
                 Err(e) => Err(e)
               }
             Err(e) => Err(e)
@@ -511,13 +495,11 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         Err(e) => Err(e)
       }
     NumberLit(n) =>
-      // Detect prefix: 0x (hex), 0o (octal), 0b (binary)
       if n.has_prefix("0x") || n.has_prefix("0X") {
-        // Hex parsing
         let mut result = 0
         for c in n[2:] {
           if c == '_' {
-            // skip underscores
+
           } else if c >= '0' && c <= '9' {
             result = result * 16 + (c.to_int() - '0'.to_int())
           } else if c >= 'a' && c <= 'f' {
@@ -527,53 +509,48 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           }
         }
         match self.advance() {
-          Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
+          Ok(p) => Ok((ExprInt(result), p))
           Err(e) => Err(e)
         }
       } else if n.has_prefix("0o") || n.has_prefix("0O") {
-        // Octal parsing
         let mut result = 0
         for c in n[2:] {
           if c == '_' {
-            // skip underscores
+
           } else if c >= '0' && c <= '7' {
             result = result * 8 + (c.to_int() - '0'.to_int())
           }
         }
         match self.advance() {
-          Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
+          Ok(p) => Ok((ExprInt(result), p))
           Err(e) => Err(e)
         }
       } else if n.has_prefix("0b") || n.has_prefix("0B") {
-        // Binary parsing
         let mut result = 0
         for c in n[2:] {
           if c == '_' {
-            // skip underscores
+
           } else if c == '0' || c == '1' {
             result = result * 2 + (c.to_int() - '0'.to_int())
           }
         }
         match self.advance() {
-          Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
+          Ok(p) => Ok((ExprInt(result), p))
           Err(e) => Err(e)
         }
       } else {
-        // Decimal parsing
         let mut is_float = false
         for c in n {
           if c == '-' {
-            // Skip negative sign
+
           } else if c >= '0' && c <= '9' {
-            // Parse digit
+
           } else {
-            // Contains non-digit, treat as float
             is_float = true
             break
           }
         }
         if is_float {
-          // Parse float value (handles decimal point and scientific notation)
           let mut result = 0.0
           let mut decimal_place = 1.0
           let mut in_decimal = false
@@ -623,12 +600,10 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
             }
           }
           match self.advance() {
-            Ok(p) =>
-              Ok((Number(Number::from_finite_f64(result), Decor::empty()), p))
+            Ok(p) => Ok((ExprFloat(result), p))
             Err(e) => Err(e)
           }
         } else {
-          // Parse integer value
           let mut result = 0
           for c in n {
             if c >= '0' && c <= '9' {
@@ -636,19 +611,19 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
             }
           }
           match self.advance() {
-            Ok(p) => Ok((Number(Number::from_int(result), Decor::empty()), p))
+            Ok(p) => Ok((ExprInt(result), p))
             Err(e) => Err(e)
           }
         }
       }
     BoolLit(b) =>
       match self.advance() {
-        Ok(p) => Ok((Bool(b, Decor::empty()), p))
+        Ok(p) => Ok((ExprBool(b), p))
         Err(e) => Err(e)
       }
     NullLit =>
       match self.advance() {
-        Ok(p) => Ok((Null(Decor::empty()), p))
+        Ok(p) => Ok((ExprNull, p))
         Err(e) => Err(e)
       }
     LBracket => self.parse_array()
@@ -677,20 +652,14 @@ fn Parser::parse_primary(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 fn Parser::parse_ident_expr(
   self : Parser,
   name : String,
-) -> HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(Expression, Parser)] {
   match self.advance() {
     Ok(parser) =>
-      // Check for function call
       if parser.check(LParen) {
         parser.parse_function_call(name)
       } else {
-        // Variable reference
-        let var_obj = {
-          "type": String("variable", Decor::empty()),
-          "name": String(name, Decor::empty()),
-        }
-        // Check for property access
-        parser.parse_property_access(Object(var_obj, Decor::empty()))
+        let var_expr = ExprVariable({ name, })
+        parser.parse_property_access(var_expr)
       }
     Err(e) => Err(e)
   }
@@ -701,19 +670,17 @@ fn Parser::parse_ident_expr(
 fn Parser::parse_function_call(
   self : Parser,
   name : String,
-) -> HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(Expression, Parser)] {
   match self.expect(LParen) {
     Ok(parser) => {
       let args = []
       let mut p = parser
 
-      // Skip newlines
       match p.skip_newlines() {
         Ok(new_p) => p = new_p
         Err(e) => return Err(e)
       }
 
-      // Parse arguments
       while !p.check(RParen) && !p.check(EOF) {
         match p.parse_value() {
           Ok((arg, new_p)) => {
@@ -723,7 +690,6 @@ fn Parser::parse_function_call(
           Err(e) => return Err(e)
         }
 
-        // Skip newlines
         match p.skip_newlines() {
           Ok(new_p) => p = new_p
           Err(e) => return Err(e)
@@ -734,7 +700,6 @@ fn Parser::parse_function_call(
             Ok(new_p) => p = new_p
             Err(e) => return Err(e)
           }
-          // Skip newlines
           match p.skip_newlines() {
             Ok(new_p) => p = new_p
             Err(e) => return Err(e)
@@ -755,14 +720,8 @@ fn Parser::parse_function_call(
 
       match p.expect(RParen) {
         Ok(final_p) => {
-          // Create function call as an object
-          let func_obj = {
-            "type": String("function_call", Decor::empty()),
-            "name": String(name, Decor::empty()),
-            "args": Array(args, Decor::empty()),
-          }
-          // Check for property access on result
-          final_p.parse_property_access(Object(func_obj, Decor::empty()))
+          let func_expr = ExprFuncCall({ name, args })
+          final_p.parse_property_access(func_expr)
         }
         Err(e) => Err(e)
       }
@@ -775,10 +734,9 @@ fn Parser::parse_function_call(
 /// Parse property access (obj.key or obj["key"])
 fn Parser::parse_property_access(
   self : Parser,
-  obj : HCLValue,
-) -> HCLResult[(HCLValue, Parser)] {
+  obj : Expression,
+) -> HCLResult[(Expression, Parser)] {
   if self.check(Dot) {
-    // Property access with dot notation
     match self.advance() {
       Ok(parser) => {
         let property = match parser.current {
@@ -799,13 +757,9 @@ fn Parser::parse_property_access(
 
         match parser.advance() {
           Ok(p) => {
-            let access_obj = {
-              "type": String("property_access", Decor::empty()),
-              "object": obj,
-              "property": String(property, Decor::empty()),
-            }
-            // Check for chained property access
-            p.parse_property_access(Object(access_obj, Decor::empty()))
+            let builder = TraversalBuilder::new(obj).attr(property)
+            let traversal = builder.build()
+            p.parse_property_access(ExprTraversal(traversal))
           }
           Err(e) => Err(e)
         }
@@ -813,20 +767,15 @@ fn Parser::parse_property_access(
       Err(e) => Err(e)
     }
   } else if self.check(LBracket) {
-    // Property access with bracket notation
     match self.advance() {
       Ok(parser) =>
         match parser.parse_value() {
           Ok((key, parser)) =>
             match parser.expect(RBracket) {
               Ok(p) => {
-                let access_obj = {
-                  "type": String("index_access", Decor::empty()),
-                  "object": obj,
-                  "index": key,
-                }
-                // Check for chained property access
-                p.parse_property_access(Object(access_obj, Decor::empty()))
+                let builder = TraversalBuilder::new(obj).index(key)
+                let traversal = builder.build()
+                p.parse_property_access(ExprTraversal(traversal))
               }
               Err(e) => Err(e)
             }
@@ -841,7 +790,7 @@ fn Parser::parse_property_access(
 
 ///|
 /// Parse an array or for expression
-fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_array(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.expect(LBracket) {
     Ok(start_parser) => {
       let mut parser = start_parser
@@ -851,12 +800,10 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         Err(e) => return Err(e)
       }
 
-      // Check for for expression
       if parser.check(For) {
         return parser.parse_for_expr()
       }
 
-      // Regular array
       let items = []
       while !parser.check(RBracket) && !parser.check(EOF) {
         match parser.parse_value() {
@@ -896,7 +843,7 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
       }
 
       match parser.expect(RBracket) {
-        Ok(parser) => Ok((Array(items, Decor::empty()), parser))
+        Ok(parser) => Ok((ExprArray(items), parser))
         Err(e) => Err(e)
       }
     }
@@ -906,14 +853,12 @@ fn Parser::parse_array(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 
 ///|
 /// Parse for expression [for x in list: expr] or {for k, v in obj: k => v}
-fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_for_expr(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.expect(For) {
     Ok(parser) => {
-      // Parse loop variable(s)
       let vars = []
       let mut p = parser
 
-      // Parse first variable
       match p.current {
         Ident(name) => {
           vars.push(name)
@@ -936,7 +881,6 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         }
       }
 
-      // Check for comma (object for expression has two variables)
       if p.check(Comma) {
         match p.advance() {
           Ok(new_p) => p = new_p
@@ -965,29 +909,24 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         }
       }
 
-      // Parse 'in'
       match p.expect(In) {
         Ok(new_p) => p = new_p
         Err(e) => return Err(e)
       }
 
-      // Parse collection expression
       match p.parse_value() {
         Ok((collection, new_p)) => {
           p = new_p
 
-          // Parse colon
           match p.expect(Colon) {
             Ok(new_p) => p = new_p
             Err(e) => return Err(e)
           }
 
-          // Parse value expression
           match p.parse_value() {
             Ok((value_expr, new_p)) => {
               p = new_p
 
-              // Check for conditional filter
               let filter = if p.check(If) {
                 match p.advance() {
                   Ok(new_p) => {
@@ -1006,70 +945,48 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
                 None
               }
 
-              // Determine if this is list or object comprehension
               if vars.length() == 1 {
-                // List comprehension: [for x in list: expr]
-                let for_obj = {
-                  "type": String("for_expr", Decor::empty()),
-                  "var": String(vars[0], Decor::empty()),
-                  "collection": collection,
-                  "value_expr": value_expr,
-                  "filter": match filter {
-                    Some(f) => f
-                    None => Null(Decor::empty())
-                  },
-                }
                 match p.expect(RBracket) {
-                  Ok(final_p) => Ok((Object(for_obj, Decor::empty()), final_p))
+                  Ok(final_p) =>
+                    Ok(
+                      (
+                        ExprFor(
+                          List({
+                            var_name: vars[0],
+                            collection,
+                            value_expr,
+                            filter,
+                          }),
+                        ),
+                        final_p,
+                      ),
+                    )
                   Err(e) => Err(e)
                 }
               } else {
-                // Object comprehension: {for k, v in obj: k => v}
-                // We need to check for RBrace instead of RBracket
-                // Note: for_obj placeholder defined below but actual implementation uses shadowing
-                let _for_obj = {
-                  "type": String("for_object_expr", Decor::empty()),
-                  "key_var": String(vars[0], Decor::empty()),
-                  "value_var": String(vars[1], Decor::empty()),
-                  "collection": collection,
-                  "key_expr": value_expr,
-                  "value_expr": Null(Decor::empty()),
-                  "filter": match filter {
-                    Some(f) => f
-                    None => Null(Decor::empty())
-                  },
-                }
-
-                // For object comprehension, we expect key => value syntax
-                // But we already parsed the first expression as value_expr
-                // Need to re-parse the key_expr
-                // Actually, object comprehension syntax is: {for k, v in obj: k => v}
-                // So after colon, we expect key_expr => value_expr
-                // Let me re-think this...
-
-                // For now, let's handle it as a simple case
-                // The value_expr is actually the key_expr, and we need to parse => and value_expr
                 match p.expect(FatArrow) {
                   Ok(new_p) => {
                     p = new_p
                     match p.parse_value() {
                       Ok((obj_value_expr, new_p)) => {
                         p = new_p
-                        let for_obj = {
-                          "type": String("for_object_expr", Decor::empty()),
-                          "key_var": String(vars[0], Decor::empty()),
-                          "value_var": String(vars[1], Decor::empty()),
-                          "collection": collection,
-                          "key_expr": value_expr,
-                          "value_expr": obj_value_expr,
-                          "filter": match filter {
-                            Some(f) => f
-                            None => Null(Decor::empty())
-                          },
-                        }
                         match p.expect(RBrace) {
                           Ok(final_p) =>
-                            Ok((Object(for_obj, Decor::empty()), final_p))
+                            Ok(
+                              (
+                                ExprFor(
+                                  Object({
+                                    key_var: vars[0],
+                                    value_var: vars[1],
+                                    collection,
+                                    key_expr: value_expr,
+                                    value_expr: obj_value_expr,
+                                    filter,
+                                  }),
+                                ),
+                                final_p,
+                              ),
+                            )
                           Err(e) => Err(e)
                         }
                       }
@@ -1094,14 +1011,12 @@ fn Parser::parse_for_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 /// Parse for expression for object comprehension {for k, v in obj: k => v}
 fn Parser::parse_for_expr_for_object(
   self : Parser,
-) -> HCLResult[(HCLValue, Parser)] {
+) -> HCLResult[(Expression, Parser)] {
   match self.expect(For) {
     Ok(parser) => {
-      // Parse loop variables (key, value)
       let vars = []
       let mut p = parser
 
-      // Parse first variable (key)
       match p.current {
         Ident(name) => {
           vars.push(name)
@@ -1124,13 +1039,11 @@ fn Parser::parse_for_expr_for_object(
         }
       }
 
-      // Parse comma
       match p.expect(Comma) {
         Ok(new_p) => p = new_p
         Err(e) => return Err(e)
       }
 
-      // Parse second variable (value)
       match p.current {
         Ident(name) => {
           vars.push(name)
@@ -1153,40 +1066,33 @@ fn Parser::parse_for_expr_for_object(
         }
       }
 
-      // Parse 'in'
       match p.expect(In) {
         Ok(new_p) => p = new_p
         Err(e) => return Err(e)
       }
 
-      // Parse collection expression
       match p.parse_value() {
         Ok((collection, new_p)) => {
           p = new_p
 
-          // Parse colon
           match p.expect(Colon) {
             Ok(new_p) => p = new_p
             Err(e) => return Err(e)
           }
 
-          // Parse key expression
           match p.parse_value() {
             Ok((key_expr, new_p)) => {
               p = new_p
 
-              // Parse =>
               match p.expect(FatArrow) {
                 Ok(new_p) => p = new_p
                 Err(e) => return Err(e)
               }
 
-              // Parse value expression
               match p.parse_value() {
                 Ok((value_expr, new_p)) => {
                   p = new_p
 
-                  // Check for conditional filter
                   let filter = if p.check(If) {
                     match p.advance() {
                       Ok(new_p) => {
@@ -1205,23 +1111,23 @@ fn Parser::parse_for_expr_for_object(
                     None
                   }
 
-                  // Create object for expression
-                  let for_obj = {
-                    "type": String("for_object_expr", Decor::empty()),
-                    "key_var": String(vars[0], Decor::empty()),
-                    "value_var": String(vars[1], Decor::empty()),
-                    "collection": collection,
-                    "key_expr": key_expr,
-                    "value_expr": value_expr,
-                    "filter": match filter {
-                      Some(f) => f
-                      None => Null(Decor::empty())
-                    },
-                  }
-
                   match p.expect(RBrace) {
                     Ok(final_p) =>
-                      Ok((Object(for_obj, Decor::empty()), final_p))
+                      Ok(
+                        (
+                          ExprFor(
+                            Object({
+                              key_var: vars[0],
+                              value_var: vars[1],
+                              collection,
+                              key_expr,
+                              value_expr,
+                              filter,
+                            }),
+                          ),
+                          final_p,
+                        ),
+                      )
                     Err(e) => Err(e)
                   }
                 }
@@ -1240,7 +1146,7 @@ fn Parser::parse_for_expr_for_object(
 
 ///|
 /// Parse an object or object for expression
-fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_object(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.expect(LBrace) {
     Ok(start_parser) => {
       let mut parser = start_parser
@@ -1250,22 +1156,16 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
         Err(e) => return Err(e)
       }
 
-      // Check for object for expression
       if parser.check(For) {
-        // Parse for expression for object comprehension
-        // This should be handled by parse_for_expr but we need to handle closing brace
-        // Let's parse the for expression and expect RBrace at the end
         match parser.parse_for_expr_for_object() {
           Ok(result) => return Ok(result)
           Err(e) => return Err(e)
         }
       }
 
-      // Regular object
-      let obj = {}
+      let obj : ExprObject = []
       while !parser.check(RBrace) && !parser.check(EOF) {
-        // Parse key
-        let key = match parser.current {
+        let string_key = match parser.current {
           StringLit(s) => s
           Ident(s) => s
           _ => {
@@ -1287,7 +1187,6 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           Err(e) => return Err(e)
         }
 
-        // Check for assignment operator
         if parser.check(Equals) {
           match parser.advance() {
             Ok(p) => parser = p
@@ -1311,10 +1210,10 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
           )
         }
 
-        // Parse value
         match parser.parse_value() {
           Ok((value, new_parser)) => {
-            obj[key] = value
+            let key = ObjectKey::Identifier(string_key)
+            obj.push((key, value))
             parser = new_parser
           }
           Err(e) => return Err(e)
@@ -1349,7 +1248,7 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
       }
 
       match parser.expect(RBrace) {
-        Ok(parser) => Ok((Object(obj, Decor::empty()), parser))
+        Ok(parser) => Ok((ExprObject(obj), parser))
         Err(e) => Err(e)
       }
     }
@@ -1359,7 +1258,7 @@ fn Parser::parse_object(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 
 ///|
 /// Parse parenthesized expression
-fn Parser::parse_paren_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_paren_expr(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.expect(LParen) {
     Ok(parser) =>
       match parser.parse_value() {
@@ -1375,27 +1274,13 @@ fn Parser::parse_paren_expr(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 }
 
 ///|
-/// Parse negative number
-fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+/// Parse negative expression
+fn Parser::parse_negative(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.expect(Minus) {
     Ok(parser) =>
       match parser.parse_value() {
         Ok((value, parser)) =>
-          match value {
-            Number(n, d) => Ok((Number(-n, d), parser))
-            _ => {
-              let (line, col, offset) = parser.lexer.location()
-              Err(
-                HCLError::parse_error_with_context(
-                  "Expected number after '-'",
-                  line,
-                  col,
-                  offset,
-                  parser.lexer.get_line(line),
-                ),
-              )
-            }
-          }
+          Ok((ExprOperation(Unary({ op: Negate, operand: value })), parser))
         Err(e) => Err(e)
       }
     Err(e) => Err(e)
@@ -1404,18 +1289,12 @@ fn Parser::parse_negative(self : Parser) -> HCLResult[(HCLValue, Parser)] {
 
 ///|
 /// Parse logical not
-fn Parser::parse_not(self : Parser) -> HCLResult[(HCLValue, Parser)] {
+fn Parser::parse_not(self : Parser) -> HCLResult[(Expression, Parser)] {
   match self.expect(Bang) {
     Ok(parser) =>
       match parser.parse_value() {
-        Ok((value, parser)) => {
-          let not_obj = {
-            "type": String("unary_expr", Decor::empty()),
-            "op": String("!", Decor::empty()),
-            "operand": value,
-          }
-          Ok((Object(not_obj, Decor::empty()), parser))
-        }
+        Ok((value, parser)) =>
+          Ok((ExprOperation(Unary({ op: Not, operand: value })), parser))
         Err(e) => Err(e)
       }
     Err(e) => Err(e)

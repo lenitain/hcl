@@ -48,7 +48,7 @@ pub fn[V : VisitMut] visit_body_item_mut_default(
 ///|
 /// Default attr visitor mutably
 pub fn[V : VisitMut] visit_attr_mut_default(v : V, attr : Attr) -> Unit {
-  v.visit_value_mut(attr.get_value())
+  v.visit_expr_mut(attr.get_value())
 }
 
 ///|

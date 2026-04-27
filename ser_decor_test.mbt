@@ -1,7 +1,7 @@
 ///|
 test "format attribute with decor" {
   let key = Decorated::new("name", Decor::new(None, Some(" ")))
-  let value = HCLValue::string("value")
+  let value = expr_str("value")
   let decor = Decor::new(Some("// comment\n"), Some("\n"))
   let attr = Attr::with_decor(key, value, decor)
 
@@ -13,9 +13,7 @@ test "format attribute with decor" {
 
 ///|
 test "format body with decor" {
-  let items = [
-    BodyItem::Attribute(Attr::new("name", HCLValue::string("value"))),
-  ]
+  let items = [BodyItem::Attribute(Attr::new("name", expr_str("value")))]
   let decor = Decor::new(Some("# Header\n"), Some("\n# Footer\n"))
   let body = Body::with_decor(items, decor)
 

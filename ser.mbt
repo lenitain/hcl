@@ -81,7 +81,9 @@ pub fn format_body(body : Body) -> String {
     match item {
       Attribute(attr) =>
         lines.push(
-          attr.get_key() + " = " + format_hcl_value(attr.get_value(), 0),
+          attr.get_key() +
+          " = " +
+          format_hcl_value(expr_to_hcl_value(attr.get_value()), 0),
         )
       Block(block) => {
         let labels = block.get_labels()
@@ -202,7 +204,7 @@ pub fn format_attr_with_decor(attr : Attr) -> String {
 
   result = result + " = "
 
-  result = result + format_value_with_decor(attr.value)
+  result = result + format_value_with_decor(expr_to_hcl_value(attr.value))
 
   match attr.decor.get_suffix() {
     Some(suffix) => result = result + suffix
@@ -540,7 +542,10 @@ fn Formatter::format_body_impl(
           prefix +
           self.format_key(attr.get_key()) +
           " = " +
-          self.format_hcl_value_impl(attr.get_value(), indent_level),
+          self.format_hcl_value_impl(
+            expr_to_hcl_value(attr.get_value()),
+            indent_level,
+          ),
         )
       Block(block) => {
         let labels = block.get_labels()

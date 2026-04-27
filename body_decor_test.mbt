@@ -3,7 +3,7 @@ test "Attr with decoration" {
   let decor = Decor::new(Some(" "), Some("\n"))
   let key_decor = Decor::new(None, Some(" "))
   let key = Decorated::new("name", key_decor)
-  let value = HCLValue::String("value", Decor::empty())
+  let value = expr_str("value")
 
   let attr = Attr::with_decor(key, value, decor)
   assert_eq(attr.get_key(), "name")
@@ -13,10 +13,7 @@ test "Attr with decoration" {
 
 ///|
 test "Attr basic constructor uses empty decor" {
-  let attr = Attr::new(
-    "name",
-    HCLValue::Number(Number::from_int(42), Decor::empty()),
-  )
+  let attr = Attr::new("name", expr_int(42))
   assert_eq(attr.get_key(), "name")
   assert_eq(attr.get_decorated_key().get_decor().get_prefix(), None)
   assert_eq(attr.get_decor().get_prefix(), None)
@@ -66,10 +63,7 @@ test "Body basic constructor uses empty decor" {
 
 ///|
 test "Body find_attr works with decorated keys" {
-  let body = Body::new().add_attr(
-    "name",
-    HCLValue::String("test", Decor::empty()),
-  )
+  let body = Body::new().add_attr("name", expr_str("test"))
   let attr = body.find_attr("name")
   assert_eq(attr is Some(_), true)
   assert_eq(attr.unwrap().get_key(), "name")

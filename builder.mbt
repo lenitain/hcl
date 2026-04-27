@@ -11,11 +11,11 @@ pub fn Body::builder() -> BodyBuilder {
 }
 
 ///|
-/// Add an attribute with HCLValue
+/// Add an attribute with Expression
 pub fn BodyBuilder::attr(
   self : BodyBuilder,
   key : String,
-  value : HCLValue,
+  value : Expression,
 ) -> BodyBuilder {
   self.items.push(
     Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
@@ -33,7 +33,7 @@ pub fn[T : ToHCL] BodyBuilder::attr_hcl(
   self.items.push(
     Attribute({
       key: Decorated::bare(key),
-      value: value.to_hcl(),
+      value: hcl_value_to_expression(value.to_hcl()),
       decor: Decor::empty(),
     }),
   )
@@ -45,7 +45,7 @@ pub fn[T : ToHCL] BodyBuilder::attr_hcl(
 pub fn BodyBuilder::attr_if(
   self : BodyBuilder,
   key : String,
-  value : HCLValue,
+  value : Expression,
   cond : Bool,
 ) -> BodyBuilder {
   if cond {
@@ -68,7 +68,7 @@ pub fn[T : ToHCL] BodyBuilder::attr_option(
       self.items.push(
         Attribute({
           key: Decorated::bare(key),
-          value: v.to_hcl(),
+          value: hcl_value_to_expression(v.to_hcl()),
           decor: Decor::empty(),
         }),
       )
@@ -112,11 +112,11 @@ pub fn BlockBuilder::label(self : BlockBuilder, lbl : String) -> BlockBuilder {
 }
 
 ///|
-/// Add an attribute with HCLValue
+/// Add an attribute with Expression
 pub fn BlockBuilder::attr(
   self : BlockBuilder,
   key : String,
-  value : HCLValue,
+  value : Expression,
 ) -> BlockBuilder {
   self.items.push(
     Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
@@ -134,7 +134,7 @@ pub fn[T : ToHCL] BlockBuilder::attr_hcl(
   self.items.push(
     Attribute({
       key: Decorated::bare(key),
-      value: value.to_hcl(),
+      value: hcl_value_to_expression(value.to_hcl()),
       decor: Decor::empty(),
     }),
   )
@@ -146,7 +146,7 @@ pub fn[T : ToHCL] BlockBuilder::attr_hcl(
 pub fn BlockBuilder::attr_if(
   self : BlockBuilder,
   key : String,
-  value : HCLValue,
+  value : Expression,
   cond : Bool,
 ) -> BlockBuilder {
   if cond {

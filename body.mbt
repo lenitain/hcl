@@ -18,7 +18,7 @@ pub(all) enum BodyItem {
 /// HCL Attribute - key-value pair with decoration
 pub struct Attr {
   key : Decorated[String]
-  value : HCLValue
+  value : Expression
   decor : Decor
 } derive(Debug, Eq)
 
@@ -75,7 +75,7 @@ pub fn Body::get_decor(self : Body) -> Decor {
 
 ///|
 /// Add an attribute to the body (returns new body)
-pub fn Body::add_attr(self : Body, key : String, value : HCLValue) -> Body {
+pub fn Body::add_attr(self : Body, key : String, value : Expression) -> Body {
   let new_items = self.items.copy()
   new_items.push(
     Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
@@ -132,7 +132,7 @@ pub fn Body::find_block(self : Body, type_name : String) -> Block? {
 
 ///|
 /// Create a new attribute with decoration
-pub fn Attr::new(key : String, value : HCLValue) -> Attr {
+pub fn Attr::new(key : String, value : Expression) -> Attr {
   { key: Decorated::bare(key), value, decor: Decor::empty() }
 }
 
@@ -140,7 +140,7 @@ pub fn Attr::new(key : String, value : HCLValue) -> Attr {
 /// Create a new attribute with full decoration
 pub fn Attr::with_decor(
   key : Decorated[String],
-  value : HCLValue,
+  value : Expression,
   decor : Decor,
 ) -> Attr {
   { key, value, decor }
@@ -166,7 +166,7 @@ pub fn Attr::get_decor(self : Attr) -> Decor {
 
 ///|
 /// Get attribute value
-pub fn Attr::get_value(self : Attr) -> HCLValue {
+pub fn Attr::get_value(self : Attr) -> Expression {
   self.value
 }
 

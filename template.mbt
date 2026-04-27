@@ -8,15 +8,15 @@ pub(all) enum TemplatePart {
   /// Literal text
   Text(String)
   /// String interpolation ${expr}
-  Interpolation(HCLValue)
+  Interpolation(Expression)
   /// Conditional directive %{if cond}
-  ConditionalStart(HCLValue)
+  ConditionalStart(Expression)
   /// Else directive %{else}
   ConditionalElse
   /// End of conditional %{endif}
   ConditionalEnd
   /// For directive %{for var in collection}
-  ForStart(String, HCLValue)
+  ForStart(String, Expression)
   /// End of for %{endfor}
   ForEnd
 } derive(Debug, Eq)
@@ -111,7 +111,7 @@ pub fn Template::from_string(input : String) -> HCLResult[Template] {
 fn parse_interpolation(
   input : String,
   start : Int,
-) -> HCLResult[(HCLValue, Int)] {
+) -> HCLResult[(Expression, Int)] {
   let mut i = start
   let len = input.length()
   let mut depth = 1
@@ -240,7 +240,7 @@ fn parse_directive_content(content : String) -> HCLResult[TemplatePart] {
 
 ///|
 /// Parse for directive %{for var in collection}
-fn parse_for_directive(content : String) -> HCLResult[(String, HCLValue)] {
+fn parse_for_directive(content : String) -> HCLResult[(String, Expression)] {
   // Expected format: "for var_name in collection_expr"
   let parts = []
   let mut current = ""
@@ -310,13 +310,13 @@ fn has_suffix(s : String, suffix : String) -> Bool {
 
 ///|
 /// Parse simple template expression (variable or literal)
-fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
+fn parse_template_expression(expr_str : String) -> HCLResult[Expression] {
   let trimmed = expr_str.trim().to_string()
 
   // Check for string literal
   if has_prefix(trimmed, "\"") && has_suffix(trimmed, "\"") {
     let content = substring(trimmed, 1, trimmed.length() - 1)
-    return Ok(String(content, Decor::empty()))
+    return Ok(ExprString(content))
   }
 
   // Check for number
@@ -331,7 +331,7 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
     // Simple number parsing
     if trimmed.contains(".") {
       // Float - simplified
-      return Ok(Number(Number::from_finite_f64(0.0), Decor::empty()))
+      return Ok(ExprFloat(0.0))
     } else {
       // Integer
       let mut result = 0
@@ -349,38 +349,25 @@ fn parse_template_expression(expr_str : String) -> HCLResult[HCLValue] {
         }
         i += 1
       }
-      return Ok(
-        Number(
-          Number::from_int(if negative { -result } else { result }),
-          Decor::empty(),
-        ),
-      )
+      return Ok(ExprInt(if negative { -result } else { result }))
     }
   }
 
   // Check for boolean
   if trimmed == "true" {
-    return Ok(Bool(true, Decor::empty()))
+    return Ok(ExprBool(true))
   }
   if trimmed == "false" {
-    return Ok(Bool(false, Decor::empty()))
+    return Ok(ExprBool(false))
   }
 
   // Check for null
   if trimmed == "null" {
-    return Ok(Null(Decor::empty()))
+    return Ok(ExprNull)
   }
 
   // Variable reference
-  Ok(
-    Object(
-      {
-        "type": String("variable", Decor::empty()),
-        "name": String(trimmed, Decor::empty()),
-      },
-      Decor::empty(),
-    ),
-  )
+  Ok(ExprVariable({ name: trimmed }))
 }
 
 ///|

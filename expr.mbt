@@ -9,7 +9,7 @@ pub(all) enum ObjectKey {
   Identifier(String)
   /// Any valid HCL expression can be an object key
   Expression(Expression)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Object type for expressions (preserves insertion order via array of pairs)
@@ -50,7 +50,7 @@ pub(all) enum Expression {
   ExprOperation(Operation)
   /// For expression (list/object comprehension)
   ExprFor(ForExpr)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Template expression (heredoc or interpolated string)
@@ -59,7 +59,7 @@ pub(all) enum TemplateExpr {
   Heredoc(Heredoc)
   /// Interpolated string template
   InterpolatedString(String)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Heredoc template
@@ -70,7 +70,7 @@ pub(all) struct Heredoc {
   content : String
   /// Strip indentation mode
   strip_mode : HeredocStripMode
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Heredoc strip mode
@@ -79,14 +79,14 @@ pub(all) enum HeredocStripMode {
   NoStrip
   /// Strip leading whitespace (<<-EOF)
   StripMode
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Variable reference
 pub(all) struct Variable {
   /// Variable name
   name : String
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Traversal (property/element access)
@@ -95,7 +95,7 @@ pub(all) struct Traversal {
   base : Expression
   /// Traversal operators
   operators : Array[TraversalOperator]
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Traversal operator
@@ -104,7 +104,7 @@ pub(all) enum TraversalOperator {
   Attr(String)
   /// Index access (obj[index])
   Index(Expression)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Builder for constructing Traversal expressions incrementally
@@ -158,7 +158,7 @@ pub(all) struct FuncCall {
   name : String
   /// Arguments
   args : Array[Expression]
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Builder for constructing FuncCall expressions incrementally
@@ -204,7 +204,7 @@ pub(all) struct Conditional {
   true_expr : Expression
   /// False branch expression
   false_expr : Expression
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Operation (binary or unary)
@@ -213,7 +213,7 @@ pub(all) enum Operation {
   Binary(BinaryOp)
   /// Unary operation (op operand)
   Unary(UnaryOp)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Binary operation
@@ -224,7 +224,7 @@ pub(all) struct BinaryOp {
   op : BinaryOperator
   /// Right operand
   right : Expression
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Binary operator
@@ -255,7 +255,7 @@ pub(all) enum BinaryOperator {
   And
   /// Logical OR (||)
   Or
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Unary operation
@@ -264,7 +264,7 @@ pub(all) struct UnaryOp {
   op : UnaryOperator
   /// Operand
   operand : Expression
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Unary operator
@@ -273,7 +273,7 @@ pub(all) enum UnaryOperator {
   Negate
   /// Logical NOT (!)
   Not
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// For expression (list/object comprehension)
@@ -282,7 +282,7 @@ pub(all) enum ForExpr {
   List(ForListExpr)
   /// Object comprehension: {for k, v in obj: k => v}
   Object(ForObjectExpr)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// List comprehension
@@ -295,7 +295,7 @@ pub(all) struct ForListExpr {
   value_expr : Expression
   /// Optional filter expression
   filter : Expression?
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Object comprehension
@@ -312,7 +312,7 @@ pub(all) struct ForObjectExpr {
   value_expr : Expression
   /// Optional filter expression
   filter : Expression?
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Convert ObjectKey to string representation
@@ -410,6 +410,59 @@ fn op_to_string(op : Operation) -> String {
 }
 
 ///|
+/// Convert Expression to HCLValue (bridge for serializers)
+pub fn expr_to_hcl_value(expr : Expression) -> HCLValue {
+  match expr {
+    ExprNull => Null(Decor::empty())
+    ExprBool(b) => Bool(b, Decor::empty())
+    ExprInt(i) => Number(Number::from_int(i), Decor::empty())
+    ExprInt64(i) => Number(Number::from_int64(i), Decor::empty())
+    ExprFloat(f) => Number(Number::from_finite_f64(f), Decor::empty())
+    ExprString(s) => String(s, Decor::empty())
+    ExprArray(arr) => {
+      let items = arr.map(expr_to_hcl_value)
+      Array(items, Decor::empty())
+    }
+    ExprObject(obj) => {
+      let result = {}
+      for pair in obj {
+        let (k, v) = pair
+        result[ObjectKey::to_string(k)] = expr_to_hcl_value(v)
+      }
+      Object(result, Decor::empty())
+    }
+    _ => String(expr_to_string(expr), Decor::empty())
+  }
+}
+
+///|
+/// Convert HCLValue to Expression
+pub fn hcl_value_to_expression(value : HCLValue) -> Expression {
+  match value {
+    Null(_) => ExprNull
+    Bool(b, _) => ExprBool(b)
+    Number(n, _) =>
+      match n.as_int() {
+        Some(i) => ExprInt(i)
+        None =>
+          match n.as_int64() {
+            Some(i64) => ExprInt64(i64)
+            None => ExprFloat(n.as_float())
+          }
+      }
+    String(s, _) => ExprString(s)
+    Array(arr, _) => ExprArray(arr.map(hcl_value_to_expression))
+    Object(obj, _) => {
+      let pairs : ExprObject = []
+      for k, v in obj {
+        pairs.push((ObjectKey::Identifier(k), hcl_value_to_expression(v)))
+      }
+      ExprObject(pairs)
+    }
+  }
+}
+
+///|
 /// Convert ForExpr to string
 fn for_expr_to_string(expr : ForExpr) -> String {
   match expr {
@@ -444,4 +497,40 @@ fn for_expr_to_string(expr : ForExpr) -> String {
       result + "}"
     }
   }
+}
+
+///|
+/// Create Expression from Int
+pub fn expr_int(v : Int) -> Expression {
+  ExprInt(v)
+}
+
+///|
+/// Create Expression from String
+pub fn expr_str(v : String) -> Expression {
+  ExprString(v)
+}
+
+///|
+/// Create Expression from Bool
+pub fn expr_bool(v : Bool) -> Expression {
+  ExprBool(v)
+}
+
+///|
+/// Null Expression
+pub fn expr_null() -> Expression {
+  ExprNull
+}
+
+///|
+/// Create Expression array
+pub fn expr_array(items : Array[Expression]) -> Expression {
+  ExprArray(items)
+}
+
+///|
+/// Create Expression from FuncCall
+pub fn expr_func_call(fc : FuncCall) -> Expression {
+  ExprFuncCall(fc)
 }
