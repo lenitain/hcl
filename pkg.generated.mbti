@@ -72,6 +72,8 @@ pub fn from_hcl_string(String) -> Result[String, HCLError]
 
 pub fn from_hcl_value(String) -> Result[HCLValue, HCLError]
 
+pub fn from_hcl_with_body_schema(String, BodySchema) -> Result[ExtractedBody, Array[HCLError]]
+
 pub fn from_hcl_with_schema(String, TypeSchema) -> Result[HCLValue, HCLError]
 
 pub fn from_hcl_with_schema_full(String, TypeSchema) -> Result[HCLValue, Array[HCLError]]

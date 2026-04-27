@@ -416,9 +416,7 @@ test "from_hcl_with_body_schema" {
       let server = extracted.get_block("server")
       assert_true(server is Some(_))
       match server {
-        Some(s) => {
-          assert_true(s.body.get_attr("port") is Some(_))
-        }
+        Some(s) => assert_true(s.body.get_attr("port") is Some(_))
         None => assert_true(false)
       }
     }
@@ -454,5 +452,138 @@ test "from_hcl_with_body_schema_full - multiple errors" {
   match result {
     Err(errors) => assert_eq(errors.length(), 2)
     _ => assert_true(false)
+  }
+}
+
+///|
+test "extract_body missing required attr" {
+  let body = parse("name = \"test\"").unwrap()
+  let schema = BodySchema::new().with_attrs({
+    "name": AttrSchema::required(TypeSchema::string()),
+    "port": AttrSchema::required(TypeSchema::int()),
+  })
+  let result = extract_body(body, schema)
+  match result {
+    Err(errors) => {
+      assert_true(errors.length() > 0)
+      let found = errors.any(fn(e) {
+        match e {
+          ValidationError(path, msg) =>
+            path == "$.port" && msg == "required attribute missing"
+          _ => false
+        }
+      })
+      assert_true(found)
+    }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "extract_body extra_attrs false" {
+  let body = parse("name = \"test\"\nunknown = 42").unwrap()
+  let schema = BodySchema::new().with_attrs({
+    "name": AttrSchema::required(TypeSchema::string()),
+  })
+  let result = extract_body(body, schema)
+  match result {
+    Err(errors) => {
+      let found = errors.any(fn(e) {
+        match e {
+          ValidationError(path, msg) =>
+            path == "$.unknown" && msg == "unexpected attribute"
+          _ => false
+        }
+      })
+      assert_true(found)
+    }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "extract_body nested blocks" {
+  let body = parse("server \"web\" {\n  location {\n    path = \"/\"\n  }\n}").unwrap()
+  let schema = BodySchema::new().with_blocks({
+    "server": BlockSchema::new(
+      BodySchema::new().with_blocks({
+        "location": BlockSchema::new(
+          BodySchema::new().with_attrs({
+            "path": AttrSchema::required(TypeSchema::string()),
+          }),
+        ),
+      }),
+    ).with_labels([LabelSchema::required()]),
+  })
+  let result = extract_body(body, schema)
+  match result {
+    Ok(extracted) => {
+      let servers = extracted.get_blocks("server")
+      assert_eq(servers.length(), 1)
+      let server = servers[0]
+      assert_eq(server.get_label(0), Some("web"))
+      let locations = server.body.get_blocks("location")
+      assert_eq(locations.length(), 1)
+      match locations[0].body.get_attr("path") {
+        Some(HCLValue::String(s, _)) => assert_eq(s, "/")
+        _ => assert_true(false)
+      }
+    }
+    Err(e) => {
+      for err in e {
+        println(err.message())
+      }
+      assert_true(false)
+    }
+  }
+}
+
+///|
+test "extract_body block max_items exceeded" {
+  let body = parse(
+    "server \"a\" {\n  port = 1\n}\nserver \"b\" {\n  port = 2\n}\nserver \"c\" {\n  port = 3\n}",
+  ).unwrap()
+  let schema = BodySchema::new().with_blocks({
+    "server": BlockSchema::new(
+      BodySchema::new().with_attrs({
+        "port": AttrSchema::required(TypeSchema::int()),
+      }),
+    )
+    .with_labels([LabelSchema::required()])
+    .with_max_items(2),
+  })
+  let result = extract_body(body, schema)
+  match result {
+    Err(errors) => {
+      let found = errors.any(fn(e) {
+        match e {
+          ValidationError(path, msg) =>
+            path == "$.server" && msg.contains("expected at most 2")
+          _ => false
+        }
+      })
+      assert_true(found)
+    }
+    Ok(_) => assert_true(false)
+  }
+}
+
+///|
+test "extract_body optional attr" {
+  let body = parse("name = \"test\"").unwrap()
+  let schema = BodySchema::new().with_attrs({
+    "name": AttrSchema::required(TypeSchema::string()),
+    "port": AttrSchema::optional(TypeSchema::int()),
+  })
+  let result = extract_body(body, schema)
+  match result {
+    Ok(extracted) => {
+      match extracted.get_attr("name") {
+        Some(HCLValue::String(s, _)) => assert_eq(s, "test")
+        _ => assert_true(false)
+      }
+      assert_true(extracted.get_attr("port") is None)
+    }
+    Err(_) => assert_true(false)
   }
 }
