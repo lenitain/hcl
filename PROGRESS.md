@@ -1,13 +1,29 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：集合论函数补齐 — 迭代 4 完成 ✅
+## 当前状态：编码函数补齐 — 迭代 5 完成 ✅
 
 ## 当前分支
-- 分支：`lenitain/feat/set-funcs`
+- 分支：`lenitain/feat/encoding-funcs`
 - 状态：开发完成
-- 目标：补齐集合运算函数
+- 目标：补齐编码/解码函数
 
 ## 本次开发完成的任务
+
+### 编码函数补齐 EncodingFuncs ✅
+- ✅ `jsondecode(str)` — JSON 字符串 → HCLValue，使用 `@json.parse()` + 递归转换
+- ✅ `jsonencode(val)` — HCLValue → JSON 字符串，递归转换 + `Json::stringify()`
+- ✅ `base64decode(str)` — Base64 解码，使用 `@encoding/base64.decode()` + `@encoding/utf8.decode()`
+- ✅ `base64encode(str)` — Base64 编码，使用 `@encoding/utf8.encode()` + `@encoding/base64.encode()`
+- ✅ `csvdecode(str)` — CSV 解析，手动解析器支持引号字段
+- ✅ `urlencode(str)` — URL 百分号编码，RFC 3986 unreserved 字符保留
+- ✅ 19 个新测试（jsondecode 3 + jsonencode 3 + json roundtrip 1 + base64 4 + csvdecode 3 + urlencode 4）
+- ✅ 所有 871 个测试通过
+
+### 验证结果
+- ✅ moon check: 0 errors
+- ✅ moon test: 871 passed, 0 failed
+- ✅ moon fmt: 通过
+- ✅ moon info: 通过
 
 ### chunklist/lookup/zipmap 集合函数 ✅
 - ✅ `chunklist(array, size)` — 将数组按指定大小分块，使用 `as_int()` 安全转换
@@ -285,7 +301,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 852 个测试全部通过
+- ✅ 871 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -295,7 +311,7 @@
 - 覆盖：JSON 转换（基本、嵌套、转义、错误处理）
 - 覆盖：JSON 语法解析（JSON→Body、标签嵌套、数组块、round-trip、terraform.tfvars.json）
 - 覆盖：序列化 derive（ToHCL trait、FromHCL trait、Builder 模式、Option/Array 泛型）
-- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论，共56个函数）
+- 覆盖：内置函数（数字、集合、字符串、类型转换、集合论、编码，共62个函数）
 - 覆盖：Spec 测试（操作符、heredoc、多行表达式）
 - 覆盖：Decor 系统（解析保留注释/空白、序列化输出装饰、集成测试）
 - 覆盖：hcl2json CLI 基础功能（HCL 到 JSON 转换、格式化输出）
@@ -341,7 +357,8 @@
 - ✅ 集合函数 (length, keys, values, contains, flatten, merge, reverse, distinct, sort, slice, element, concat, coalesce, range, chunklist, lookup, zipmap, transpose, matchkeys, setintersection, setunion, setsubtract, setsymmetricdifference, setproduct, setissubset)
 - ✅ 字符串函数 (chomp, indent, join, lower, upper, replace, split, strrev, substr, trim, trimprefix, trimsuffix, trimspace, format, formatlist, startswith, endswith, title)
 - ✅ 类型转换函数 (tobool, tonumber, tolist, tomap, toset, tostring)
-- ✅ 通过 builtin_functions() 获取所有内置函数（56 个）
+- ✅ 编码函数 (jsondecode, jsonencode, base64decode, base64encode, csvdecode, urlencode)
+- ✅ 通过 builtin_functions() 获取所有内置函数（62 个）
 - ✅ `ParamType` 枚举 — Any, ParamBool, ParamNumber, ParamString, ParamArray, ParamObject, Nullable, OneOf
 - ✅ `FuncDef` 结构体 — 自动参数数量/类型验证
 - ✅ `FuncDefBuilder` — 链式 API 构建函数定义
@@ -747,14 +764,15 @@ hcl/
 - 数值字面量（hex/octal/binary/科学计数法/下划线）已完整实现
 - Unicode 标识符、Splat、Strip markers、类型统一、静态分析均已实现
 
-**剩余缺口评估：约 3% 规范 + ~60 个内置函数**
+**剩余缺口评估：约 2% 规范 + ~54 个内置函数**
 
 | 缺口类型 | 数量 | 影响范围 | 开发难度 |
 |----------|------|----------|----------|
-| 内置函数缺失 | ~60 | 大（Terraform 配置可能用到） | 低（模板式添加） |
+| 内置函数缺失 | ~54 | 大（Terraform 配置可能用到） | 低（模板式添加） |
 | 解析错误恢复 | ✅ 已完成 | 中（IDE/CLI 体验） | 中（架构改动） |
+| 编码函数 | ✅ 已完成 | 大 | 低 |
 | 类型系统增强 | 3项 | 小（特殊场景） | 中 |
-| 字符串 contains | 1项 | 小 | 低 |
+| 字符串 contains | ✅ 已完成 | 小 | 低 |
 | 函数注册 API | 1项 | 中（开发者体验） | 低 |
 
 ---
@@ -866,24 +884,26 @@ hcl/
 
 ---
 
-### 迭代 5：编码函数补齐 — EncodingFuncs
+### 迭代 5：编码函数补齐 — EncodingFuncs ✅
 
 **目标**：补齐编码/解码函数
 
-**改动文件**：`funcs.mbt` + `funcs_test.mbt`
+**改动文件**：`funcs.mbt` + `funcs_test.mbt` + `moon.pkg`
 
-**依赖**：MoonBit 标准库是否提供 base64/json 编码接口
+| 函数 | 签名 | 实现要点 |
+|------|------|----------|
+| `jsondecode(str)` | `(string) -> any` | `@json.parse()` + 递归 Json→HCLValue 转换 |
+| `jsonencode(val)` | `(any) -> string` | 递归 HCLValue→Json 转换 + `Json::stringify()` |
+| `base64decode(str)` | `(string) -> string` | `@encoding/base64.decode()` + `@encoding/utf8.decode()` |
+| `base64encode(str)` | `(string) -> string` | `@encoding/utf8.encode()` + `@encoding/base64.encode()` |
+| `csvdecode(str)` | `(string) -> array(object)` | 手动 CSV 解析器，支持引号字段和转义 |
+| `urlencode(str)` | `(string) -> string` | RFC 3986 百分号编码，unreserved 字符保留 |
 
-| 函数 | 签名 | MoonBit 支持 |
-|------|------|-------------|
-| `csvdecode(str)` | `(string) -> array(object)` | 需自行解析 CSV |
-| `jsondecode(str)` | `(string) -> any` | ✅ `@json` 库可用 |
-| `jsonencode(val)` | `(any) -> string` | ✅ `@json` 库可用 |
-| `base64decode(str)` | `(string) -> string` | ❓ 需要检查 `@encoding/base64` |
-| `base64encode(str)` | `(string) -> string` | ❓ 需要检查 `@encoding/base64` |
-| `urlencode(str)` | `(string) -> string` | ❓ MoonBit 可能无此功能 |
-
-**测试计数**：新增至少 15 个测试
+- ✅ 依赖添加：`moonbitlang/core/json @json` + `moonbitlang/core/encoding/base64 @encoding/base64`
+- ✅ `Json` 类型使用 `Json::null()`, `Json::boolean()`, `Json::number()`, `Json::string()`, `Json::array()`, `Json::object()` 构造
+- ✅ `json_to_hcl_value` 使用 accessor 方法（`as_null()`, `as_bool()`, etc.）避免命名冲突
+- ✅ 19 个新测试（每个函数 3-4 个：正常/边界/类型错误/round-trip）
+- ✅ 所有 871 个测试通过
 
 ---
 
@@ -1020,7 +1040,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 2:  StringFuncsComplete  — ✅ 已完成 (801 测试通过)
 迭代 3:  CollectionFuncs     — ✅ 已完成 (834 测试通过)
 迭代 4:  SetFuncs            — ✅ 已完成 (852 测试通过)
-迭代 5:  EncodingFuncs       — 中优先级 (依赖 MoonBit 生态)
+迭代 5:  EncodingFuncs       — ✅ 已完成 (871 测试通过)
 迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
 迭代 7:  DateTimeFuncs       — 中优先级
 迭代 8:  NetworkFuncs        — 低优先级
@@ -1029,7 +1049,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 10 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 10 → 7 → 8 → 6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 

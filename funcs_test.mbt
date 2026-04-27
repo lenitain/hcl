@@ -2344,3 +2344,267 @@ test "setissubset type error" {
     _ => panic()
   }
 }
+
+///| =========================================================================
+/// Encoding Functions Tests
+
+///| =========================================================================
+
+///|
+test "jsondecode basic" {
+  let funcs = builtin_functions()
+  let f = funcs["jsondecode"]
+  match f.call([str("{\"a\": 1, \"b\": \"hello\"}")]) {
+    Ok(HCLValue::Object(o, _)) =>
+      for k, v in o {
+        if k == "a" {
+          match v {
+            HCLValue::Number(_, _) => assert_true(true)
+            _ => panic()
+          }
+        }
+      }
+    _ => panic()
+  }
+}
+
+///|
+test "jsondecode nested" {
+  let funcs = builtin_functions()
+  let f = funcs["jsondecode"]
+  match f.call([str("{\"arr\": [1, 2, 3]}")]) {
+    Ok(HCLValue::Object(o, _)) =>
+      for _, v in o {
+        match v {
+          HCLValue::Array(arr, _) => assert_eq(arr.length(), 3)
+          _ => panic()
+        }
+      }
+    _ => panic()
+  }
+}
+
+///|
+test "jsondecode error" {
+  let funcs = builtin_functions()
+  let f = funcs["jsondecode"]
+  match f.call([str("not valid json")]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "jsonencode basic" {
+  let funcs = builtin_functions()
+  let f = funcs["jsonencode"]
+  let obj : Map[String, HCLValue] = {}
+  obj["name"] = str("test")
+  obj["count"] = num(42)
+  match f.call([HCLValue::Object(obj, Decor::empty())]) {
+    Ok(HCLValue::String(s, _)) => {
+      assert_true(s.contains("name"))
+      assert_true(s.contains("test"))
+      assert_true(s.contains("42"))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "jsonencode array" {
+  let funcs = builtin_functions()
+  let f = funcs["jsonencode"]
+  let arr = HCLValue::Array([num(1), num(2), num(3)], Decor::empty())
+  match f.call([arr]) {
+    Ok(HCLValue::String(s, _)) => {
+      assert_true(s.contains("1"))
+      assert_true(s.contains("2"))
+      assert_true(s.contains("3"))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "jsonencode null" {
+  let funcs = builtin_functions()
+  let f = funcs["jsonencode"]
+  match f.call([HCLValue::Null(Decor::empty())]) {
+    Ok(HCLValue::String(s, _)) => assert_eq(s, "null")
+    _ => panic()
+  }
+}
+
+///|
+test "jsondecode jsonencode roundtrip" {
+  let funcs = builtin_functions()
+  let dec = funcs["jsondecode"]
+  let enc = funcs["jsonencode"]
+  let original = str("{\"key\": \"value\", \"num\": 123}")
+  match dec.call([original]) {
+    Ok(decoded) =>
+      match enc.call([decoded]) {
+        Ok(HCLValue::String(s, _)) => {
+          assert_true(s.contains("key"))
+          assert_true(s.contains("value"))
+          assert_true(s.contains("123"))
+        }
+        _ => panic()
+      }
+    _ => panic()
+  }
+}
+
+///|
+test "base64encode basic" {
+  let funcs = builtin_functions()
+  let f = funcs["base64encode"]
+  match f.call([str("Hello, World!")]) {
+    Ok(HCLValue::String(s, _)) => assert_eq(s, "SGVsbG8sIFdvcmxkIQ==")
+    _ => panic()
+  }
+}
+
+///|
+test "base64decode basic" {
+  let funcs = builtin_functions()
+  let f = funcs["base64decode"]
+  match f.call([str("SGVsbG8sIFdvcmxkIQ==")]) {
+    Ok(HCLValue::String(s, _)) => assert_eq(s, "Hello, World!")
+    _ => panic()
+  }
+}
+
+///|
+test "base64 roundtrip" {
+  let funcs = builtin_functions()
+  let enc = funcs["base64encode"]
+  let dec = funcs["base64decode"]
+  let original = str("Test data for base64 encoding")
+  match enc.call([original]) {
+    Ok(encoded) =>
+      match dec.call([encoded]) {
+        Ok(decoded) => assert_true(decoded == original)
+        _ => panic()
+      }
+    _ => panic()
+  }
+}
+
+///|
+test "base64decode error" {
+  let funcs = builtin_functions()
+  let f = funcs["base64decode"]
+  match f.call([str("not-valid-base64!!!")]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "base64encode type error" {
+  let funcs = builtin_functions()
+  let f = funcs["base64encode"]
+  match f.call([num(123)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "csvdecode basic" {
+  let funcs = builtin_functions()
+  let f = funcs["csvdecode"]
+  let csv = str("name,age\nAlice,30\nBob,25")
+  match f.call([csv]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 2)
+      match arr[0] {
+        HCLValue::Object(o, _) =>
+          for k, v in o {
+            if k == "name" {
+              assert_true(v == str("Alice"))
+            }
+          }
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "csvdecode quoted fields" {
+  let funcs = builtin_functions()
+  let f = funcs["csvdecode"]
+  let csv = str("name,msg\nJohn,\"hello, world\"")
+  match f.call([csv]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 1)
+      match arr[0] {
+        HCLValue::Object(o, _) =>
+          for k, v in o {
+            if k == "msg" {
+              assert_true(v == str("hello, world"))
+            }
+          }
+        _ => panic()
+      }
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "csvdecode empty" {
+  let funcs = builtin_functions()
+  let f = funcs["csvdecode"]
+  match f.call([str("")]) {
+    Ok(HCLValue::Array(arr, _)) => assert_eq(arr.length(), 0)
+    _ => panic()
+  }
+}
+
+///|
+test "urlencode basic" {
+  let funcs = builtin_functions()
+  let f = funcs["urlencode"]
+  match f.call([str("hello world")]) {
+    Ok(HCLValue::String(s, _)) => assert_eq(s, "hello+world")
+    _ => panic()
+  }
+}
+
+///|
+test "urlencode special chars" {
+  let funcs = builtin_functions()
+  let f = funcs["urlencode"]
+  match f.call([str("a&b=c")]) {
+    Ok(HCLValue::String(s, _)) => {
+      assert_true(s.contains("%26"))
+      assert_true(s.contains("%3D"))
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "urlencode unreserved" {
+  let funcs = builtin_functions()
+  let f = funcs["urlencode"]
+  match f.call([str("test-file_1.0~")]) {
+    Ok(HCLValue::String(s, _)) => assert_eq(s, "test-file_1.0~")
+    _ => panic()
+  }
+}
+
+///|
+test "urlencode type error" {
+  let funcs = builtin_functions()
+  let f = funcs["urlencode"]
+  match f.call([num(42)]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}

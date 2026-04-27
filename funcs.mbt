@@ -426,6 +426,26 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(Any)
     .build("tostring", fn_tostring)
 
+  // Encoding functions
+  funcs["jsondecode"] = FuncDef::builder()
+    .param(ParamString)
+    .build("jsondecode", fn_jsondecode)
+  funcs["jsonencode"] = FuncDef::builder()
+    .param(Any)
+    .build("jsonencode", fn_jsonencode)
+  funcs["base64decode"] = FuncDef::builder()
+    .param(ParamString)
+    .build("base64decode", fn_base64decode)
+  funcs["base64encode"] = FuncDef::builder()
+    .param(ParamString)
+    .build("base64encode", fn_base64encode)
+  funcs["csvdecode"] = FuncDef::builder()
+    .param(ParamString)
+    .build("csvdecode", fn_csvdecode)
+  funcs["urlencode"] = FuncDef::builder()
+    .param(ParamString)
+    .build("urlencode", fn_urlencode)
+
   funcs
 }
 
@@ -1774,5 +1794,226 @@ fn fn_tostring(args : Array[HCLValue]) -> HCLResult[HCLValue] {
     Null(_) => Ok(String("null", Decor::empty()))
     Unknown(_) => Ok(String("unknown", Decor::empty()))
     _ => Ok(String(args[0].to_json_string(), Decor::empty()))
+  }
+}
+
+///| =========================================================================
+/// Encoding Functions
+
+///| =========================================================================
+
+///|
+/// Convert a parsed Json value to HCLValue recursively
+fn json_to_hcl_value(j : Json) -> HCLValue {
+  match j {
+    _ if j.as_null() is Some(_) => Null(Decor::empty())
+    _ if j.as_bool() is Some(b) => Bool(b, Decor::empty())
+    _ if j.as_number() is Some(n) =>
+      Number(Number::from_finite_f64(n), Decor::empty())
+    _ if j.as_string() is Some(s) => String(s, Decor::empty())
+    _ if j.as_array() is Some(arr) => {
+      let result = []
+      for item in arr {
+        result.push(json_to_hcl_value(item))
+      }
+      Array(result, Decor::empty())
+    }
+    _ if j.as_object() is Some(obj) => {
+      let result : Map[String, HCLValue] = {}
+      for k, v in obj {
+        result[k] = json_to_hcl_value(v)
+      }
+      Object(result, Decor::empty())
+    }
+    _ => Null(Decor::empty())
+  }
+}
+
+///|
+/// Convert HCLValue to Json recursively
+fn hcl_value_to_json(v : HCLValue) -> Json {
+  match v {
+    Null(_) => Json::null()
+    Bool(b, _) => Json::boolean(b)
+    Number(n, _) => Json::number(n.as_float())
+    String(s, _) => Json::string(s)
+    Array(arr, _) => {
+      let result : Array[Json] = []
+      for item in arr {
+        result.push(hcl_value_to_json(item))
+      }
+      Json::array(result)
+    }
+    Object(obj, _) => {
+      let result : Map[String, Json] = {}
+      for k, v in obj {
+        result[k] = hcl_value_to_json(v)
+      }
+      Json::object(result)
+    }
+    _ => Json::null()
+  }
+}
+
+///|
+/// jsondecode(str) - Decode JSON string to HCL value
+fn fn_jsondecode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) =>
+      try {
+        let j = @json.parse(s)
+        Ok(json_to_hcl_value(j))
+      } catch {
+        e =>
+          Err(
+            HCLError::invalid_value(
+              "jsondecode() parse error: " + e.to_string(),
+            ),
+          )
+      }
+    _ => Err(HCLError::type_error("jsondecode() requires a string"))
+  }
+}
+
+///|
+/// jsonencode(val) - Encode HCL value to JSON string
+fn fn_jsonencode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  let j = hcl_value_to_json(args[0])
+  Ok(String(j.stringify(), Decor::empty()))
+}
+
+///|
+/// base64decode(str) - Decode base64 string
+fn fn_base64decode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) =>
+      try {
+        let bytes = @encoding/base64.decode(s)
+        Ok(String(@encoding/utf8.decode(bytes), Decor::empty()))
+      } catch {
+        _ => Err(HCLError::invalid_value("base64decode() invalid base64 input"))
+      }
+    _ => Err(HCLError::type_error("base64decode() requires a string"))
+  }
+}
+
+///|
+/// base64encode(str) - Encode string to base64
+fn fn_base64encode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) => {
+      let bytes = @encoding/utf8.encode(s)
+      Ok(String(@encoding/base64.encode(bytes), Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("base64encode() requires a string"))
+  }
+}
+
+///|
+/// csvdecode(str) - Decode CSV string to array of objects
+fn fn_csvdecode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) => {
+      let lines : Array[String] = []
+      for part in s.split("\n") {
+        lines.push(part.to_string())
+      }
+      if lines.is_empty() {
+        return Ok(Array([], Decor::empty()))
+      }
+      let headers = csv_parse_line(lines[0])
+      if headers.is_empty() {
+        return Ok(Array([], Decor::empty()))
+      }
+      let result = []
+      for i in 1..<lines.length() {
+        let line = lines[i]
+        if line.trim().to_string().is_empty() {
+          continue
+        }
+        let fields = csv_parse_line(line)
+        let obj : Map[String, HCLValue] = {}
+        for j in 0..<headers.length() {
+          if j < fields.length() {
+            obj[headers[j]] = String(fields[j], Decor::empty())
+          } else {
+            obj[headers[j]] = String("", Decor::empty())
+          }
+        }
+        result.push(HCLValue::Object(obj, Decor::empty()))
+      }
+      Ok(Array(result, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("csvdecode() requires a string"))
+  }
+}
+
+///|
+/// Parse a single CSV line, handling quoted fields
+fn csv_parse_line(line : String) -> Array[String] {
+  let result = []
+  let mut current = ""
+  let mut in_quotes = false
+  let mut i = 0
+  let len = line.length()
+  while i < len {
+    let c = char_at(line, i)
+    if in_quotes {
+      if c == "\"" {
+        if i + 1 < len && char_at(line, i + 1) == "\"" {
+          current = current + "\""
+          i = i + 2
+        } else {
+          in_quotes = false
+          i = i + 1
+        }
+      } else {
+        current = current + c
+        i = i + 1
+      }
+    } else if c == "\"" && current.is_empty() {
+      in_quotes = true
+      i = i + 1
+    } else if c == "," {
+      result.push(current)
+      current = ""
+      i = i + 1
+    } else {
+      current = current + c
+      i = i + 1
+    }
+  }
+  result.push(current)
+  result
+}
+
+///|
+/// urlencode(str) - URL percent-encode a string
+fn fn_urlencode(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  match args[0] {
+    String(s, _) => {
+      let hex = "0123456789ABCDEF"
+      let mut result = ""
+      for c in s {
+        let code = c.to_int()
+        if (code >= 65 && code <= 90) ||
+          (code >= 97 && code <= 122) ||
+          (code >= 48 && code <= 57) ||
+          c == '-' ||
+          c == '_' ||
+          c == '.' ||
+          c == '~' {
+          result = result + c.to_string()
+        } else if c == ' ' {
+          result = result + "+"
+        } else {
+          let hi = code / 16
+          let lo = code % 16
+          result = result + "%" + char_at(hex, hi) + char_at(hex, lo)
+        }
+      }
+      Ok(String(result, Decor::empty()))
+    }
+    _ => Err(HCLError::type_error("urlencode() requires a string"))
   }
 }
