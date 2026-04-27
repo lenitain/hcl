@@ -835,8 +835,8 @@ fn strip_heredoc_indent(text : String) -> String {
 fn value_to_string(value : HCLValue) -> String {
   match value {
     Null(_) => "null"
-    Bool(b, _) => if b { "true" } else { "false" }
-    Number(n, _) => n.to_string()
+    Bool(b, _) => bool_to_string(b)
+    Number(n, _) => number_to_string(n)
     String(s, _) => s
     Array(_, _) => "[array]"
     Object(_, _) => "[object]"
