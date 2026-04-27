@@ -53,7 +53,7 @@ test "parse and expr_to_string splat roundtrip" {
   assert_true(items.length() == 1)
   match items[0] {
     Attribute(attr) => {
-      let s = expr_to_string(attr.value)
+      let s = expr_to_string(attr.get_value())
       assert_true(s.contains(".*"))
     }
     _ => assert_true(false)

@@ -97,6 +97,7 @@ fn Parser::skip_newlines(self : Parser) -> HCLResult[Parser] {
 pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
   match self.skip_newlines() {
     Ok(start_parser) => {
+      let (start_line, start_col, start_offset) = start_parser.current_location()
       let items = []
       let mut parser = start_parser
 
@@ -145,10 +146,20 @@ pub fn Parser::parse_body(self : Parser) -> HCLResult[Body] {
         }
       }
 
-      Ok(Body::from_items(items))
+      let (end_line, end_col, end_offset) = parser.current_location()
+      let span = Span::new(
+        start_line, start_col, start_offset, end_line, end_col, end_offset,
+      )
+      Ok(Body::from_items(items).set_span(span))
     }
     Err(e) => Err(e)
   }
+}
+
+///|
+/// Capture current lexer position
+fn Parser::current_location(self : Parser) -> (Int, Int, Int) {
+  self.lexer.location()
 }
 
 ///|
@@ -187,16 +198,26 @@ fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
   match parser.advance() {
     Ok(parser) =>
       match parser.expect(Equals) {
-        Ok(parser) =>
+        Ok(parser) => {
+          let (start_line, start_col, start_offset) = parser.current_location()
           match parser.parse_value() {
             Ok((value, parser)) => {
+              let (end_line, end_col, end_offset) = parser.current_location()
+              let span = Span::new(
+                start_line, start_col, start_offset, end_line, end_col, end_offset,
+              )
+              let spanned_value = Spanned::new(value, span)
               let decor = prefix_decor
               Ok(
-                (Attr::with_decor(Decorated::bare(name), value, decor), parser),
+                (
+                  Attr::with_decor(Decorated::bare(name), spanned_value, decor),
+                  parser,
+                ),
               )
             }
             Err(e) => Err(e)
           }
+        }
         Err(e) => Err(e)
       }
     Err(e) => Err(e)
@@ -207,6 +228,7 @@ fn Parser::parse_attr(self : Parser) -> HCLResult[(Attr, Parser)] {
 /// Parse a block with decor collection
 fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
   let (parser, prefix_decor) = self.collect_prefix()
+  let (start_line, start_col, start_offset) = parser.current_location()
 
   let type_name = match parser.current {
     Ident(n) => n
@@ -316,18 +338,23 @@ fn Parser::parse_block(self : Parser) -> HCLResult[(Block, Parser)] {
       }
 
       match parser.expect(RBrace) {
-        Ok(final_parser) =>
+        Ok(final_parser) => {
+          let (end_line, end_col, end_offset) = final_parser.current_location()
+          let span = Span::new(
+            start_line, start_col, start_offset, end_line, end_col, end_offset,
+          )
           Ok(
             (
               Block::with_decor(
                 Decorated::bare(type_name),
                 labels.map(Decorated::bare),
-                { items, decor: Decor::empty() },
+                { items, decor: Decor::empty(), span: None },
                 prefix_decor,
-              ),
+              ).set_span(span),
               final_parser,
             ),
           )
+        }
         Err(e) => Err(e)
       }
     }

@@ -220,6 +220,10 @@ pub fn[V : Visit] visit_operation_default(V, Operation) -> Unit
 
 pub fn[V : VisitMut] visit_operation_mut_default(V, Operation) -> Unit
 
+pub fn[V : Visit] visit_spanned_expr_default(V, Spanned[Expression]) -> Unit
+
+pub fn[V : VisitMut] visit_spanned_expr_mut_default(V, Spanned[Expression]) -> Unit
+
 pub fn[V : Visit] visit_template_expr_default(V, TemplateExpr) -> Unit
 
 pub fn[V : VisitMut] visit_template_expr_mut_default(V, TemplateExpr) -> Unit
@@ -245,15 +249,17 @@ pub fn[V : VisitMut] visit_value_mut_default(V, HCLValue) -> Unit
 // Types and methods
 pub struct Attr {
   key : Decorated[String]
-  value : Expression
+  value : Spanned[Expression]
   decor : Decor
 } derive(Eq, @debug.Debug)
 pub fn Attr::get_decor(Self) -> Decor
 pub fn Attr::get_decorated_key(Self) -> Decorated[String]
 pub fn Attr::get_key(Self) -> String
+pub fn Attr::get_spanned_value(Self) -> Spanned[Expression]
 pub fn Attr::get_value(Self) -> Expression
 pub fn Attr::new(String, Expression) -> Self
-pub fn Attr::with_decor(Decorated[String], Expression, Decor) -> Self
+pub fn Attr::set_span(Self, Span) -> Self
+pub fn Attr::with_decor(Decorated[String], Spanned[Expression], Decor) -> Self
 
 pub struct AttrSchema {
   required : Bool
@@ -289,6 +295,7 @@ pub struct Block {
   labels : Array[Decorated[String]]
   body : Body
   decor : Decor
+  span : Span?
 } derive(Eq, @debug.Debug)
 pub fn Block::builder(String) -> BlockBuilder
 pub fn Block::find_attr(Self, String) -> Attr?
@@ -297,8 +304,10 @@ pub fn Block::get_decor(Self) -> Decor
 pub fn Block::get_decorated_labels(Self) -> Array[Decorated[String]]
 pub fn Block::get_decorated_type_name(Self) -> Decorated[String]
 pub fn Block::get_labels(Self) -> Array[String]
+pub fn Block::get_span(Self) -> Span?
 pub fn Block::get_type_name(Self) -> String
 pub fn Block::new(String, Array[String], Body) -> Self
+pub fn Block::set_span(Self, Span) -> Self
 pub fn Block::simple(String, Body) -> Self
 pub fn Block::with_decor(Decorated[String], Array[Decorated[String]], Body, Decor) -> Self
 
@@ -328,6 +337,7 @@ pub fn BlockSchema::with_max_items(Self, Int) -> Self
 pub struct Body {
   items : Array[BodyItem]
   decor : Decor
+  span : Span?
 } derive(Eq, @debug.Debug)
 pub fn Body::add_attr(Self, String, Expression) -> Self
 pub fn Body::add_block(Self, Block) -> Self
@@ -338,9 +348,11 @@ pub fn Body::find_blocks(Self, String) -> Array[Block]
 pub fn Body::from_items(Array[BodyItem]) -> Self
 pub fn Body::get_decor(Self) -> Decor
 pub fn Body::get_items(Self) -> Array[BodyItem]
+pub fn Body::get_span(Self) -> Span?
 pub fn Body::is_empty(Self) -> Bool
 pub fn Body::len(Self) -> Int
 pub fn Body::new() -> Self
+pub fn Body::set_span(Self, Span) -> Self
 pub fn Body::with_decor(Array[BodyItem], Decor) -> Self
 
 pub struct BodyBuilder {
@@ -725,6 +737,27 @@ pub struct Parser {
 pub fn Parser::from_lexer(Lexer) -> Result[Self, HCLError]
 pub fn Parser::new(String) -> Result[Self, HCLError]
 pub fn Parser::parse_body(Self) -> Result[Body, HCLError]
+
+pub struct Span {
+  start_line : Int
+  start_col : Int
+  start_offset : Int
+  end_line : Int
+  end_col : Int
+  end_offset : Int
+} derive(Eq, @debug.Debug)
+pub fn Span::empty() -> Self
+pub fn Span::merge(Self, Self) -> Self
+pub fn Span::new(Int, Int, Int, Int, Int, Int) -> Self
+
+pub struct Spanned[T] {
+  value : T
+  span : Span?
+} derive(Eq, @debug.Debug)
+pub fn[T] Spanned::bare(T) -> Self[T]
+pub fn[T] Spanned::get_span(Self[T]) -> Span?
+pub fn[T] Spanned::new(T, Span) -> Self[T]
+pub fn[T] Spanned::unwrap(Self[T]) -> T
 
 pub struct Template {
   parts : Array[TemplatePart]

@@ -3,6 +3,7 @@
 pub struct Body {
   items : Array[BodyItem]
   decor : Decor
+  span : Span?
 } derive(Debug, Eq)
 
 ///|
@@ -18,7 +19,7 @@ pub(all) enum BodyItem {
 /// HCL Attribute - key-value pair with decoration
 pub struct Attr {
   key : Decorated[String]
-  value : Expression
+  value : Spanned[Expression]
   decor : Decor
 } derive(Debug, Eq)
 
@@ -29,24 +30,25 @@ pub struct Block {
   labels : Array[Decorated[String]]
   body : Body
   decor : Decor
+  span : Span?
 } derive(Debug, Eq)
 
 ///|
 /// Create a new empty Body with decoration
 pub fn Body::new() -> Body {
-  { items: [], decor: Decor::empty() }
+  { items: [], decor: Decor::empty(), span: None }
 }
 
 ///|
 /// Create a Body from items with decoration
 pub fn Body::from_items(items : Array[BodyItem]) -> Body {
-  { items, decor: Decor::empty() }
+  { items, decor: Decor::empty(), span: None }
 }
 
 ///|
 /// Create a Body with full decoration
 pub fn Body::with_decor(items : Array[BodyItem], decor : Decor) -> Body {
-  { items, decor }
+  { items, decor, span: None }
 }
 
 ///|
@@ -74,13 +76,29 @@ pub fn Body::get_decor(self : Body) -> Decor {
 }
 
 ///|
+/// Set span on body
+pub fn Body::set_span(self : Body, span : Span) -> Body {
+  { items: self.items, decor: self.decor, span: Some(span) }
+}
+
+///|
+/// Get body span
+pub fn Body::get_span(self : Body) -> Span? {
+  self.span
+}
+
+///|
 /// Add an attribute to the body (returns new body)
 pub fn Body::add_attr(self : Body, key : String, value : Expression) -> Body {
   let new_items = self.items.copy()
   new_items.push(
-    Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
+    Attribute({
+      key: Decorated::bare(key),
+      value: Spanned::bare(value),
+      decor: Decor::empty(),
+    }),
   )
-  { items: new_items, decor: self.decor }
+  { items: new_items, decor: self.decor, span: self.span }
 }
 
 ///|
@@ -88,7 +106,7 @@ pub fn Body::add_attr(self : Body, key : String, value : Expression) -> Body {
 pub fn Body::add_block(self : Body, block : Block) -> Body {
   let new_items = self.items.copy()
   new_items.push(Block(block))
-  { items: new_items, decor: self.decor }
+  { items: new_items, decor: self.decor, span: self.span }
 }
 
 ///|
@@ -133,14 +151,18 @@ pub fn Body::find_block(self : Body, type_name : String) -> Block? {
 ///|
 /// Create a new attribute with decoration
 pub fn Attr::new(key : String, value : Expression) -> Attr {
-  { key: Decorated::bare(key), value, decor: Decor::empty() }
+  {
+    key: Decorated::bare(key),
+    value: Spanned::bare(value),
+    decor: Decor::empty(),
+  }
 }
 
 ///|
 /// Create a new attribute with full decoration
 pub fn Attr::with_decor(
   key : Decorated[String],
-  value : Expression,
+  value : Spanned[Expression],
   decor : Decor,
 ) -> Attr {
   { key, value, decor }
@@ -167,7 +189,23 @@ pub fn Attr::get_decor(self : Attr) -> Decor {
 ///|
 /// Get attribute value
 pub fn Attr::get_value(self : Attr) -> Expression {
+  self.value.unwrap()
+}
+
+///|
+/// Get attribute spanned value
+pub fn Attr::get_spanned_value(self : Attr) -> Spanned[Expression] {
   self.value
+}
+
+///|
+/// Set span on attribute value
+pub fn Attr::set_span(self : Attr, span : Span) -> Attr {
+  {
+    key: self.key,
+    value: Spanned::new(self.value.unwrap(), span),
+    decor: self.decor,
+  }
 }
 
 ///|
@@ -182,6 +220,7 @@ pub fn Block::new(
     labels: labels.map(Decorated::bare),
     body,
     decor: Decor::empty(),
+    span: None,
   }
 }
 
@@ -193,7 +232,7 @@ pub fn Block::with_decor(
   body : Body,
   decor : Decor,
 ) -> Block {
-  { type_name, labels, body, decor }
+  { type_name, labels, body, decor, span: None }
 }
 
 ///|
@@ -204,6 +243,7 @@ pub fn Block::simple(type_name : String, body : Body) -> Block {
     labels: [],
     body,
     decor: Decor::empty(),
+    span: None,
   }
 }
 
@@ -223,6 +263,24 @@ pub fn Block::get_decorated_type_name(self : Block) -> Decorated[String] {
 /// Get block decoration
 pub fn Block::get_decor(self : Block) -> Decor {
   self.decor
+}
+
+///|
+/// Set span on block
+pub fn Block::set_span(self : Block, span : Span) -> Block {
+  {
+    type_name: self.type_name,
+    labels: self.labels,
+    body: self.body,
+    decor: self.decor,
+    span: Some(span),
+  }
+}
+
+///|
+/// Get block span
+pub fn Block::get_span(self : Block) -> Span? {
+  self.span
 }
 
 ///|

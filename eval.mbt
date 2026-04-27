@@ -851,7 +851,7 @@ pub fn simplify_body(body : Body) -> Body {
         let simplified_value = simplify_value(attr.get_value())
         let new_attr = Attr::with_decor(
           attr.get_decorated_key(),
-          simplified_value,
+          Spanned::bare(simplified_value),
           attr.get_decor(),
         )
         simplified_items.push(Attribute(new_attr))

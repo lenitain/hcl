@@ -5,7 +5,7 @@ test "Attr with decoration" {
   let key = Decorated::new("name", key_decor)
   let value = expr_str("value")
 
-  let attr = Attr::with_decor(key, value, decor)
+  let attr = Attr::with_decor(key, Spanned::bare(value), decor)
   assert_eq(attr.get_key(), "name")
   assert_eq(attr.get_decorated_key().get_decor().get_suffix(), Some(" "))
   assert_eq(attr.get_decor().get_prefix(), Some(" "))

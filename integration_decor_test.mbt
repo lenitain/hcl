@@ -27,7 +27,11 @@ test "modify and preserve decor" {
 
   let new_value = expr_str("new")
   let new_key = Decorated::bare(attr.get_key())
-  let new_attr = Attr::with_decor(new_key, new_value, attr.get_decor())
+  let new_attr = Attr::with_decor(
+    new_key,
+    Spanned::bare(new_value),
+    attr.get_decor(),
+  )
 
   let new_body = Body::with_decor(
     [BodyItem::Attribute(new_attr)],

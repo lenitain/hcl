@@ -205,7 +205,7 @@ pub fn format_attr_with_decor(attr : Attr) -> String {
 
   result = result + " = "
 
-  result = result + format_value_with_decor(expr_to_hcl_value(attr.value))
+  result = result + format_value_with_decor(expr_to_hcl_value(attr.get_value()))
 
   match attr.decor.get_suffix() {
     Some(suffix) => result = result + suffix

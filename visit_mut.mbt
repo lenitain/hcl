@@ -46,9 +46,18 @@ pub fn[V : VisitMut] visit_body_item_mut_default(
 }
 
 ///|
-/// Default attr visitor mutably
+/// Default spanned expression visitor mutably - unwraps and visits expression
+pub fn[V : VisitMut] visit_spanned_expr_mut_default(
+  v : V,
+  spanned : Spanned[Expression],
+) -> Unit {
+  v.visit_expr_mut(spanned.unwrap())
+}
+
+///|
+/// Default attr visitor mutably - visits spanned value
 pub fn[V : VisitMut] visit_attr_mut_default(v : V, attr : Attr) -> Unit {
-  v.visit_expr_mut(attr.get_value())
+  visit_spanned_expr_mut_default(v, attr.get_spanned_value())
 }
 
 ///|

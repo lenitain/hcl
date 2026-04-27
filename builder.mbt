@@ -18,7 +18,11 @@ pub fn BodyBuilder::attr(
   value : Expression,
 ) -> BodyBuilder {
   self.items.push(
-    Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
+    Attribute({
+      key: Decorated::bare(key),
+      value: Spanned::bare(value),
+      decor: Decor::empty(),
+    }),
   )
   self
 }
@@ -33,7 +37,7 @@ pub fn[T : ToHCL] BodyBuilder::attr_hcl(
   self.items.push(
     Attribute({
       key: Decorated::bare(key),
-      value: hcl_value_to_expression(value.to_hcl()),
+      value: Spanned::bare(hcl_value_to_expression(value.to_hcl())),
       decor: Decor::empty(),
     }),
   )
@@ -50,7 +54,11 @@ pub fn BodyBuilder::attr_if(
 ) -> BodyBuilder {
   if cond {
     self.items.push(
-      Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
+      Attribute({
+        key: Decorated::bare(key),
+        value: Spanned::bare(value),
+        decor: Decor::empty(),
+      }),
     )
   }
   self
@@ -68,7 +76,7 @@ pub fn[T : ToHCL] BodyBuilder::attr_option(
       self.items.push(
         Attribute({
           key: Decorated::bare(key),
-          value: hcl_value_to_expression(v.to_hcl()),
+          value: Spanned::bare(hcl_value_to_expression(v.to_hcl())),
           decor: Decor::empty(),
         }),
       )
@@ -87,7 +95,7 @@ pub fn BodyBuilder::block(self : BodyBuilder, blk : Block) -> BodyBuilder {
 ///|
 /// Build the Body
 pub fn BodyBuilder::build(self : BodyBuilder) -> Body {
-  { items: self.items, decor: Decor::empty() }
+  { items: self.items, decor: Decor::empty(), span: None }
 }
 
 ///|
@@ -119,7 +127,11 @@ pub fn BlockBuilder::attr(
   value : Expression,
 ) -> BlockBuilder {
   self.items.push(
-    Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
+    Attribute({
+      key: Decorated::bare(key),
+      value: Spanned::bare(value),
+      decor: Decor::empty(),
+    }),
   )
   self
 }
@@ -134,7 +146,7 @@ pub fn[T : ToHCL] BlockBuilder::attr_hcl(
   self.items.push(
     Attribute({
       key: Decorated::bare(key),
-      value: hcl_value_to_expression(value.to_hcl()),
+      value: Spanned::bare(hcl_value_to_expression(value.to_hcl())),
       decor: Decor::empty(),
     }),
   )
@@ -151,7 +163,11 @@ pub fn BlockBuilder::attr_if(
 ) -> BlockBuilder {
   if cond {
     self.items.push(
-      Attribute({ key: Decorated::bare(key), value, decor: Decor::empty() }),
+      Attribute({
+        key: Decorated::bare(key),
+        value: Spanned::bare(value),
+        decor: Decor::empty(),
+      }),
     )
   }
   self
@@ -172,7 +188,8 @@ pub fn BlockBuilder::build(self : BlockBuilder) -> Block {
   {
     type_name: Decorated::bare(self.type_name),
     labels: self.labels.map(Decorated::bare),
-    body: { items: self.items, decor: Decor::empty() },
+    body: { items: self.items, decor: Decor::empty(), span: None },
     decor: Decor::empty(),
+    span: None,
   }
 }

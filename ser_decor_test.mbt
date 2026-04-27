@@ -3,7 +3,7 @@ test "format attribute with decor" {
   let key = Decorated::new("name", Decor::new(None, Some(" ")))
   let value = expr_str("value")
   let decor = Decor::new(Some("// comment\n"), Some("\n"))
-  let attr = Attr::with_decor(key, value, decor)
+  let attr = Attr::with_decor(key, Spanned::bare(value), decor)
 
   let result = format_attr_with_decor(attr)
   assert_true(result.contains("// comment"))

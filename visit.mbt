@@ -47,9 +47,18 @@ pub fn[V : Visit] visit_body_item_default(v : V, item : BodyItem) -> Unit {
 }
 
 ///|
-/// Default attr visitor - visits value
+/// Default spanned expression visitor - unwraps and visits expression
+pub fn[V : Visit] visit_spanned_expr_default(
+  v : V,
+  spanned : Spanned[Expression],
+) -> Unit {
+  v.visit_expr(spanned.unwrap())
+}
+
+///|
+/// Default attr visitor - visits spanned value
 pub fn[V : Visit] visit_attr_default(v : V, attr : Attr) -> Unit {
-  v.visit_expr(attr.get_value())
+  visit_spanned_expr_default(v, attr.get_spanned_value())
 }
 
 ///|
