@@ -33,7 +33,7 @@ fn sort_strings(arr : Array[String]) -> Array[String] {
 
 ///|
 /// Collector for variable names from ExprVariable nodes
-struct VariableCollector {
+priv struct VariableCollector {
   names : Array[String]
 }
 
@@ -132,7 +132,7 @@ impl Visit for VariableCollector with visit_decorated_expr(self, de) {
 
 ///|
 /// Collector for function names from ExprFuncCall nodes
-struct FunctionCollector {
+priv struct FunctionCollector {
   names : Array[String]
 }
 
@@ -236,7 +236,7 @@ impl Visit for FunctionCollector with visit_decorated_expr(self, de) {
 
 ///|
 /// Collector for traversal root variable names (from ExprTraversal where base is ExprVariable)
-struct TraversalCollector {
+priv struct TraversalCollector {
   names : Array[String]
 }
 
@@ -284,10 +284,7 @@ impl Visit for TraversalCollector with visit_object_key(self, key) {
 
 ///|
 impl Visit for TraversalCollector with visit_traversal(self, trav) {
-  match trav.base {
-    ExprVariable(v) => add_unique(self.names, v.name)
-    _ => visit_traversal_default(self, trav)
-  }
+  visit_traversal_default(self, trav)
 }
 
 ///|

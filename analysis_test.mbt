@@ -103,6 +103,23 @@ test "nested_function_calls" {
 }
 
 ///|
+test "collect_variables_in_conditional" {
+  let body = parse("a = cond ? x : y").unwrap()
+  let vars = collect_variables(body)
+  assert_eq(vars.length(), 3)
+  assert_true(vars.contains("cond"))
+  assert_true(vars.contains("x"))
+  assert_true(vars.contains("y"))
+}
+
+///|
+test "collect_variables_in_for" {
+  let body = parse("a = [for item in items: item.name]").unwrap()
+  let vars = collect_variables(body)
+  assert_true(vars.contains("items"))
+}
+
+///|
 test "mixed_analysis" {
   let body = parse(
     "name = upper(first)\naddr = obj.street\ncount = length(items)",
