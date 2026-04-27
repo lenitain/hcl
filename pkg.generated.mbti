@@ -239,6 +239,13 @@ pub fn Attr::get_value(Self) -> Expression
 pub fn Attr::new(String, Expression) -> Self
 pub fn Attr::with_decor(Decorated[String], Expression, Decor) -> Self
 
+pub struct AttrSchema {
+  required : Bool
+  type_schema : TypeSchema
+} derive(Eq, @debug.Debug)
+pub fn AttrSchema::optional(TypeSchema) -> Self
+pub fn AttrSchema::required(TypeSchema) -> Self
+
 pub(all) struct BinaryOp {
   left : Expression
   op : BinaryOperator
@@ -291,6 +298,16 @@ pub fn BlockBuilder::body(Self, Body) -> Self
 pub fn BlockBuilder::build(Self) -> Block
 pub fn BlockBuilder::label(Self, String) -> Self
 
+pub struct BlockSchema {
+  required : Bool
+  max_items : Int?
+  labels : Array[LabelSchema]
+  body : BodySchema
+} derive(Eq, @debug.Debug)
+pub fn BlockSchema::new(BodySchema) -> Self
+pub fn BlockSchema::required(Self) -> Self
+pub fn BlockSchema::with_max_items(Self, Int) -> Self
+
 pub struct Body {
   items : Array[BodyItem]
   decor : Decor
@@ -323,6 +340,16 @@ pub(all) enum BodyItem {
   Attribute(Attr)
   Block(Block)
 } derive(Eq, @debug.Debug)
+
+pub struct BodySchema {
+  attrs : Map[String, AttrSchema]
+  blocks : Map[String, BlockSchema]
+  extra_attrs : Bool
+  extra_blocks : Bool
+} derive(Eq, @debug.Debug)
+pub fn BodySchema::new() -> Self
+pub fn BodySchema::with_attrs(Self, Map[String, AttrSchema]) -> Self
+pub fn BodySchema::with_blocks(Self, Map[String, BlockSchema]) -> Self
 
 pub(all) struct Conditional {
   condition : Expression
@@ -560,6 +587,12 @@ pub(all) enum JsonValue {
   JsonArray(Array[JsonValue])
   JsonObject(Array[(String, JsonValue)])
 } derive(Eq, @debug.Debug)
+
+pub struct LabelSchema {
+  required : Bool
+} derive(Eq, @debug.Debug)
+pub fn LabelSchema::optional() -> Self
+pub fn LabelSchema::required() -> Self
 
 pub struct Lexer {
   input : String

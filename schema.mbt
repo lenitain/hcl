@@ -273,6 +273,106 @@ pub fn is_valid(value : HCLValue, schema : TypeSchema) -> Bool {
 }
 
 ///|
+/// Schema for extracting structured data from HCL Body
+pub struct BodySchema {
+  attrs : Map[String, AttrSchema]
+  blocks : Map[String, BlockSchema]
+  extra_attrs : Bool
+  extra_blocks : Bool
+} derive(Debug, Eq)
+
+///|
+/// Schema for a body attribute
+pub struct AttrSchema {
+  required : Bool
+  type_schema : TypeSchema
+} derive(Debug, Eq)
+
+///|
+/// Schema for a body block
+pub struct BlockSchema {
+  required : Bool
+  max_items : Int?
+  labels : Array[LabelSchema]
+  body : BodySchema
+} derive(Debug, Eq)
+
+///|
+/// Schema for a block label
+pub struct LabelSchema {
+  required : Bool
+} derive(Debug, Eq)
+
+///|
+/// Create an empty BodySchema
+pub fn BodySchema::new() -> BodySchema {
+  { attrs: {}, blocks: {}, extra_attrs: false, extra_blocks: false }
+}
+
+///|
+/// Set attribute schemas on a BodySchema
+pub fn BodySchema::with_attrs(
+  self : BodySchema,
+  attrs : Map[String, AttrSchema],
+) -> BodySchema {
+  { ..self, attrs }
+}
+
+///|
+/// Set block schemas on a BodySchema
+pub fn BodySchema::with_blocks(
+  self : BodySchema,
+  blocks : Map[String, BlockSchema],
+) -> BodySchema {
+  { ..self, blocks }
+}
+
+///|
+/// Create a required AttrSchema
+pub fn AttrSchema::required(type_schema : TypeSchema) -> AttrSchema {
+  { required: true, type_schema }
+}
+
+///|
+/// Create an optional AttrSchema
+pub fn AttrSchema::optional(type_schema : TypeSchema) -> AttrSchema {
+  { required: false, type_schema }
+}
+
+///|
+/// Create a new BlockSchema
+pub fn BlockSchema::new(body : BodySchema) -> BlockSchema {
+  { required: false, max_items: None, labels: [], body }
+}
+
+///|
+/// Mark block as required
+pub fn BlockSchema::required(self : BlockSchema) -> BlockSchema {
+  { ..self, required: true }
+}
+
+///|
+/// Set max items for block
+pub fn BlockSchema::with_max_items(
+  self : BlockSchema,
+  max : Int,
+) -> BlockSchema {
+  { ..self, max_items: Some(max) }
+}
+
+///|
+/// Create a required LabelSchema
+pub fn LabelSchema::required() -> LabelSchema {
+  { required: true }
+}
+
+///|
+/// Create an optional LabelSchema
+pub fn LabelSchema::optional() -> LabelSchema {
+  { required: false }
+}
+
+///|
 /// Custom validator function type
 pub type Validator = (HCLValue, String) -> Array[HCLError]
 
