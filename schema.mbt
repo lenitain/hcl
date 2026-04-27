@@ -346,8 +346,8 @@ pub fn BlockSchema::new(body : BodySchema) -> BlockSchema {
 }
 
 ///|
-/// Mark block as required
-pub fn BlockSchema::required(self : BlockSchema) -> BlockSchema {
+/// Mark an existing block schema as required
+pub fn BlockSchema::mark_required(self : BlockSchema) -> BlockSchema {
   { ..self, required: true }
 }
 
