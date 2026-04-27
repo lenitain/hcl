@@ -278,6 +278,15 @@ pub fn builtin_functions() -> Map[String, FuncDef] {
     .param(ParamArray(Any))
     .param(ParamNumber)
     .build("element", fn_element)
+  funcs["concat"] = FuncDef::builder()
+    .variadic(ParamArray(Any))
+    .build("concat", fn_concat)
+  funcs["coalesce"] = FuncDef::builder()
+    .variadic(Any)
+    .build("coalesce", fn_coalesce)
+  funcs["range"] = FuncDef::builder()
+    .variadic(ParamNumber)
+    .build("range", fn_range)
 
   // String functions
   funcs["chomp"] = FuncDef::builder()
@@ -816,6 +825,69 @@ fn fn_element(args : Array[HCLValue]) -> HCLResult[HCLValue] {
       }
     _ => Err(HCLError::type_error("element() requires (array, int)"))
   }
+}
+
+///|
+/// concat(list1, list2, ...) - Concatenate multiple arrays
+fn fn_concat(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  let result = []
+  for arg in args {
+    match arg {
+      Array(arr, _) =>
+        for item in arr {
+          result.push(item)
+        }
+      _ => return Err(HCLError::type_error("concat() requires arrays"))
+    }
+  }
+  Ok(Array(result, Decor::empty()))
+}
+
+///|
+/// coalesce(val1, val2, ...) - Return first non-null value
+fn fn_coalesce(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  for arg in args {
+    match arg {
+      Null(_) => continue
+      _ => return Ok(arg)
+    }
+  }
+  Ok(Null(Decor::empty()))
+}
+
+///|
+/// range(max) or range(start, limit) - Generate number sequence
+fn fn_range(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  let (start, limit) = match args.length() {
+    1 =>
+      match args[0] {
+        Number(n, _) =>
+          match n.as_int() {
+            Some(v) => (0, v)
+            None =>
+              return Err(HCLError::type_error("range() requires integers"))
+          }
+        _ => return Err(HCLError::type_error("range() requires numbers"))
+      }
+    2 =>
+      match (args[0], args[1]) {
+        (Number(n1, _), Number(n2, _)) =>
+          match (n1.as_int(), n2.as_int()) {
+            (Some(a), Some(b)) => (a, b)
+            _ => return Err(HCLError::type_error("range() requires integers"))
+          }
+        _ => return Err(HCLError::type_error("range() requires numbers"))
+      }
+    _ =>
+      return Err(HCLError::invalid_value("range() requires 1 or 2 arguments"))
+  }
+  let result = []
+  let mut i = start
+  while i < limit {
+    result.push(Number(Number::from_int(i), Decor::empty()))
+    i = i + 1
+  }
+  Ok(Array(result, Decor::empty()))
 }
 
 ///| =========================================================================

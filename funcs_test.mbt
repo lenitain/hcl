@@ -658,6 +658,144 @@ test "element wrap around" {
   }
 }
 
+///|
+test "concat basic" {
+  let funcs = builtin_functions()
+  let f = funcs["concat"]
+  let arr1 = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  let arr2 = HCLValue::Array(
+    [
+      HCLValue::Number(Number::from_int(3), Decor::empty()),
+      HCLValue::Number(Number::from_int(4), Decor::empty()),
+    ],
+    Decor::empty(),
+  )
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 4)
+      assert_true(
+        arr[0] == HCLValue::Number(Number::from_int(1), Decor::empty()),
+      )
+      assert_true(
+        arr[3] == HCLValue::Number(Number::from_int(4), Decor::empty()),
+      )
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "concat empty arrays" {
+  let funcs = builtin_functions()
+  let f = funcs["concat"]
+  let arr1 = HCLValue::Array([], Decor::empty())
+  let arr2 = HCLValue::Array(
+    [HCLValue::Number(Number::from_int(1), Decor::empty())],
+    Decor::empty(),
+  )
+  match f.call([arr1, arr2]) {
+    Ok(HCLValue::Array(arr, _)) => assert_eq(arr.length(), 1)
+    _ => panic()
+  }
+}
+
+///|
+test "concat type error" {
+  let funcs = builtin_functions()
+  let f = funcs["concat"]
+  match
+    f.call([
+      HCLValue::Number(Number::from_int(1), Decor::empty()),
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+    ]) {
+    Err(_) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "coalesce first non-null" {
+  let funcs = builtin_functions()
+  let f = funcs["coalesce"]
+  match
+    f.call([
+      HCLValue::Null(Decor::empty()),
+      HCLValue::Number(Number::from_int(42), Decor::empty()),
+      HCLValue::String("hello", Decor::empty()),
+    ]) {
+    Ok(v) =>
+      assert_true(v == HCLValue::Number(Number::from_int(42), Decor::empty()))
+    _ => panic()
+  }
+}
+
+///|
+test "coalesce all null" {
+  let funcs = builtin_functions()
+  let f = funcs["coalesce"]
+  match
+    f.call([HCLValue::Null(Decor::empty()), HCLValue::Null(Decor::empty())]) {
+    Ok(HCLValue::Null(_)) => assert_true(true)
+    _ => panic()
+  }
+}
+
+///|
+test "range single arg" {
+  let funcs = builtin_functions()
+  let f = funcs["range"]
+  match f.call([HCLValue::Number(Number::from_int(3), Decor::empty())]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 3)
+      assert_true(
+        arr[0] == HCLValue::Number(Number::from_int(0), Decor::empty()),
+      )
+      assert_true(
+        arr[2] == HCLValue::Number(Number::from_int(2), Decor::empty()),
+      )
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "range two args" {
+  let funcs = builtin_functions()
+  let f = funcs["range"]
+  match
+    f.call([
+      HCLValue::Number(Number::from_int(2), Decor::empty()),
+      HCLValue::Number(Number::from_int(5), Decor::empty()),
+    ]) {
+    Ok(HCLValue::Array(arr, _)) => {
+      assert_eq(arr.length(), 3)
+      assert_true(
+        arr[0] == HCLValue::Number(Number::from_int(2), Decor::empty()),
+      )
+      assert_true(
+        arr[2] == HCLValue::Number(Number::from_int(4), Decor::empty()),
+      )
+    }
+    _ => panic()
+  }
+}
+
+///|
+test "range empty" {
+  let funcs = builtin_functions()
+  let f = funcs["range"]
+  match f.call([HCLValue::Number(Number::from_int(0), Decor::empty())]) {
+    Ok(HCLValue::Array(arr, _)) => assert_eq(arr.length(), 0)
+    _ => panic()
+  }
+}
+
 ///| =========================================================================
 /// String Functions Tests
 
