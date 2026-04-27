@@ -1,11 +1,11 @@
 # HCL-MoonBit 项目进度
 
-## 当前状态：集合函数补齐 Task 3 — transpose/matchkeys 完成 ✅
+## 当前状态：集合/条件函数补齐 — 迭代 3 完成 ✅
 
 ## 当前分支
 - 分支：`lenitain/feat/collection-funcs`
-- 状态：开发中（Task 2 完成）
-- 目标：补齐集合操作和条件函数（迭代 3）
+- 状态：开发完成
+- 目标：补齐集合操作和条件函数
 
 ## 本次开发完成的任务
 
@@ -20,13 +20,29 @@
 - ✅ `transpose(map)` — 转置 map 键值，使用 `result.get(s)` 安全检查键存在
 - ✅ `matchkeys(search, keys, values)` — 按 search 顺序匹配 keys 返回对应 values
 - ✅ 5 个新测试（transpose 3 + matchkeys 3，含边界和类型错误）
-- ✅ 823 个测试全部通过
+- ✅ 834 个测试全部通过
+
+### 集合/条件函数补齐 CollectionFuncs ✅
+- ✅ `concat(list1, list2, ...)` — 拼接多个数组，variadic 参数
+- ✅ `coalesce(val1, val2, ...)` — 返回第一个非 null 值
+- ✅ `range(max)` / `range(start, limit)` — 生成数字序列
+- ✅ `chunklist(list, size)` — 将数组分块
+- ✅ `lookup(map, key, default?)` — 安全访问 map 键
+- ✅ `zipmap(keys, values)` — 两个数组合并成 map
+- ✅ `transpose(map)` — map 的键值转置
+- ✅ `matchkeys(search, keys, values)` — 匹配键模式
+- ✅ `sum(list)` — 数字数组求和
+- ✅ `alltrue(list)` — 全为真（空数组返回 true）
+- ✅ `anytrue(list)` — 任一为真（空数组返回 false）
+- ✅ `one(list)` — 确保列表只有一个元素并返回
+- ✅ 新增 33+ 个测试
+- ✅ 所有 834 个测试通过
 
 ### 验证结果
-- ✅ moon check: 0 errors (38 warnings, all pre-existing)
-- ✅ moon test: 823 passed, 0 failed
-- ✅ moon info: 通过
+- ✅ moon check: 0 errors
+- ✅ moon test: 834 passed, 0 failed
 - ✅ moon fmt: 通过
+- ✅ moon info: 通过
 
 ### 字符串函数补齐 StringFuncsComplete ✅
 - ✅ `startswith(str, prefix)` — 字符串前缀检查，使用 `s.has_prefix()`
@@ -135,7 +151,7 @@
 
 ### 验证结果
 - ✅ moon check: 0 errors
-- ✅ moon test: 823 passed, 0 failed
+- ✅ moon test: 834 passed, 0 failed
 - ✅ moon fmt: 通过
 - ✅ moon info: 通过
 
@@ -259,7 +275,7 @@
 - ✅ derive 白盒测试覆盖
 
 ### 测试
-- ✅ 823 个测试全部通过
+- ✅ 834 个测试全部通过
 - 覆盖：属性解析、块解析、嵌套块、数组、对象、布尔值、null、注释
 - 覆盖：表达式求值、条件表达式、函数调用、变量引用、属性访问
 - 覆盖：模板系统（字符串插值、条件指令、for循环、heredoc）
@@ -991,7 +1007,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 ```
 迭代 1:  ParseErrorRecovery  — ✅ 已完成 (788 测试通过)
 迭代 2:  StringFuncsComplete  — ✅ 已完成 (801 测试通过)
-迭代 3:  CollectionFuncs     — 进行中 (823 测试通过, chunklist/lookup/zipmap/transpose/matchkeys ✅)
+迭代 3:  CollectionFuncs     — ✅ 已完成 (834 测试通过)
 迭代 4:  SetFuncs            — 中优先级
 迭代 5:  EncodingFuncs       — 中优先级 (依赖 MoonBit 生态)
 迭代 6:  CryptoFuncs         — 中优先级 (依赖 MoonBit 生态)
@@ -1002,7 +1018,7 @@ pub fn merge_funcs(base: Map[String, FuncDef], extra: Map[String, FuncDef]) -> M
 迭代 11: TypeSystemEnhance   — 低优先级
 ```
 
-**建议开发顺序**：按迭代 2 ✅ → 3 → 10 → 4 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
+**建议开发顺序**：按迭代 2 ✅ → 3 ✅ → 10 → 4 → 7 → 8 → 5/6/9（并行，取决于 MoonBit 生态就绪情况）→ 11
 
 ---
 
