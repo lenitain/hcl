@@ -1155,3 +1155,188 @@ test "nested function calls" {
     Err(_) => panic()
   }
 }
+
+///| =========================================================================
+/// FuncDef Parameter Validation Tests
+
+///| =========================================================================
+
+///|
+test "ParamType Any accepts all types" {
+  let any = ParamType::Any
+  assert_true(any.is_satisfied_by(Bool(true, Decor::empty())))
+  assert_true(any.is_satisfied_by(Number(Number::from_int(1), Decor::empty())))
+  assert_true(any.is_satisfied_by(String("hi", Decor::empty())))
+  assert_true(any.is_satisfied_by(Null(Decor::empty())))
+  assert_true(any.is_satisfied_by(Array([], Decor::empty())))
+}
+
+///|
+test "ParamType Bool rejects non-bool" {
+  let pt = ParamType::ParamBool
+  assert_true(pt.is_satisfied_by(Bool(true, Decor::empty())))
+  assert_false(pt.is_satisfied_by(Number(Number::from_int(1), Decor::empty())))
+  assert_false(pt.is_satisfied_by(String("true", Decor::empty())))
+}
+
+///|
+test "ParamType Number rejects non-number" {
+  let pt = ParamType::ParamNumber
+  assert_true(pt.is_satisfied_by(Number(Number::from_int(1), Decor::empty())))
+  assert_false(pt.is_satisfied_by(Bool(true, Decor::empty())))
+  assert_false(pt.is_satisfied_by(String("1", Decor::empty())))
+}
+
+///|
+test "ParamType String rejects non-string" {
+  let pt = ParamType::ParamString
+  assert_true(pt.is_satisfied_by(String("hi", Decor::empty())))
+  assert_false(pt.is_satisfied_by(Number(Number::from_int(1), Decor::empty())))
+}
+
+///|
+test "ParamType Array checks elements" {
+  let pt = ParamType::ParamArray(ParamString)
+  assert_true(
+    pt.is_satisfied_by(
+      Array(
+        [String("a", Decor::empty()), String("b", Decor::empty())],
+        Decor::empty(),
+      ),
+    ),
+  )
+  assert_false(
+    pt.is_satisfied_by(
+      Array(
+        [
+          String("a", Decor::empty()),
+          Number(Number::from_int(1), Decor::empty()),
+        ],
+        Decor::empty(),
+      ),
+    ),
+  )
+  assert_false(pt.is_satisfied_by(String("not array", Decor::empty())))
+}
+
+///|
+test "ParamType Nullable accepts null" {
+  let pt = ParamType::Nullable(ParamString)
+  assert_true(pt.is_satisfied_by(Null(Decor::empty())))
+  assert_true(pt.is_satisfied_by(String("hi", Decor::empty())))
+  assert_false(pt.is_satisfied_by(Number(Number::from_int(1), Decor::empty())))
+}
+
+///|
+test "ParamType OneOf accepts any matching" {
+  let pt = ParamType::OneOf([ParamString, ParamNumber])
+  assert_true(pt.is_satisfied_by(String("hi", Decor::empty())))
+  assert_true(pt.is_satisfied_by(Number(Number::from_int(1), Decor::empty())))
+  assert_false(pt.is_satisfied_by(Bool(true, Decor::empty())))
+}
+
+///|
+test "ParamType display_name" {
+  assert_true(ParamType::Any.display_name() == "any")
+  assert_true(ParamType::ParamBool.display_name() == "bool")
+  assert_true(ParamType::ParamNumber.display_name() == "number")
+  assert_true(ParamType::ParamString.display_name() == "string")
+  assert_true(
+    ParamType::ParamArray(ParamString).display_name() == "array(string)",
+  )
+  assert_true(
+    ParamType::Nullable(ParamNumber).display_name() == "number?",
+  )
+}
+
+///|
+fn fn_add_stub(args : Array[HCLValue]) -> HCLResult[HCLValue] {
+  Ok(Number(Number::from_int(0), Decor::empty()))
+}
+
+///|
+test "FuncDef call validates too few args" {
+  let fd = FuncDefBuilder::new()
+    .param(ParamNumber)
+    .param(ParamNumber)
+    .build("add", fn_add_stub)
+  match fd.call([Number(Number::from_int(1), Decor::empty())]) {
+    Err(_) => assert_true(true)
+    Ok(_) => panic()
+  }
+}
+
+///|
+test "FuncDef call validates too many args" {
+  let fd = FuncDefBuilder::new()
+    .param(ParamNumber)
+    .build("one_param", fn_add_stub)
+  match fd.call([
+    Number(Number::from_int(1), Decor::empty()),
+    Number(Number::from_int(2), Decor::empty()),
+  ]) {
+    Err(_) => assert_true(true)
+    Ok(_) => panic()
+  }
+}
+
+///|
+test "FuncDef call validates type mismatch" {
+  let fd = FuncDefBuilder::new()
+    .param(ParamNumber)
+    .build("needs_num", fn_add_stub)
+  match fd.call([String("not a number", Decor::empty())]) {
+    Err(_) => assert_true(true)
+    Ok(_) => panic()
+  }
+}
+
+///|
+test "FuncDef call succeeds with valid args" {
+  let funcs = builtin_functions()
+  let fd = funcs["abs"]
+  match fd.call([Number(Number::from_int(-5), Decor::empty())]) {
+    Ok(v) =>
+      assert_true(v == Number(Number::from_int(5), Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "FuncDef variadic accepts extra args" {
+  let funcs = builtin_functions()
+  let fd = funcs["max"]
+  match fd.call([
+    Number(Number::from_int(1), Decor::empty()),
+    Number(Number::from_int(3), Decor::empty()),
+    Number(Number::from_int(2), Decor::empty()),
+  ]) {
+    Ok(v) =>
+      assert_true(v == Number(Number::from_int(3), Decor::empty()))
+    Err(_) => panic()
+  }
+}
+
+///|
+test "FuncDef variadic rejects wrong type in extra args" {
+  let funcs = builtin_functions()
+  let fd = funcs["max"]
+  match fd.call([
+    Number(Number::from_int(1), Decor::empty()),
+    String("not number", Decor::empty()),
+  ]) {
+    Err(_) => assert_true(true)
+    Ok(_) => panic()
+  }
+}
+
+///|
+test "FuncDef builder factory" {
+  let fd = FuncDef::builder()
+    .param(ParamString)
+    .build("test_fn", fn_add_stub)
+  match fd.call([String("hello", Decor::empty())]) {
+    Ok(_) => assert_true(true)
+    Err(_) => panic()
+  }
+}
